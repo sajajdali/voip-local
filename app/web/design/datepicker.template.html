@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<div ref="{{ ref }}" dir="rtl" style="position:relative;display:flex;flex-direction:column;gap:5px;font-family:Vazirmatn,Tahoma,sans-serif;width:100%">
+  <sc-if value="{{ hasLabel }}"><span style="font-size:12px;color:#6b6e72">{{ label }}</span></sc-if>
+  <button onClick="{{ toggle }}" style="display:flex;align-items:center;gap:8px;border:1px solid {{ trigBd }};border-radius:10px;padding:9px 10px;font-size:13px;background:#fff;cursor:pointer;font-family:inherit;width:100%;text-align:right">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#3d6a0c" stroke-width="1.8" style="flex-shrink:0"><rect x="3" y="5" width="18" height="16" rx="3"></rect><path d="M3 10h18M8 3v4M16 3v4"></path></svg>
+    <span style="flex:1;color:{{ textFg }};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ text }}</span>
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6b6e72" stroke-width="2" stroke-linecap="round"><path d="M6 9l6 6 6-6"></path></svg>
+  </button>
+  <sc-if value="{{ open }}">
+    <div style="position:absolute;top:100%;margin-top:6px;right:0;width:292px;background:#fff;border:1px solid #e7e8e3;border-radius:18px;box-shadow:0 18px 40px rgba(30,30,30,.16);padding:14px;z-index:60;display:flex;flex-direction:column;gap:10px">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:6px">
+        <button onClick="{{ prev }}" title="ماه قبل" style="width:32px;height:32px;border-radius:10px;border:none;background:#f4f5f1;cursor:pointer;display:grid;place-items:center"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#2E2F31" stroke-width="2" stroke-linecap="round"><path d="M9 6l6 6-6 6"></path></svg></button>
+        <div style="display:flex;align-items:center;gap:6px;font-weight:800;font-size:14px;color:#232425"><span>{{ monthName }}</span><span style="color:#3d6a0c">{{ year }}</span></div>
+        <button onClick="{{ next }}" title="ماه بعد" style="width:32px;height:32px;border-radius:10px;border:none;background:#f4f5f1;cursor:pointer;display:grid;place-items:center"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#2E2F31" stroke-width="2" stroke-linecap="round"><path d="M15 6l-6 6 6 6"></path></svg></button>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px">
+        <sc-for list="{{ weekdays }}" as="w"><span style="text-align:center;font-size:11px;font-weight:700;color:{{ w.fg }};padding:4px 0">{{ w.l }}</span></sc-for>
+        <sc-for list="{{ cells }}" as="c"><button onClick="{{ c.pick }}" style="height:36px;border-radius:10px;border:1.5px solid {{ c.bd }};background:{{ c.bg }};color:{{ c.fg }};font-weight:{{ c.fw }};font-size:13px;cursor:{{ c.cur }};font-family:inherit;padding:0">{{ c.d }}</button></sc-for>
+      </div>
+      <div style="display:flex;gap:8px;border-top:1px solid #eeefeb;padding-top:10px">
+        <button onClick="{{ pickToday }}" style="border:none;background:#eef5e3;color:#3d6a0c;padding:7px 12px;border-radius:9px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">امروز</button>
+        <sc-if value="{{ clearable }}"><button onClick="{{ clear }}" style="border:none;background:#f4f5f1;color:#55585c;padding:7px 12px;border-radius:9px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">همه تاریخ‌ها</button></sc-if>
+        <span style="margin-right:auto;font-size:11px;color:#6b6e72;align-self:center">{{ todayText }}</span>
+      </div>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:320,&quot;height&quot;:420},&quot;value&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;1405/07/15&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;label&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;از تاریخ&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;placeholder&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;انتخاب تاریخ&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;clearable&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;},&quot;rangeStart&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;rangeEnd&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;onChange&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;(v: string) =&gt; void&quot;}}">
+const MN=['فروردین','اردیبهشت','خرداد','تیر','مرداد','شهریور','مهر','آبان','آذر','دی','بهمن','اسفند'];
+const WD=['ش','ی','د','س','چ','پ','ج'];
+const TODAY='1405/07/15';
+const pad=n=>String(n).padStart(2,'0');
+const LEAP=new Set([1395,1399,1403,1408,1412]);
+const mlen=(y,m)=>m<=6?31:m<=11?30:(LEAP.has(y)?30:29);
+const doy=(m,d)=>(m<=6?(m-1)*31:186+(m-7)*30)+d-1;
+const ylen=y=>LEAP.has(y)?366:365;
+function wcol(y,m,d){let t=doy(m,d);if(y>=1404){for(let k=1404;k<y;k++)t+=ylen(k);}else{for(let k=y;k<1404;k++)t-=ylen(k);}return((6+t)%7+7)%7;}
+class Component extends DCLogic {
+  state={open:false,vy:null,vm:null};
+  ref=React.createRef();
+  componentDidMount(){this.h=e=>{if(this.state.open&&this.ref.current&&!this.ref.current.contains(e.target))this.setState({open:false});};document.addEventListener('mousedown',this.h);}
+  componentWillUnmount(){document.removeEventListener('mousedown',this.h);}
+  emit(v){this.props.onChange&&this.props.onChange(v);this.setState({open:false});}
+  renderVals(){
+    const v=this.props.value||'';const base=(v||TODAY).split('/').map(Number);
+    const y=this.state.vy??base[0],m=this.state.vm??base[1];
+    const rs=this.props.rangeStart,re=this.props.rangeEnd;
+    const first=wcol(y,m,1),n=mlen(y,m),cells=[];
+    for(let i=0;i<first;i++)cells.push({d:'',bg:'transparent',fg:'#232425',bd:'transparent',fw:500,cur:'default',pick:()=>{}});
+    for(let d=1;d<=n;d++){const key=y+'/'+pad(m)+'/'+pad(d),sel=key===v,inR=rs&&re&&key>=rs&&key<=re,col=(first+d-1)%7;
+      cells.push({d,bg:sel?'#8DC63F':inR?'#eef5e3':'transparent',fg:sel?'#1f2021':col===6?'#b42318':'#232425',bd:key===TODAY&&!sel?'#8DC63F':'transparent',fw:sel||key===TODAY?800:500,cur:'pointer',pick:()=>this.emit(key)});}
+    const go=dlt=>()=>{let mm=m+dlt,yy=y;if(mm<1){mm=12;yy--;}if(mm>12){mm=1;yy++;}this.setState({vy:yy,vm:mm});};
+    const label=this.props.label||'';
+    return {ref:this.ref,label,hasLabel:!!label,open:this.state.open,
+      text:v?v.split('/')[2].replace(/^0/,'')+' '+MN[+v.split('/')[1]-1]+' '+v.split('/')[0]:(this.props.placeholder||'انتخاب تاریخ'),
+      textFg:v?'#232425':'#8b8e89',trigBd:this.state.open?'#8DC63F':'#e1e3dc',
+      toggle:()=>this.setState({open:!this.state.open,vy:base[0],vm:base[1]}),
+      monthName:MN[m-1],year:y,prev:go(-1),next:go(1),cells,
+      weekdays:WD.map((l,i)=>({l,fg:i===6?'#b42318':'#6b6e72'})),
+      pickToday:()=>this.emit(TODAY),clearable:!!this.props.clearable,clear:()=>this.emit(''),todayText:'امروز: 15 مهر 1405'};
+  }
+}
+</script>
+</body>
+</html>

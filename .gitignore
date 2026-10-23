@@ -1,0 +1,18 @@
+# dependencies / build output (rebuilt by deploy)
+node_modules/
+app/api/dist/
+app/web/dist/
+app/web/src/generated/*.bak
+# local tooling / OS
+.claude/
+.DS_Store
+*.log
+# never commit secrets, data or backups
+*.env
+api.env
+*.enc
+*.sql
+*.sql.gz
+*.xlsx
+*.tsv
+initial-passwords.json

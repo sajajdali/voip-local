@@ -1,0 +1,133 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  username  String   @unique
+  password  String
+  name      String
+  role      String // admin | supervisor | operator | accounting | reception | emergency
+  ext       String?
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+}
+
+/// One row per VoIP collection (exts, trunks, vqs, ivrs, snds, routes, tgroups, tconds, holidays, rgroups, fmes, blist, bset).
+/// The Asterisk configuration is generated from these rows on every save.
+model ConfigEntry {
+  key       String   @id
+  data      Json
+  updatedAt DateTime @updatedAt
+  updatedBy String?
+}
+
+model AuditLog {
+  id       Int      @id @default(autoincrement())
+  at       DateTime @default(now())
+  userId   String?
+  userName String?
+  action   String
+  target   String
+  detail   Json?
+}
+
+model Patient {
+  phone     String   @id
+  name      String
+  nid       String?
+  surgery   String?
+  source    String   @default("local")
+  updatedAt DateTime @updatedAt
+}
+
+model Call {
+  id        String   @id
+  startedAt DateTime
+  date      String // Jalali yyyy/mm/dd
+  time      String // HH:MM
+  phone     String
+  dir       String // in | out
+  st        String // answered | missed | voicemail | transferred
+  queue     String
+  opExt     String?
+  dur       Int      @default(0)
+  wait      Int      @default(0)
+  did       String?
+  recPath   String?
+  ai        Json?
+  aiState   String   @default("none") // none | queued | done | failed
+  survey    Json?
+  callback  Boolean  @default(false)
+  summary   String?
+  wave      Json?
+  createdAt DateTime @default(now())
+
+  @@index([date])
+  @@index([phone])
+}
+
+model Follow {
+  callId    String   @id
+  status    String // new | follow | done
+  doneAt    String?
+  updatedAt DateTime @updatedAt
+}
+
+model Note {
+  id        Int      @id @default(autoincrement())
+  callId    String
+  t         String
+  ref       String
+  by        String
+  at        String
+  createdAt DateTime @default(now())
+
+  @@index([callId])
+}
+
+/// Raw CDR written by Asterisk's cdr_pgsql (kept for auditing; calls are built from dialplan hooks).
+model Cdr {
+  id          Int       @id @default(autoincrement())
+  calldate    DateTime? @db.Timestamptz
+  clid        String?
+  src         String?
+  dst         String?
+  dcontext    String?
+  channel     String?
+  dstchannel  String?
+  lastapp     String?
+  lastdata    String?
+  duration    Int?
+  billsec     Int?
+  disposition String?
+  amaflags    Int?
+  accountcode String?
+  uniqueid    String?
+  userfield   String?
+  peeraccount String?
+  linkedid    String?
+  sequence    Int?
+
+  @@map("cdr")
+}
+
+/// One row per webhook delivery attempt («تنظیمات API»).
+model WebhookLog {
+  id       Int      @id @default(autoincrement())
+  at       DateTime @default(now())
+  callId   String
+  event    String
+  attempt  Int
+  ok       Boolean
+  httpCode Int?
+  error    String?
+  ms       Int
+
+  @@index([at])
+}

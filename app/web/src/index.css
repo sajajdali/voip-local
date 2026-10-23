@@ -1,0 +1,15 @@
+@import './fonts.css';
+body{margin:0;background:#f4f5f1;font-family:Vazirmatn,Tahoma,sans-serif;color:#232425}
+*{box-sizing:border-box}
+a{color:#3d6a0c}a:hover{color:#2E2F31}
+button,input,select,textarea{font-family:inherit}
+/* tablet / phone: sidebar becomes a top bar, content full width */
+@media (max-width: 900px){
+  #root > div[dir="rtl"]{grid-template-columns:minmax(0,1fr)!important}
+  #root > div[dir="rtl"] > aside{position:relative!important;height:auto!important;max-height:none}
+  #root > div[dir="rtl"] > main{padding:18px 14px 120px!important}
+}
+@media print{
+  #root > div[dir="rtl"] > aside{display:none!important}
+  #root > div[dir="rtl"]{grid-template-columns:1fr!important}
+}

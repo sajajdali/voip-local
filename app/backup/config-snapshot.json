@@ -1,0 +1,458 @@
+{
+  "exportedAt": "2026-10-23T19:21:15.403Z",
+  "note": "secrets removed",
+  "config": {
+    "blist": [],
+    "bset": {
+      "anon": false,
+      "sound": "",
+      "action": "hang"
+    },
+    "exts": [
+      {
+        "n": "100",
+        "q": "—",
+        "vm": false,
+        "dev": "Yealink SIP-T57W 96.86.0.75",
+        "rec": true,
+        "name": "داخلی 100",
+        "type": "SIP"
+      },
+      {
+        "n": "101",
+        "q": "Q-Main",
+        "vm": false,
+        "dev": "Grandstream GXP2160 1.0.11.99",
+        "rec": true,
+        "name": "داخلی 101",
+        "type": "SIP"
+      },
+      {
+        "n": "102",
+        "q": "Q-Main",
+        "vm": false,
+        "dev": "Grandstream GXP2160 1.0.11.99",
+        "rec": true,
+        "name": "داخلی 102",
+        "type": "SIP"
+      },
+      {
+        "n": "103",
+        "q": "Q-Main",
+        "vm": false,
+        "dev": "Grandstream GXP2160 1.0.11.99",
+        "rec": true,
+        "name": "داخلی 103",
+        "type": "SIP"
+      },
+      {
+        "n": "104",
+        "q": "—",
+        "vm": false,
+        "dev": "Grandstream GXP2160 1.0.11.99",
+        "rec": true,
+        "name": "داخلی 104",
+        "type": "SIP"
+      },
+      {
+        "n": "105",
+        "q": "—",
+        "vm": false,
+        "dev": "Grandstream GXP2160 1.0.11.99",
+        "rec": true,
+        "name": "داخلی 105",
+        "type": "SIP"
+      },
+      {
+        "n": "106",
+        "q": "—",
+        "vm": false,
+        "dev": "",
+        "rec": true,
+        "name": "داخلی 106",
+        "type": "SIP"
+      },
+      {
+        "n": "107",
+        "q": "—",
+        "vm": false,
+        "dev": "",
+        "rec": true,
+        "name": "داخلی 107",
+        "type": "SIP"
+      },
+      {
+        "n": "109",
+        "q": "—",
+        "vm": false,
+        "dev": "",
+        "rec": true,
+        "name": "داخلی 109",
+        "type": "SIP"
+      },
+      {
+        "n": "999",
+        "q": "—",
+        "vm": false,
+        "dev": "",
+        "rec": true,
+        "name": "داخلی 999",
+        "type": "SIP"
+      },
+      {
+        "n": "1001",
+        "q": "—",
+        "vm": false,
+        "dev": "",
+        "rec": true,
+        "name": "داخلی 1001",
+        "type": "SIP"
+      },
+      {
+        "n": "1002",
+        "q": "پذیرش",
+        "vm": true,
+        "dev": "تعریف نشده",
+        "rec": true,
+        "name": "سجاد",
+        "type": "SIP"
+      },
+      {
+        "n": "1003",
+        "q": "پذیرش",
+        "vm": true,
+        "dev": "Z 5.6.4 v2.10.20.4_1",
+        "rec": true,
+        "name": "1003",
+        "type": "SIP"
+      },
+      {
+        "n": "1004",
+        "q": "پذیرش",
+        "vm": true,
+        "dev": "تعریف نشده",
+        "rec": true,
+        "name": "1004",
+        "type": "SIP"
+      }
+    ],
+    "fmes": {
+      "100": {
+        "na": "vm",
+        "on": true,
+        "init": 8,
+        "list": [
+          "100"
+        ],
+        "ring": 20,
+        "strat": "hunt",
+        "confirm": false,
+        "announce": true
+      }
+    },
+    "holidays": [],
+    "ivrs": [
+      {
+        "id": "i2",
+        "did": "—",
+        "rep": 0,
+        "name": "Day-IVR (منوی روز)",
+        "opts": [
+          {
+            "k": "0",
+            "dest": "q:q400",
+            "label": "صف اصلی"
+          },
+          {
+            "k": "1",
+            "dest": "ann:Sound-Work-Time",
+            "label": "ساعات کاری"
+          },
+          {
+            "k": "2",
+            "dest": "ann:Sound-Address-new",
+            "label": "آدرس"
+          },
+          {
+            "k": "4",
+            "dest": "q:q400",
+            "label": "صف اصلی"
+          }
+        ],
+        "after": "",
+        "ddial": true,
+        "greet": "Sound-IVR-New",
+        "hours": "شنبه، دوشنبه، چهارشنبه ۱۳ تا ۱۹ · یکشنبه و سه‌شنبه ۱۴ تا ۱۸",
+        "idest": "q:q400",
+        "tdest": "q:q400",
+        "timeout": 1
+      },
+      {
+        "id": "i4",
+        "did": "—",
+        "rep": 0,
+        "name": "Night-IVR (منوی شب)",
+        "opts": [
+          {
+            "k": "1",
+            "dest": "ann:Sound-Work-Time",
+            "label": "ساعات کاری"
+          },
+          {
+            "k": "2",
+            "dest": "ann:Sound-Address-new",
+            "label": "آدرس"
+          }
+        ],
+        "after": "",
+        "ddial": false,
+        "greet": "Sound-IVR-Night",
+        "hours": "خارج از ساعات کاری",
+        "idest": "hang",
+        "tdest": "hang",
+        "timeout": 1
+      }
+    ],
+    "oroutes": [
+      {
+        "id": "o2",
+        "on": false,
+        "name": "To-Panasonic",
+        "pats": "1XX, 6XX",
+        "trunk": "tPanasonic",
+        "prepend": ""
+      },
+      {
+        "id": "o4",
+        "on": true,
+        "name": "9_outside (همه شماره‌ها)",
+        "pats": ".",
+        "trunk": "t88886279",
+        "prepend": ""
+      }
+    ],
+    "rgroups": [],
+    "routes": [
+      {
+        "id": "r1",
+        "on": true,
+        "cid": "",
+        "did": "",
+        "fax": false,
+        "moh": "",
+        "rec": "always",
+        "dest": "tc:tc1",
+        "lang": "fa",
+        "name": "همه تماس‌های ورودی",
+        "prio": 1,
+        "alert": "",
+        "prefix": ""
+      }
+    ],
+    "snds": [
+      {
+        "id": "Sound-IVR-New",
+        "cat": "ivr",
+        "dur": 48,
+        "date": "1405/07/27",
+        "file": "Sound-IVR-New.wav",
+        "name": "پیام منوی روز (IVR روز)"
+      },
+      {
+        "id": "Sound-IVR-Night",
+        "cat": "after",
+        "dur": 54,
+        "date": "1405/07/27",
+        "file": "Sound-IVR-Night.wav",
+        "name": "پیام منوی شب (IVR شب)"
+      },
+      {
+        "id": "Sound-Work-Time",
+        "cat": "after",
+        "dur": 17,
+        "date": "1405/07/27",
+        "file": "Sound-Work-Time.wav",
+        "name": "اعلام ساعات کاری"
+      },
+      {
+        "id": "Sound-Address-new",
+        "cat": "greet",
+        "dur": 16,
+        "date": "1405/07/27",
+        "file": "Sound-Address-new.wav",
+        "name": "اعلام آدرس"
+      },
+      {
+        "id": "Sound-Anns-Q",
+        "cat": "queue",
+        "dur": 60,
+        "date": "1405/07/27",
+        "file": "Sound-Anns-Q.wav",
+        "name": "اعلان صف"
+      },
+      {
+        "id": "MOH-Anns",
+        "cat": "moh",
+        "dur": 60,
+        "date": "1405/07/27",
+        "file": "orig_Dr (mp3cut.net).mp3",
+        "name": "موسیقی انتظار صف (MOH-Anns)"
+      },
+      {
+        "id": "Sound-IVR-Day",
+        "cat": "ivr",
+        "dur": 26,
+        "date": "1405/07/27",
+        "file": "Sound-IVR-Day.wav",
+        "name": "پیام منوی روز (قدیمی)"
+      },
+      {
+        "id": "Sound-Day",
+        "cat": "greet",
+        "dur": 26,
+        "date": "1405/07/27",
+        "file": "Sound-Day.wav",
+        "name": "پیام روز (قدیمی)"
+      },
+      {
+        "id": "Sound-Night",
+        "cat": "after",
+        "dur": 55,
+        "date": "1405/07/27",
+        "file": "Sound-Night.wav",
+        "name": "پیام شب (قدیمی)"
+      },
+      {
+        "id": "Sound-Address",
+        "cat": "greet",
+        "dur": 17,
+        "date": "1405/07/27",
+        "file": "Sound-Address.wav",
+        "name": "اعلام آدرس (قدیمی)"
+      },
+      {
+        "id": "Sound-Address-music",
+        "cat": "greet",
+        "dur": 16,
+        "date": "1405/07/27",
+        "file": "Sound-Address-music.wav",
+        "name": "اعلام آدرس با موسیقی"
+      },
+      {
+        "id": "Sound-Saat",
+        "cat": "after",
+        "dur": 19,
+        "date": "1405/07/27",
+        "file": "Sound-Saat.wav",
+        "name": "اعلام ساعات کاری (قدیمی)"
+      },
+      {
+        "id": "Sound-Time-Work-New",
+        "cat": "after",
+        "dur": 17,
+        "date": "1405/07/27",
+        "file": "Sound-Time-Work-New.wav",
+        "name": "اعلام ساعات کاری (نسخه بلند)"
+      },
+      {
+        "id": "Sound-Nobat",
+        "cat": "ivr",
+        "dur": 28,
+        "date": "1405/07/27",
+        "file": "Sound-Nobat.wav",
+        "name": "پیام نوبت‌دهی"
+      }
+    ],
+    "tconds": [
+      {
+        "id": "tc1",
+        "ovr": "none",
+        "name": "Time-Work",
+        "open": "ivr:i2",
+        "group": "g1",
+        "closed": "ivr:i4",
+        "useHol": false
+      }
+    ],
+    "tgroups": [
+      {
+        "id": "g1",
+        "name": "Time-Work",
+        "ranges": [
+          {
+            "to": "19:00",
+            "days": [
+              0,
+              2,
+              4
+            ],
+            "from": "13:00"
+          },
+          {
+            "to": "18:00",
+            "days": [
+              1,
+              3
+            ],
+            "from": "14:00"
+          }
+        ]
+      }
+    ],
+    "trunks": [
+      {
+        "ch": 30,
+        "id": "t88886279",
+        "on": true,
+        "did": "88886279",
+        "dtmf": "inband",
+        "host": "10.153.101.175",
+        "name": "88886279",
+        "pass": "",
+        "prov": "اپراتور مخابرات (خط اصلی)",
+        "type": "SIP",
+        "user": "",
+        "codec": "alaw,gsm,ulaw"
+      },
+      {
+        "ch": 8,
+        "id": "tPanasonic",
+        "on": false,
+        "did": "—",
+        "dtmf": "inband",
+        "host": "192.168.0.101:35060",
+        "name": "To-Panasonic",
+        "pass": "",
+        "prov": "مرکز تلفن Panasonic",
+        "type": "SIP",
+        "user": "",
+        "codec": "alaw,gsm,ulaw"
+      }
+    ],
+    "vqs": [
+      {
+        "id": "q400",
+        "moh": "MOH-Anns",
+        "num": "400",
+        "riu": true,
+        "fail": "hang",
+        "name": "Q-Main",
+        "ring": 15,
+        "strat": "ringall",
+        "maxWait": 0,
+        "members": [
+          "101",
+          "102",
+          "103"
+        ]
+      }
+    ],
+    "webhook": {
+      "url": "",
+      "token": "",
+      "enabled": false,
+      "headerName": "Authorization",
+      "timeoutSec": 10
+    }
+  }
+}
