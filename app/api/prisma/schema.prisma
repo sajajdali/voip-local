@@ -131,3 +131,18 @@ model WebhookLog {
 
   @@index([at])
 }
+
+/// «بکاپ و بازیابی»: one row per backup archive in BACKUP_DIR.
+model Backup {
+  id         String   @id
+  createdAt  DateTime @default(now())
+  by         String
+  note       String?
+  components Json
+  status     String // running | done | failed
+  error      String?
+  auto       Boolean  @default(false)
+  file       String
+  sizeBytes  Float    @default(0)
+  counts     Json?
+}

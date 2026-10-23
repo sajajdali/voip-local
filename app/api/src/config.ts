@@ -33,6 +33,9 @@ export class ConfigStore {
 
   async applyAll() { return this.ast.apply(await this.all()); }
 
+  /** Forget cached settings (after a restore wrote them straight to the database). */
+  reset() { this.cache = null; }
+
   /** Server-owned fields survive client saves (SIP secrets, blacklist counters, uploaded file metadata). */
   private merge(key: string, data: any, old: any) {
     if (!Array.isArray(data)) return data;

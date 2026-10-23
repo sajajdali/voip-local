@@ -100,6 +100,7 @@ server {
   client_max_body_size 50m;
   add_header X-Content-Type-Options nosniff always;
   add_header X-Frame-Options SAMEORIGIN always;
+  location /api/backups/upload { client_max_body_size 20g; proxy_request_buffering off; proxy_pass http://127.0.0.1:3000; proxy_read_timeout 1h; proxy_send_timeout 1h; }
   location /api/ { proxy_pass http://127.0.0.1:3000; proxy_set_header Host \$host; proxy_set_header X-Forwarded-For \$remote_addr; proxy_read_timeout 300s; }
   location /socket.io/ { proxy_pass http://127.0.0.1:3000; proxy_http_version 1.1; proxy_set_header Upgrade \$http_upgrade; proxy_set_header Connection "upgrade"; proxy_read_timeout 1h; }
   location /ws { proxy_pass http://127.0.0.1:8088/ws; proxy_http_version 1.1; proxy_set_header Upgrade \$http_upgrade; proxy_set_header Connection "upgrade"; proxy_read_timeout 1h; }

@@ -12,9 +12,10 @@ import { PatientsService } from './patients';
 import { PrismaService } from './prisma.service';
 import { ReportsController } from './reports';
 import { WebhookController, WebhookService } from './webhook';
+import { BackupController, BackupService } from './backups';
 
 @Module({
-  controllers: [AuthController, CallsController, HooksController, ConfigController, MediaController, ReportsController, WebhookController],
-  providers: [PrismaService, Bus, AsteriskService, ConfigStore, CallsService, PatientsService, AiService, WebhookService, LiveGateway, { provide: APP_GUARD, useClass: AuthGuard }],
+  controllers: [AuthController, CallsController, HooksController, ConfigController, MediaController, ReportsController, WebhookController, BackupController],
+  providers: [PrismaService, Bus, AsteriskService, ConfigStore, CallsService, PatientsService, AiService, WebhookService, BackupService, LiveGateway, { provide: APP_GUARD, useClass: AuthGuard }],
 })
 export class AppModule {}

@@ -109,6 +109,7 @@ class LiveApp extends React.Component {
     }
     if (prev.call && prev.call.origId && !s.call && !this.endingCall) api('/calls/hangup', { origId: prev.call.origId }).catch(() => {});
     if (s.page === 'vapi' && prev.page !== 'vapi') this.loadApi();
+    if (s.page === 'vbackup' && prev.page !== 'vbackup') this.loadBackups();
     if (this.remote) return;
     VOIP_KEYS.forEach(k => {
       if (s[k] === prev[k]) return;
@@ -321,6 +322,106 @@ class LiveApp extends React.Component {
           try { const r = await api('/webhook/resend/' + encodeURIComponent(l.callId), {}); this.toast(r.ok ? 'تماس ' + l.callId + ' دوباره ارسال شد' : 'ارسال دوباره ناموفق بود: ' + r.error); }
           catch (e) { this.toast('ارسال دوباره ناموفق بود: ' + e.message); }
           this.loadApi();
+        },
+      })),
+    } };
+  }
+
+  // ---- «بکاپ و بازیابی»
+  async loadBackups() {
+    clearTimeout(this.bkT);
+    try {
+      const d = await api('/backups');
+      this.setState(st => ({ bk: d, bkSel: st.bkSel || Object.fromEntries(d.components.map(c => [c.id, c.id !== 'recordings' && c.id !== 'system'])), bkSch: st.bkSch || { ...d.schedule } }));
+      if (d.items.some(b => b.status === 'running') && this.state.page === 'vbackup') this.bkT = setTimeout(() => this.loadBackups(), 2500);
+    } catch (e) { this.toast('بارگذاری بکاپ‌ها ناموفق بود: ' + e.message); }
+  }
+
+  backupVals(s) {
+    const d = s.bk || { items: [], components: [], disk: { free: 0, total: 0 }, schedule: {} };
+    const fmtB = n => !n ? '—' : n < 1048576 ? Math.max(1, Math.round(n / 1024)) + ' KB' : n < 1073741824 ? (n / 1048576).toFixed(1) + ' MB' : (n / 1073741824).toFixed(2) + ' GB';
+    const label = Object.fromEntries(d.components.map(c => [c.id, c.label]));
+    const sel = s.bkSel || {};
+    const chosen = d.components.filter(c => sel[c.id]);
+    const box = on => ({ bd: on ? '#8DC63F' : '#e7e8e3', bg: on ? '#f7fbf1' : '#fff', boxBd: on ? '#8DC63F' : '#c9cbc5', boxBg: on ? '#8DC63F' : '#fff', mark: on ? '✓' : '', op: 1 });
+    const running = d.items.some(b => b.status === 'running');
+    const when = iso => { const t = new Date(iso); return { date: jStr(t), time: jpad(t.getHours()) + ':' + jpad(t.getMinutes()) }; };
+    const ST = { done: { label: 'آماده', bg: '#eaf4dc', fg: '#3d6a0c' }, running: { label: 'در حال ساخت…', bg: '#fbf1dc', fg: '#8a5a00' }, failed: { label: 'ناموفق', bg: '#fdeceb', fg: '#b42318' } };
+    const last = d.items.find(b => b.status === 'done');
+    const sch = s.bkSch || d.schedule || {};
+    const setSch = o => this.setState({ bkSch: { ...sch, ...o } });
+    const tg = on => ({ bg: on ? '#8DC63F' : '#d9dad6', j: on ? 'flex-end' : 'flex-start' });
+    const DAYS = ['شنبه', 'یکشنبه', 'دوشنبه', 'سه‌شنبه', 'چهارشنبه', 'پنجشنبه', 'جمعه'];
+    const rs = s.bkRs;
+    const rsB = rs && d.items.find(b => b.id === rs.id);
+    return { bk: {
+      kpis: [
+        { label: 'تعداد بکاپ‌ها', value: d.items.filter(b => b.status === 'done').length, color: '#232425' },
+        { label: 'حجم کل بکاپ‌ها', value: fmtB(d.items.reduce((n, b) => n + (b.sizeBytes || 0), 0)), color: '#232425' },
+        { label: 'آخرین بکاپ', value: last ? when(last.createdAt).date + '  ' + when(last.createdAt).time : '—', color: last ? '#3d6a0c' : '#8b8e89' },
+        { label: 'فضای آزاد دیسک سرور', value: fmtB(d.disk.free), color: d.disk.total && d.disk.free / d.disk.total < 0.15 ? '#b42318' : '#232425' },
+      ],
+      comps: d.components.map(c => ({ ...c, ...box(!!sel[c.id]), sizeText: (c.size ? fmtB(c.size) + ' · ' : '') + c.info, toggle: () => this.setState({ bkSel: { ...sel, [c.id]: !sel[c.id] } }) })),
+      selAll: () => this.setState({ bkSel: Object.fromEntries(d.components.map(c => [c.id, true])) }),
+      selNone: () => this.setState({ bkSel: {} }),
+      selText: chosen.length ? chosen.length + ' بخش انتخاب شده' + (chosen.some(c => c.size) ? ' · حدود ' + fmtB(chosen.reduce((n, c) => n + (c.size || 0), 0)) + ' فایل' : '') : 'بخشی انتخاب نشده',
+      note: s.bkNote || '', setNote: e => this.setState({ bkNote: e.target.value }),
+      createText: running ? 'در حال ساخت بکاپ…' : 'شروع بکاپ',
+      create: async () => {
+        if (running) return;
+        if (!chosen.length) { this.toast('حداقل یک بخش را انتخاب کنید'); return; }
+        try { await api('/backups', { components: chosen.map(c => c.id), note: s.bkNote || '' }); this.setState({ bkNote: '' }); this.toast('بکاپ شروع شد؛ پایانش در لیست پایین نمایش داده می‌شود'); this.loadBackups(); }
+        catch (e) { this.toast('شروع بکاپ ناموفق بود: ' + e.message); }
+      },
+      upload: async e => {
+        const file = e.target.files && e.target.files[0]; e.target.value = '';
+        if (!file) return;
+        const fd = new FormData(); fd.append('file', file);
+        this.toast('در حال بارگذاری «' + file.name + '» (' + fmtB(file.size) + ')…');
+        try { await api('/backups/upload', fd); this.toast('فایل بکاپ بارگذاری شد و به لیست اضافه شد'); this.loadBackups(); }
+        catch (err) { this.toast('بارگذاری ناموفق بود: ' + err.message); }
+      },
+      sch: {
+        f: { ...sch, weekday: String(sch.weekday ?? 0) }, onT: tg(sch.enabled), onLabel: sch.enabled ? 'فعال' : 'غیرفعال', tog: () => setSch({ enabled: !sch.enabled }), weekly: sch.freq === 'weekly',
+        set: Object.fromEntries(['freq', 'time', 'weekday', 'keep'].map(k => [k, e => setSch({ [k]: e.target.value })])),
+        days: DAYS.map((l, i) => ({ id: String(i), label: l })),
+        chips: d.components.map(c => { const on = (sch.components || []).includes(c.id); return { label: c.label, mark: on ? '✓' : '+', bg: on ? '#eef5e3' : '#fff', fg: on ? '#3d6a0c' : '#6b6e72', bd: on ? '#cfe4ad' : '#e1e3dc', toggle: () => setSch({ components: on ? sch.components.filter(x => x !== c.id) : [...(sch.components || []), c.id] }) }; }),
+        info: sch.enabled ? (sch.freq === 'weekly' ? 'هر ' + DAYS[+sch.weekday || 0] : 'هر روز') + ' ساعت ' + (sch.time || '02:00') + ' · ' + (sch.keep || 7) + ' نسخه آخر نگه داشته می‌شود' : 'خاموش',
+        save: async () => {
+          try { const r = await api('/backups/schedule', { ...sch, weekday: +sch.weekday || 0, keep: +sch.keep || 7 }, 'PUT'); this.setState({ bkSch: r }); this.toast(r.enabled ? 'بکاپ خودکار ذخیره و فعال شد' : 'زمان‌بندی ذخیره شد (بکاپ خودکار خاموش است)'); }
+          catch (e) { this.toast('ذخیره ناموفق بود: ' + e.message); }
+        },
+      },
+      restoring: !!rsB,
+      rs: rsB ? {
+        title: when(rsB.createdAt).date + ' ساعت ' + when(rsB.createdAt).time,
+        items: d.components.filter(c => rsB.components.includes(c.id)).map(c => ({ ...c, ...box(c.restorable && !!rs.sel[c.id]), op: c.restorable ? 1 : .45, sizeText: c.restorable ? '' : 'بازیابی دستی', desc: c.restorable ? c.desc : 'این بخش فقط برای دانلود است و از پنل بازیابی نمی‌شود.', toggle: () => c.restorable && this.setState({ bkRs: { ...rs, sel: { ...rs.sel, [c.id]: !rs.sel[c.id] } } }) })),
+        goText: rs.busy ? 'در حال بازیابی… (لطفاً صبر کنید)' : 'بازیابی بخش‌های انتخاب‌شده',
+        cancel: () => this.setState({ bkRs: null }),
+        go: async () => {
+          if (rs.busy) return;
+          const comps = Object.keys(rs.sel).filter(k => rs.sel[k]);
+          if (!comps.length) { this.toast('بخشی برای بازیابی انتخاب نشده'); return; }
+          if (!window.confirm('بخش‌های انتخاب‌شده با محتوای این بکاپ جایگزین شوند؟')) return;
+          this.setState({ bkRs: { ...rs, busy: true } });
+          try {
+            const r = await api('/backups/' + encodeURIComponent(rs.id) + '/restore', { components: comps });
+            this.toast('بازیابی انجام شد: ' + r.components.map(k => label[k]).join('، ') + ' — صفحه تا چند لحظه دیگر تازه می‌شود');
+            setTimeout(() => location.reload(), 2500);
+          } catch (e) { this.setState({ bkRs: { ...rs, busy: false } }); this.toast('بازیابی ناموفق بود: ' + e.message); this.loadBackups(); }
+        },
+      } : {},
+      countText: d.items.length ? d.items.length + ' فایل · بکاپ‌های خودکار با برچسب «بکاپ خودکار»' : '',
+      empty: !d.items.length,
+      rows: d.items.map(b => ({
+        ...when(b.createdAt), chips: (b.components || []).map(k => label[k] || k), sizeText: fmtB(b.sizeBytes), by: b.by, note: b.note || (b.auto ? 'بکاپ خودکار' : ''),
+        st: ST[b.status] || ST.failed, error: b.error || '', ready: b.status === 'done', canDel: b.status !== 'running',
+        download: () => { const a = document.createElement('a'); a.href = api.url('/backups/' + encodeURIComponent(b.id) + '/download'); document.body.appendChild(a); a.click(); a.remove(); },
+        restore: () => { this.setState({ bkRs: { id: b.id, sel: Object.fromEntries((b.components || []).map(k => [k, k !== 'system'])) } }); window.scrollTo({ top: 0, behavior: 'smooth' }); },
+        del: async () => {
+          if (!window.confirm('این بکاپ برای همیشه حذف شود؟')) return;
+          try { await api('/backups/' + encodeURIComponent(b.id), undefined, 'DELETE'); this.toast('بکاپ حذف شد'); this.loadBackups(); }
+          catch (e) { this.toast('حذف ناموفق بود: ' + e.message); }
         },
       })),
     } };

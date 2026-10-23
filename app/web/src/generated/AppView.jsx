@@ -117,6 +117,10 @@ export default function AppView({ vm }) {
                   <span style={{flex: "1"}}>{"لیست سیاه"}</span>
                   <span style={{fontSize: "11px", padding: "1px 7px", borderRadius: "99px", background: vm.nav?.vblack?.cbg}}>{vm.nav?.vblack?.count}</span>
                 </div>
+                <div onClick={vm.nav?.vbackup?.go} style={{display: "flex", alignItems: "center", gap: "10px", padding: "9px 12px", borderRadius: "10px", cursor: "pointer", background: vm.nav?.vbackup?.bg, color: vm.nav?.vbackup?.fg, fontSize: "13px", fontWeight: "600"}}>
+                  <span style={{flex: "1"}}>{"بکاپ و بازیابی"}</span>
+                  <span style={{fontSize: "11px", padding: "1px 7px", borderRadius: "99px", background: vm.nav?.vbackup?.cbg}}>{vm.nav?.vbackup?.count}</span>
+                </div>
               </div>
             </>) : null}
             <div onClick={vm.nav?.vapi?.go} style={{display: "flex", alignItems: "center", gap: "12px", padding: "11px 14px", borderRadius: "12px", cursor: "pointer", background: vm.nav?.vapi?.bg, color: vm.nav?.vapi?.fg, fontSize: "14px", fontWeight: "600"}}>
@@ -1582,6 +1586,196 @@ export default function AppView({ vm }) {
                   </>) : null}
                 </div>
               </React.Fragment>)}
+            </div>
+          </div>
+        </>) : null}
+        {(vm.is?.vbackup) ? (<>
+          <div style={{display: "flex", flexDirection: "column", gap: "20px"}}>
+            <div style={{display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: "16px", flexWrap: "wrap"}}>
+              <div>
+                <div style={{fontSize: "12px", color: "#3d6a0c", fontWeight: "700", marginBottom: "4px"}}>{"تنظیمات VoIP"}</div>
+                <h1 style={{margin: "0", fontSize: "28px", fontWeight: "800"}}>{"بکاپ و بازیابی"}</h1>
+                <div style={{fontSize: "14px", color: "#6b6e72", marginTop: "6px", maxWidth: "760px", lineHeight: "1.8"}}>
+                  {"از بخش‌های دلخواه سامانه بکاپ بگیرید، فایل را دانلود کنید و هر وقت لازم شد همان بخش‌ها را برگردانید. قبل از هر بازیابی، از وضعیت فعلی خودکار یک بکاپ ایمنی گرفته می‌شود."}
+                </div>
+              </div>
+              <label style={{display: "flex", alignItems: "center", gap: "8px", border: "1px solid #e1e3dc", background: "#fff", color: "#2E2F31", padding: "11px 18px", borderRadius: "12px", fontSize: "13px", fontWeight: "700", cursor: "pointer", whiteSpace: "nowrap"}}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#3d6a0c" strokeWidth="2" strokeLinecap="round"><path d="M12 15V4M7 9l5-5 5 5M5 20h14" /></svg>
+                {"بارگذاری فایل بکاپ"}
+                <input type="file" accept=".gz,.tgz,application/gzip" onChange={vm.bk?.upload} style={{display: "none"}} />
+              </label>
+            </div>
+            <div style={{display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(190px,1fr))", gap: "16px"}}>
+              {(vm.bk?.kpis || []).map((k, __i7) => <React.Fragment key={__i7}>
+                <div style={{background: "#fff", border: "1px solid #e7e8e3", borderRadius: "18px", padding: "18px 20px"}}>
+                  <div style={{fontSize: "12px", color: "#6b6e72"}}>{k?.label}</div>
+                  <div style={{fontSize: "22px", fontWeight: "800", marginTop: "6px", color: k?.color, direction: "ltr", textAlign: "right"}}>{k?.value}</div>
+                </div>
+              </React.Fragment>)}
+            </div>
+            {(vm.bk?.restoring) ? (<>
+              <div style={{background: "#fff", border: "2px solid #e0a83a", borderRadius: "20px", padding: "20px", display: "flex", flexDirection: "column", gap: "14px"}}>
+                <div style={{display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap"}}>
+                  <span style={{width: "34px", height: "34px", borderRadius: "11px", background: "#fbf1dc", color: "#8a5a00", display: "grid", placeItems: "center", fontWeight: "800"}}>{"!"}</span>
+                  <div style={{flex: "1", minWidth: "220px"}}>
+                    <div style={{fontWeight: "800", fontSize: "16px"}}>{"بازیابی بکاپ "}{vm.bk?.rs?.title}</div>
+                    <div style={{fontSize: "12px", color: "#8a5a00", marginTop: "4px", lineHeight: "1.8"}}>
+                      {"بخش‌های انتخاب‌شده با محتوای این بکاپ جایگزین می‌شوند. قبل از شروع، از وضعیت فعلی همین بخش‌ها خودکار یک «بکاپ ایمنی» گرفته می‌شود تا در صورت اشتباه قابل برگشت باشد."}
+                    </div>
+                  </div>
+                </div>
+                <div style={{display: "flex", flexDirection: "column", gap: "8px"}}>
+                  {(vm.bk?.rs?.items || []).map((r, __i9) => <React.Fragment key={__i9}>
+                    <div onClick={r?.toggle} style={{display: "flex", alignItems: "center", gap: "12px", padding: "12px 14px", border: `1px solid ${r?.bd}`, background: r?.bg, borderRadius: "14px", cursor: "pointer", opacity: r?.op}}>
+                      <span style={{width: "22px", height: "22px", borderRadius: "7px", border: `2px solid ${r?.boxBd}`, background: r?.boxBg, color: "#1f2021", display: "grid", placeItems: "center", fontSize: "13px", fontWeight: "800", flexShrink: "0"}}>{r?.mark}</span>
+                      <div style={{flex: "1", minWidth: "0"}}>
+                        <div style={{fontWeight: "700", fontSize: "14px"}}>{r?.label}</div>
+                        <div style={{fontSize: "12px", color: "#6b6e72", marginTop: "3px", lineHeight: "1.7"}}>{r?.desc}</div>
+                      </div>
+                      <span style={{fontSize: "12px", color: "#55585c", whiteSpace: "nowrap", textAlign: "left"}}>{r?.sizeText}</span>
+                    </div>
+                  </React.Fragment>)}
+                </div>
+                <div style={{display: "flex", gap: "10px", flexWrap: "wrap"}}>
+                  <button onClick={vm.bk?.rs?.go} style={{border: "none", background: "#e0a83a", color: "#1f2021", padding: "11px 20px", borderRadius: "12px", fontSize: "13px", fontWeight: "800", cursor: "pointer", fontFamily: "inherit"}}>{vm.bk?.rs?.goText}</button>
+                  <button onClick={vm.bk?.rs?.cancel} style={{border: "1px solid #e1e3dc", background: "#fff", padding: "11px 18px", borderRadius: "12px", fontSize: "13px", fontWeight: "700", cursor: "pointer", fontFamily: "inherit"}}>{"انصراف"}</button>
+                </div>
+              </div>
+            </>) : null}
+            <div style={{display: "flex", flexWrap: "wrap", gap: "20px", alignItems: "flex-start"}}>
+              <div style={{background: "#fff", border: "1px solid #e7e8e3", borderRadius: "20px", padding: "20px", display: "flex", flexDirection: "column", gap: "14px", flex: "3 1 420px", minWidth: "0"}}>
+                <div style={{display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap"}}>
+                  <div style={{flex: "1", fontWeight: "800", fontSize: "16px"}}>{"بکاپ جدید"}</div>
+                  <button onClick={vm.bk?.selAll} style={{border: "1px solid #e1e3dc", background: "#fff", padding: "6px 12px", borderRadius: "999px", fontSize: "12px", fontWeight: "600", cursor: "pointer", fontFamily: "inherit"}}>{"انتخاب همه"}</button>
+                  <button onClick={vm.bk?.selNone} style={{border: "1px solid #e1e3dc", background: "#fff", padding: "6px 12px", borderRadius: "999px", fontSize: "12px", fontWeight: "600", cursor: "pointer", fontFamily: "inherit"}}>{"هیچ‌کدام"}</button>
+                </div>
+                <div style={{display: "flex", flexDirection: "column", gap: "8px"}}>
+                  {(vm.bk?.comps || []).map((c, __i9) => <React.Fragment key={__i9}>
+                    <div onClick={c?.toggle} style={{display: "flex", alignItems: "center", gap: "12px", padding: "12px 14px", border: `1px solid ${c?.bd}`, background: c?.bg, borderRadius: "14px", cursor: "pointer", opacity: c?.op}}>
+                      <span style={{width: "22px", height: "22px", borderRadius: "7px", border: `2px solid ${c?.boxBd}`, background: c?.boxBg, color: "#1f2021", display: "grid", placeItems: "center", fontSize: "13px", fontWeight: "800", flexShrink: "0"}}>{c?.mark}</span>
+                      <div style={{flex: "1", minWidth: "0"}}>
+                        <div style={{fontWeight: "700", fontSize: "14px"}}>{c?.label}</div>
+                        <div style={{fontSize: "12px", color: "#6b6e72", marginTop: "3px", lineHeight: "1.7"}}>{c?.desc}</div>
+                      </div>
+                      <span style={{fontSize: "12px", color: "#55585c", whiteSpace: "nowrap", textAlign: "left"}}>{c?.sizeText}</span>
+                    </div>
+                  </React.Fragment>)}
+                </div>
+                <label style={{display: "flex", flexDirection: "column", gap: "6px", fontSize: "12px", color: "#6b6e72"}}>
+                  {"توضیح (اختیاری)"}
+                  <input value={vm.bk?.note} onChange={vm.bk?.setNote} placeholder="مثلاً قبل از تغییر IVR" style={{border: "1px solid #e1e3dc", borderRadius: "10px", padding: "10px 12px", fontSize: "13px", outline: "none", background: "#fff", color: "#232425", fontFamily: "inherit", width: "100%"}} />
+                </label>
+                <div style={{display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap"}}>
+                  <button onClick={vm.bk?.create} style={{display: "flex", alignItems: "center", gap: "8px", border: "none", background: "#8DC63F", color: "#1f2021", padding: "12px 22px", borderRadius: "12px", fontSize: "14px", fontWeight: "800", cursor: "pointer", fontFamily: "inherit"}}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M12 4v11M7 10l5 5 5-5M5 20h14" /></svg>
+                    {vm.bk?.createText}
+                  </button>
+                  <span style={{fontSize: "12px", color: "#6b6e72"}}>{vm.bk?.selText}</span>
+                </div>
+              </div>
+              <div style={{background: "#fff", border: "1px solid #e7e8e3", borderRadius: "20px", padding: "20px", display: "flex", flexDirection: "column", gap: "14px", flex: "2 1 300px", minWidth: "0"}}>
+                <div style={{display: "flex", alignItems: "center", gap: "10px"}}>
+                  <div style={{flex: "1", fontWeight: "800", fontSize: "16px"}}>{"بکاپ خودکار"}</div>
+                  <span style={{fontSize: "12px", color: "#6b6e72"}}>{vm.bk?.sch?.onLabel}</span>
+                  <button onClick={vm.bk?.sch?.tog} style={{width: "42px", height: "24px", borderRadius: "99px", border: "none", background: vm.bk?.sch?.onT?.bg, display: "flex", justifyContent: vm.bk?.sch?.onT?.j, alignItems: "center", padding: "3px", cursor: "pointer", flexShrink: "0"}}>
+                    <span style={{width: "18px", height: "18px", borderRadius: "50%", background: "#fff", boxShadow: "0 1px 2px rgba(0,0,0,.25)"}} />
+                  </button>
+                </div>
+                <div style={{display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px"}}>
+                  <label style={{display: "flex", flexDirection: "column", gap: "6px", fontSize: "12px", color: "#6b6e72"}}>
+                    {"تکرار"}
+                    <select value={vm.bk?.sch?.f?.freq} onChange={vm.bk?.sch?.set?.freq} style={{border: "1px solid #e1e3dc", borderRadius: "10px", padding: "10px 12px", fontSize: "13px", outline: "none", background: "#fff", color: "#232425", fontFamily: "inherit", width: "100%"}}>
+                      <option value="daily">{"هر روز"}</option>
+                      <option value="weekly">{"هر هفته"}</option>
+                    </select>
+                  </label>
+                  <label style={{display: "flex", flexDirection: "column", gap: "6px", fontSize: "12px", color: "#6b6e72"}}>
+                    {"ساعت"}
+                    <input type="time" value={vm.bk?.sch?.f?.time} onChange={vm.bk?.sch?.set?.time} style={{border: "1px solid #e1e3dc", borderRadius: "10px", padding: "10px 12px", fontSize: "13px", outline: "none", background: "#fff", color: "#232425", fontFamily: "inherit", width: "100%", direction: "ltr"}} />
+                  </label>
+                  {(vm.bk?.sch?.weekly) ? (<>
+                    <label style={{display: "flex", flexDirection: "column", gap: "6px", fontSize: "12px", color: "#6b6e72"}}>
+                      {"روز هفته"}
+                      <select value={vm.bk?.sch?.f?.weekday} onChange={vm.bk?.sch?.set?.weekday} style={{border: "1px solid #e1e3dc", borderRadius: "10px", padding: "10px 12px", fontSize: "13px", outline: "none", background: "#fff", color: "#232425", fontFamily: "inherit", width: "100%"}}>
+                        {(vm.bk?.sch?.days || []).map((d, __i12) => <React.Fragment key={__i12}>
+                          <option value={d?.id}>{d?.label}</option>
+                        </React.Fragment>)}
+                      </select>
+                    </label>
+                  </>) : null}
+                  <label style={{display: "flex", flexDirection: "column", gap: "6px", fontSize: "12px", color: "#6b6e72"}}>
+                    {"تعداد نسخه نگه‌داری"}
+                    <input type="number" value={vm.bk?.sch?.f?.keep} onChange={vm.bk?.sch?.set?.keep} style={{border: "1px solid #e1e3dc", borderRadius: "10px", padding: "10px 12px", fontSize: "13px", outline: "none", background: "#fff", color: "#232425", fontFamily: "inherit", width: "100%"}} />
+                  </label>
+                </div>
+                <div style={{fontSize: "12px", color: "#6b6e72"}}>{"بخش‌های بکاپ خودکار"}</div>
+                <div style={{display: "flex", gap: "6px", flexWrap: "wrap"}}>
+                  {(vm.bk?.sch?.chips || []).map((p, __i9) => <React.Fragment key={__i9}>
+                    <button onClick={p?.toggle} style={{border: `1px solid ${p?.bd}`, background: p?.bg, color: p?.fg, padding: "6px 11px", borderRadius: "8px", fontSize: "12px", fontWeight: "600", cursor: "pointer", fontFamily: "inherit"}}>{p?.mark}{" "}{p?.label}</button>
+                  </React.Fragment>)}
+                </div>
+                <div style={{display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap"}}>
+                  <button onClick={vm.bk?.sch?.save} style={{border: "none", background: "#2E2F31", color: "#fff", padding: "10px 18px", borderRadius: "12px", fontSize: "13px", fontWeight: "700", cursor: "pointer", fontFamily: "inherit"}}>{"ذخیره زمان‌بندی"}</button>
+                  <span style={{fontSize: "12px", color: "#6b6e72"}}>{vm.bk?.sch?.info}</span>
+                </div>
+              </div>
+            </div>
+            <div style={{background: "#fff", border: "1px solid #e7e8e3", borderRadius: "20px", overflow: "hidden"}}>
+              <div style={{padding: "16px 18px", display: "flex", justifyContent: "space-between", alignItems: "center", gap: "10px", flexWrap: "wrap"}}>
+                <span style={{fontWeight: "800", fontSize: "16px"}}>{"بکاپ‌ها"}</span>
+                <span style={{fontSize: "12px", color: "#6b6e72"}}>{vm.bk?.countText}</span>
+              </div>
+              <div style={{overflowX: "auto"}}>
+                <table style={{width: "100%", borderCollapse: "collapse", minWidth: "860px"}}>
+                  <thead>
+                    <tr>
+                      <th style={{padding: "11px 14px", fontSize: "12px", color: "#6b6e72", fontWeight: "600", textAlign: "right", background: "#f7f8f5", whiteSpace: "nowrap"}}>{"تاریخ و ساعت"}</th>
+                      <th style={{padding: "11px 14px", fontSize: "12px", color: "#6b6e72", fontWeight: "600", textAlign: "right", background: "#f7f8f5", whiteSpace: "nowrap"}}>{"بخش‌ها"}</th>
+                      <th style={{padding: "11px 14px", fontSize: "12px", color: "#6b6e72", fontWeight: "600", textAlign: "right", background: "#f7f8f5", whiteSpace: "nowrap", textAlign: "center"}}>{"حجم"}</th>
+                      <th style={{padding: "11px 14px", fontSize: "12px", color: "#6b6e72", fontWeight: "600", textAlign: "right", background: "#f7f8f5", whiteSpace: "nowrap"}}>{"توسط / توضیح"}</th>
+                      <th style={{padding: "11px 14px", fontSize: "12px", color: "#6b6e72", fontWeight: "600", textAlign: "right", background: "#f7f8f5", whiteSpace: "nowrap", textAlign: "center"}}>{"وضعیت"}</th>
+                      <th style={{padding: "11px 14px", fontSize: "12px", color: "#6b6e72", fontWeight: "600", textAlign: "right", background: "#f7f8f5", whiteSpace: "nowrap", textAlign: "center"}}>{"عملیات"}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(vm.bk?.rows || []).map((b, __i10) => <React.Fragment key={__i10}>
+                      <tr>
+                        <td style={{padding: "11px 14px", borderTop: "1px solid #eeefeb", fontSize: "13px", verticalAlign: "middle", whiteSpace: "nowrap"}}>
+                          <div style={{fontWeight: "700"}}>{b?.date}</div>
+                          <div style={{fontSize: "12px", color: "#6b6e72"}}>{b?.time}</div>
+                        </td>
+                        <td style={{padding: "11px 14px", borderTop: "1px solid #eeefeb", fontSize: "13px", verticalAlign: "middle"}}>
+                          <div style={{display: "flex", gap: "4px", flexWrap: "wrap", maxWidth: "340px"}}>
+                            {(b?.chips || []).map((x, __i14) => <React.Fragment key={__i14}>
+                              <span style={{padding: "2px 8px", borderRadius: "7px", background: "#f4f5f1", color: "#3a3b3d", fontSize: "11px", fontWeight: "600", whiteSpace: "nowrap"}}>{x}</span>
+                            </React.Fragment>)}
+                          </div>
+                        </td>
+                        <td style={{padding: "11px 14px", borderTop: "1px solid #eeefeb", fontSize: "13px", verticalAlign: "middle", textAlign: "center", whiteSpace: "nowrap", direction: "ltr"}}>{b?.sizeText}</td>
+                        <td style={{padding: "11px 14px", borderTop: "1px solid #eeefeb", fontSize: "13px", verticalAlign: "middle"}}>
+                          <div>{b?.by}</div>
+                          <div style={{fontSize: "12px", color: "#6b6e72", maxWidth: "260px"}}>{b?.note}</div>
+                        </td>
+                        <td style={{padding: "11px 14px", borderTop: "1px solid #eeefeb", fontSize: "13px", verticalAlign: "middle", textAlign: "center"}}>
+                          <span style={{display: "inline-block", padding: "4px 10px", borderRadius: "999px", fontSize: "12px", fontWeight: "700", background: b?.st?.bg, color: b?.st?.fg, whiteSpace: "nowrap"}} title={b?.error}>{b?.st?.label}</span>
+                        </td>
+                        <td style={{padding: "11px 14px", borderTop: "1px solid #eeefeb", fontSize: "13px", verticalAlign: "middle", textAlign: "center", whiteSpace: "nowrap"}}>
+                          {(b?.ready) ? (<>
+                            <button onClick={b?.download} style={{border: "none", background: "#2E2F31", color: "#fff", padding: "6px 12px", borderRadius: "9px", fontSize: "12px", fontWeight: "700", cursor: "pointer", fontFamily: "inherit", marginLeft: "6px"}}>{"دانلود"}</button>
+                            <button onClick={b?.restore} style={{border: "1px solid #e0a83a", background: "#fff", color: "#8a5a00", padding: "6px 12px", borderRadius: "9px", fontSize: "12px", fontWeight: "700", cursor: "pointer", fontFamily: "inherit", marginLeft: "6px"}}>{"بازیابی"}</button>
+                          </>) : null}
+                          {(b?.canDel) ? (<>
+                            <button onClick={b?.del} style={{border: "none", background: "#fdeceb", color: "#b42318", padding: "6px 12px", borderRadius: "9px", fontSize: "12px", fontWeight: "700", cursor: "pointer", fontFamily: "inherit"}}>{"حذف"}</button>
+                          </>) : null}
+                        </td>
+                      </tr>
+                    </React.Fragment>)}
+                  </tbody>
+                </table>
+              </div>
+              {(vm.bk?.empty) ? (<>
+                <div style={{padding: "30px", textAlign: "center", color: "#6b6e72", fontSize: "13px"}}>{"هنوز بکاپی گرفته نشده است."}</div>
+              </>) : null}
             </div>
           </div>
         </>) : null}
