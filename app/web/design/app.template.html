@@ -61,9 +61,9 @@
         <div sc-camel-on-click="{{ nav.vbackup.go }}" style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:10px;cursor:pointer;background:{{ nav.vbackup.bg }};color:{{ nav.vbackup.fg }};font-size:13px;font-weight:600"><span style="flex:1">بکاپ و بازیابی</span><span style="font-size:11px;padding:1px 7px;border-radius:99px;background:{{ nav.vbackup.cbg }}">{{ nav.vbackup.count }}</span></div>
       </div>
     </sc-if>
-    <div sc-camel-on-click="{{ nav.vapi.go }}" style="display:flex;align-items:center;gap:12px;padding:11px 14px;border-radius:12px;cursor:pointer;background:{{ nav.vapi.bg }};color:{{ nav.vapi.fg }};font-size:14px;font-weight:600">
-      <svg width="19" height="19" sc-camel-view-box="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 9l-4 3 4 3M16 9l4 3-4 3M13.5 6l-3 12"></path></svg>
-      <span style="flex:1">تنظیمات API</span>
+    <div sc-camel-on-click="{{ nav.settings.go }}" style="display:flex;align-items:center;gap:12px;padding:11px 14px;border-radius:12px;cursor:pointer;background:{{ nav.settings.bg }};color:{{ nav.settings.fg }};font-size:14px;font-weight:600">
+      <svg width="19" height="19" sc-camel-view-box="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="3" width="7" height="7" rx="2"></rect><rect x="14" y="3" width="7" height="7" rx="2"></rect><rect x="3" y="14" width="7" height="7" rx="2"></rect><rect x="14" y="14" width="7" height="7" rx="2"></rect></svg>
+      <span style="flex:1">همه تنظیمات</span>
     </div>
 </sc-if>
   </nav>
@@ -86,6 +86,10 @@
       <sc-if value="{{ me.hasAlert }}"><span style="position:absolute;top:8px;left:9px;width:8px;height:8px;border-radius:50%;background:#e0574a"></span></sc-if>
     </div>
   </div>
+
+  <sc-if value="{{ crumb.show }}">
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:-8px"><button sc-camel-on-click="{{ crumb.back }}" style="display:flex;align-items:center;gap:6px;border:1px solid #e1e3dc;background:#fff;color:#2E2F31;padding:7px 14px;border-radius:999px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit"><span style="font-size:14px">→</span>بازگشت به تنظیمات</button><span style="font-size:12px;color:#8b8e89">تنظیمات / {{ crumb.title }}</span></div>
+  </sc-if>
 
   <!-- ===== CALLS ===== -->
   <sc-if value="{{ is.calls }}" hint-placeholder-val="{{ true }}">
@@ -707,6 +711,80 @@
         </sc-raw-table>
       </div>
       <sc-if value="{{ bk.empty }}"><div style="padding:30px;text-align:center;color:#6b6e72;font-size:13px">هنوز بکاپی گرفته نشده است.</div></sc-if>
+    </div>
+  </div>
+  </sc-if>
+
+  <!-- ===== SETTINGS HUB ===== -->
+  <sc-if value="{{ is.settings }}">
+  <div style="display:flex;flex-direction:column;gap:26px">
+    <div><h1 style="margin:0;font-size:28px;font-weight:800">تنظیمات</h1><div style="font-size:14px;color:#6b6e72;margin-top:6px">همه تنظیمات مرکز تماس در یک جا؛ روی هر بخش بزنید تا تنظیمات آن باز شود.</div></div>
+    <sc-for list="{{ hub.groups }}" as="g">
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div style="display:flex;align-items:center;gap:10px"><span style="width:6px;height:18px;border-radius:3px;background:#8DC63F"></span><span style="font-weight:800;font-size:16px">{{ g.title }}</span><span style="font-size:12px;color:#8b8e89">{{ g.sub }}</span></div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px">
+          <sc-for list="{{ g.items }}" as="it">
+            <div sc-camel-on-click="{{ it.go }}" style="background:#fff;border:1px solid #e7e8e3;border-radius:18px;padding:18px;cursor:pointer;display:flex;flex-direction:column;gap:12px;box-shadow:0 1px 2px rgba(20,20,20,.03)">
+              <div style="display:flex;align-items:center;gap:12px"><span style="width:42px;height:42px;border-radius:13px;background:{{ it.bg }};color:{{ it.fg }};display:grid;place-items:center;flex-shrink:0"><svg width="20" height="20" sc-camel-view-box="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="{{ it.icon }}"></path></svg></span><div style="flex:1;min-width:0"><div style="font-weight:800;font-size:15px">{{ it.title }}</div><div style="font-size:12px;color:{{ it.statFg }};font-weight:700;margin-top:3px">{{ it.stat }}</div></div><span style="color:#b9bbb6;font-size:16px">←</span></div>
+              <div style="font-size:12px;color:#6b6e72;line-height:1.8">{{ it.desc }}</div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </sc-for>
+  </div>
+  </sc-if>
+
+  <!-- ===== AI SETTINGS ===== -->
+  <sc-if value="{{ is.vai }}">
+  <div style="display:flex;flex-direction:column;gap:20px">
+    <div><h1 style="margin:0;font-size:28px;font-weight:800">هوش مصنوعی</h1><div style="font-size:14px;color:#6b6e72;margin-top:6px;max-width:780px;line-height:1.8">فایل صوتی پیام‌ها (و در صورت تمایل مکالمه‌های ضبط‌شده) به سرویس تبدیل گفتار فرستاده می‌شود و متن به‌دست‌آمده با مدل هوش مصنوعی دسته‌بندی، خلاصه و اولویت‌بندی می‌شود. نتیجه در صندوق پیام صوتی، صفحه تحلیل هوش مصنوعی و فیلترها نمایش داده می‌شود.</div></div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px">
+      <sc-for list="{{ ai2.kpis }}" as="k"><div style="background:#fff;border:1px solid #e7e8e3;border-radius:18px;padding:16px 18px"><div style="font-size:12px;color:#6b6e72">{{ k.label }}</div><div style="font-size:24px;font-weight:800;margin-top:4px;color:{{ k.color }}">{{ k.value }}</div></div></sc-for>
+    </div>
+    <sc-if value="{{ ai2.hasErr }}"><div style="background:#fdeceb;border:1px solid #f5c2bd;color:#b42318;border-radius:14px;padding:12px 16px;font-size:13px;line-height:1.8">آخرین خطا: {{ ai2.lastError }}</div></sc-if>
+    <div style="background:#fff;border:1px solid #e7e8e3;border-radius:20px;padding:20px;display:flex;flex-direction:column;gap:14px">
+      <div style="display:flex;align-items:center;gap:12px"><div style="flex:1"><div style="font-weight:800;font-size:16px">تحلیل خودکار</div><div style="font-size:12px;color:#6b6e72;margin-top:4px">بعد از پایان هر تماس، موارد زیر خودکار تحلیل می‌شوند</div></div><span style="font-size:12px;color:#6b6e72">{{ ai2.onLabel }}</span><button sc-camel-on-click="{{ ai2.tog }}" style="width:42px;height:24px;border-radius:99px;border:none;background:{{ ai2.onT.bg }};display:flex;justify-content:{{ ai2.onT.j }};align-items:center;padding:3px;cursor:pointer;flex-shrink:0"><span style="width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.25)"></span></button></div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px">
+        <div style="display:flex;align-items:center;gap:12px;border:1px solid #e7e8e3;border-radius:14px;padding:12px 14px"><div style="flex:1;font-size:13px;font-weight:700">پیام‌های صوتی</div><button sc-camel-on-click="{{ ai2.togVm }}" style="width:42px;height:24px;border-radius:99px;border:none;background:{{ ai2.vmT.bg }};display:flex;justify-content:{{ ai2.vmT.j }};align-items:center;padding:3px;cursor:pointer;flex-shrink:0"><span style="width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.25)"></span></button></div>
+        <div style="display:flex;align-items:center;gap:12px;border:1px solid #e7e8e3;border-radius:14px;padding:12px 14px"><div style="flex:1"><div style="font-size:13px;font-weight:700">مکالمه‌های ضبط‌شده</div><div style="font-size:11px;color:#8b8e89;margin-top:2px">هزینه پردازش بیشتر</div></div><button sc-camel-on-click="{{ ai2.togCall }}" style="width:42px;height:24px;border-radius:99px;border:none;background:{{ ai2.callT.bg }};display:flex;justify-content:{{ ai2.callT.j }};align-items:center;padding:3px;cursor:pointer;flex-shrink:0"><span style="width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.25)"></span></button></div>
+        <label style="display:flex;flex-direction:column;gap:6px;font-size:12px;color:#6b6e72">حداقل مدت فایل برای تحلیل (ثانیه)<input type="number" value="{{ ai2.f.minSeconds }}" sc-camel-on-change="{{ ai2.set.minSeconds }}" placeholder="" style="border:1px solid #e1e3dc;border-radius:10px;padding:10px 12px;font-size:13px;outline:none;background:#fff;color:#232425;font-family:inherit;width:100%"></label>
+      </div>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:20px;align-items:flex-start">
+      <div style="background:#fff;border:1px solid #e7e8e3;border-radius:20px;padding:20px;display:flex;flex-direction:column;gap:14px;flex:1 1 340px;min-width:0">
+        <div style="display:flex;align-items:center;gap:10px"><span style="width:32px;height:32px;border-radius:10px;background:#e5eff7;color:#1d5a85;display:grid;place-items:center;font-weight:800">۱</span><div style="font-weight:800;font-size:16px">تبدیل گفتار به متن</div></div>
+        <label style="display:flex;flex-direction:column;gap:6px;font-size:12px;color:#6b6e72">سرویس<sc-raw-select value="{{ ai2.f.sttProvider }}" sc-camel-on-change="{{ ai2.set.sttProvider }}" style="border:1px solid #e1e3dc;border-radius:10px;padding:10px 12px;font-size:13px;outline:none;background:#fff;color:#232425;font-family:inherit;width:100%"><option value="openai">سازگار با OpenAI (Whisper و مشابه)</option><option value="custom">سرویس اختصاصی (آدرس کامل)</option><option value="none">خاموش</option></sc-raw-select></label>
+        <label style="display:flex;flex-direction:column;gap:6px;font-size:12px;color:#6b6e72">{{ ai2.sttUrlLabel }}<input value="{{ ai2.f.sttUrl }}" sc-camel-on-change="{{ ai2.set.sttUrl }}" placeholder="https://api.openai.com/v1" style="border:1px solid #e1e3dc;border-radius:10px;padding:10px 12px;font-size:13px;outline:none;background:#fff;color:#232425;font-family:inherit;width:100%;direction:ltr;text-align:left"></label>
+        <label style="display:flex;flex-direction:column;gap:6px;font-size:12px;color:#6b6e72">کلید / توکن<input type="password" value="{{ ai2.f.sttKey }}" sc-camel-on-change="{{ ai2.set.sttKey }}" placeholder="{{ ai2.sttKeyPh }}" style="border:1px solid #e1e3dc;border-radius:10px;padding:10px 12px;font-size:13px;outline:none;background:#fff;color:#232425;font-family:inherit;width:100%;direction:ltr;text-align:left"></label>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><label style="display:flex;flex-direction:column;gap:6px;font-size:12px;color:#6b6e72">مدل<input value="{{ ai2.f.sttModel }}" sc-camel-on-change="{{ ai2.set.sttModel }}" placeholder="whisper-1" style="border:1px solid #e1e3dc;border-radius:10px;padding:10px 12px;font-size:13px;outline:none;background:#fff;color:#232425;font-family:inherit;width:100%;direction:ltr;text-align:left"></label><label style="display:flex;flex-direction:column;gap:6px;font-size:12px;color:#6b6e72">زبان<input value="{{ ai2.f.sttLanguage }}" sc-camel-on-change="{{ ai2.set.sttLanguage }}" placeholder="fa" style="border:1px solid #e1e3dc;border-radius:10px;padding:10px 12px;font-size:13px;outline:none;background:#fff;color:#232425;font-family:inherit;width:100%;direction:ltr;text-align:left"></label></div>
+        <div style="font-size:12px;color:#6b6e72;line-height:1.8">{{ ai2.sttHelp }}</div>
+      </div>
+      <div style="background:#fff;border:1px solid #e7e8e3;border-radius:20px;padding:20px;display:flex;flex-direction:column;gap:14px;flex:1 1 340px;min-width:0">
+        <div style="display:flex;align-items:center;gap:10px"><span style="width:32px;height:32px;border-radius:10px;background:#eaf4dc;color:#3d6a0c;display:grid;place-items:center;font-weight:800">۲</span><div style="font-weight:800;font-size:16px">تحلیل متن (دسته‌بندی و خلاصه)</div></div>
+        <label style="display:flex;flex-direction:column;gap:6px;font-size:12px;color:#6b6e72">سرویس<sc-raw-select value="{{ ai2.f.llmProvider }}" sc-camel-on-change="{{ ai2.set.llmProvider }}" style="border:1px solid #e1e3dc;border-radius:10px;padding:10px 12px;font-size:13px;outline:none;background:#fff;color:#232425;font-family:inherit;width:100%"><option value="claude">Claude (Anthropic)</option><option value="openai">سازگار با OpenAI</option><option value="keywords">تحلیل داخلی با کلیدواژه (بدون سرویس خارجی)</option></sc-raw-select></label>
+        <sc-if value="{{ ai2.isLlm }}">
+        <label style="display:flex;flex-direction:column;gap:6px;font-size:12px;color:#6b6e72">مدل<input value="{{ ai2.f.llmModel }}" sc-camel-on-change="{{ ai2.set.llmModel }}" placeholder="claude-opus-5-5" style="border:1px solid #e1e3dc;border-radius:10px;padding:10px 12px;font-size:13px;outline:none;background:#fff;color:#232425;font-family:inherit;width:100%;direction:ltr;text-align:left"></label>
+        <sc-if value="{{ ai2.isClaude }}"><div style="display:flex;gap:6px;flex-wrap:wrap"><sc-for list="{{ ai2.models }}" as="m"><button sc-camel-on-click="{{ m.pick }}" style="border:1px solid {{ m.bd }};background:{{ m.bg }};color:{{ m.fg }};padding:5px 10px;border-radius:999px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit">{{ m.label }}</button></sc-for></div></sc-if>
+        <label style="display:flex;flex-direction:column;gap:6px;font-size:12px;color:#6b6e72">{{ ai2.llmUrlLabel }}<input value="{{ ai2.f.llmUrl }}" sc-camel-on-change="{{ ai2.set.llmUrl }}" placeholder="{{ ai2.llmUrlPh }}" style="border:1px solid #e1e3dc;border-radius:10px;padding:10px 12px;font-size:13px;outline:none;background:#fff;color:#232425;font-family:inherit;width:100%;direction:ltr;text-align:left"></label>
+        <label style="display:flex;flex-direction:column;gap:6px;font-size:12px;color:#6b6e72">کلید API<input type="password" value="{{ ai2.f.llmKey }}" sc-camel-on-change="{{ ai2.set.llmKey }}" placeholder="{{ ai2.llmKeyPh }}" style="border:1px solid #e1e3dc;border-radius:10px;padding:10px 12px;font-size:13px;outline:none;background:#fff;color:#232425;font-family:inherit;width:100%;direction:ltr;text-align:left"></label>
+        </sc-if>
+        <div style="font-size:12px;color:#6b6e72;line-height:1.8">{{ ai2.llmHelp }}</div>
+      </div>
+    </div>
+    <div style="background:#fff;border:1px solid #e7e8e3;border-radius:20px;padding:20px;display:flex;flex-direction:column;gap:14px">
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center"><button sc-camel-on-click="{{ ai2.save }}" style="border:none;background:#8DC63F;color:#1f2021;padding:11px 20px;border-radius:12px;font-size:13px;font-weight:800;cursor:pointer;font-family:inherit">ذخیره تنظیمات</button><button sc-camel-on-click="{{ ai2.testLlm }}" style="border:1px solid #e1e3dc;background:#fff;padding:11px 16px;border-radius:12px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">تست تحلیل متن</button><button sc-camel-on-click="{{ ai2.testStt }}" style="border:1px solid #e1e3dc;background:#fff;padding:11px 16px;border-radius:12px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">تست تبدیل گفتار (آخرین فایل ضبط)</button><span style="font-size:12px;color:#6b6e72">{{ ai2.testBusy }}</span></div>
+      <label style="display:flex;flex-direction:column;gap:6px;font-size:12px;color:#6b6e72">متن نمونه برای تست<textarea value="{{ ai2.sample }}" sc-camel-on-change="{{ ai2.setSample }}" style="border:1px solid #e1e3dc;border-radius:10px;padding:10px 12px;font-size:13px;outline:none;background:#fff;color:#232425;font-family:inherit;width:100%;min-height:70px;resize:vertical;line-height:1.8"></textarea></label>
+      <sc-if value="{{ ai2.hasResult }}">
+      <div style="background:linear-gradient(180deg,#f5faee,#fff);border:1px solid #dcebc4;border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:10px">
+        <sc-for list="{{ ai2.result }}" as="r"><div style="display:flex;gap:10px;font-size:13px;line-height:1.8"><span style="color:#6b6e72;min-width:110px;flex-shrink:0">{{ r.k }}</span><b style="color:{{ r.c }};font-weight:700">{{ r.v }}</b></div></sc-for>
+      </div>
+      </sc-if>
+    </div>
+    <div style="background:#fff;border:1px solid #e7e8e3;border-radius:20px;padding:20px;display:flex;flex-direction:column;gap:14px">
+      <div style="font-weight:800;font-size:16px">پردازش موارد قبلی</div>
+      <div style="font-size:12px;color:#6b6e72;line-height:1.8">تماس‌هایی که قبل از فعال شدن تحلیل ضبط شده‌اند یا تحلیلشان ناموفق بوده را می‌توانید دوباره به صف تحلیل بفرستید.</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap"><button sc-camel-on-click="{{ ai2.queuePending }}" style="border:none;background:#2E2F31;color:#fff;padding:10px 16px;border-radius:12px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">تحلیل موارد تحلیل‌نشده ۷ روز اخیر</button><button sc-camel-on-click="{{ ai2.queueFailed }}" style="border:1px solid #e1e3dc;background:#fff;padding:10px 16px;border-radius:12px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">تحلیل دوباره موارد ناموفق</button></div>
     </div>
   </div>
   </sc-if>

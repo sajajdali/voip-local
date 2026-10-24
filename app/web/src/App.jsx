@@ -110,6 +110,8 @@ class LiveApp extends React.Component {
     if (prev.call && prev.call.origId && !s.call && !this.endingCall) api('/calls/hangup', { origId: prev.call.origId }).catch(() => {});
     if (s.page === 'vapi' && prev.page !== 'vapi') this.loadApi();
     if (s.page === 'vbackup' && prev.page !== 'vbackup') this.loadBackups();
+    if (s.page === 'vai' && prev.page !== 'vai') this.loadAi();
+    if (s.page === 'settings' && prev.page !== 'settings') { this.loadAi(); this.loadApi(); this.loadBackups(); }
     if (this.remote) return;
     VOIP_KEYS.forEach(k => {
       if (s[k] === prev[k]) return;
@@ -424,6 +426,124 @@ class LiveApp extends React.Component {
           catch (e) { this.toast('حذف ناموفق بود: ' + e.message); }
         },
       })),
+    } };
+  }
+
+  // ---- «تنظیمات» hub: one card per settings page, grouped
+  settingsVals(s) {
+    const go = page => () => { this.setState({ page }); try { window.scrollTo(0, 0); } catch (e) { /* ignore */ } };
+    const n = x => (x || []).length;
+    const online = (s.exts || []).filter(e => e.st && e.st !== 'offline').length;
+    const ai = s.aiData && s.aiData.settings, wh = s.apiData && s.apiData.settings;
+    const bks = s.bk ? s.bk.items.filter(b => b.status === 'done') : null;
+    const ok = '#3d6a0c', off = '#8b8e89';
+    const I = {
+      phone: 'M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2',
+      pulse: 'M3 12h4l3-8 4 16 3-8h4', list: 'M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01', chat: 'M4 4h16v12H8l-4 4z',
+      music: 'M9 18V5l12-2v13M9 18a3 3 0 1 1-6 0 3 3 0 0 1 6 0zM21 16a3 3 0 1 1-6 0 3 3 0 0 1 6 0z',
+      inRoute: 'M21 3l-6 6M15 4v5h5M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2',
+      outRoute: 'M15 3h6v6M21 3l-7 7M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2',
+      clock: 'M12 7v5l3 2M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z', bell: 'M6 16v-5a6 6 0 0 1 12 0v5l2 2H4zM10 21h4',
+      follow: 'M17 1l4 4-4 4M3 11V9a4 4 0 0 1 4-4h14M7 23l-4-4 4-4M21 13v2a4 4 0 0 1-4 4H3', block: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM5.6 5.6l12.8 12.8',
+      ai: 'M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z', code: 'M8 9l-4 3 4 3M16 9l4 3-4 3M13.5 6l-3 12',
+      db: 'M4 6c0-1.7 3.6-3 8-3s8 1.3 8 3-3.6 3-8 3-8-1.3-8-3zM4 6v12c0 1.7 3.6 3 8 3s8-1.3 8-3V6M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3',
+    };
+    const card = (page, title, icon, desc, stat, statFg, tone) => ({ title, icon, desc, stat, statFg: statFg || '#55585c', go: go(page), bg: tone[0], fg: tone[1] });
+    const G = ['#eaf4dc', '#3d6a0c'], B = ['#e5eff7', '#1d5a85'], A = ['#fbf1dc', '#8a5a00'], P = ['#f0ebf8', '#6a4b9c'], R = ['#fdeceb', '#b42318'], K = ['#2E2F31', '#8DC63F'];
+    const groups = [
+      { title: 'مرکز تلفن', sub: 'داخلی‌ها، خطوط و مسیر تماس‌ها', items: [
+        card('vext', 'داخلی‌ها', I.phone, 'تعریف داخلی، رمز SIP، ضبط مکالمه و صندوق صوتی هر داخلی', n(s.exts) + ' داخلی · ' + online + ' آنلاین', online ? ok : off, G),
+        card('vtrunk', 'ترانک‌ها', I.pulse, 'خطوط ارتباط با مخابرات و سرویس‌دهنده‌ها، تست اتصال', (s.trunks || []).filter(t => t.on).length + ' ترانک فعال', ok, B),
+        card('vqueue', 'صف‌ها', I.list, 'اعضای صف، استراتژی زنگ، زمان انتظار و موسیقی انتظار', n(s.vqs) + ' صف', null, B),
+        card('vivr', 'منوهای IVR', I.chat, 'پیام خوشامد، کلیدها و مقصد هر گزینه', n(s.ivrs) + ' منو', null, P),
+        card('vsound', 'صداها', I.music, 'بارگذاری و مدیریت پیام‌های صوتی و موسیقی انتظار', n(s.snds) + ' فایل', null, P),
+        card('vroute', 'مسیرهای ورودی', I.inRoute, 'تماس ورودی بر اساس شماره به کجا برود', n(s.routes) + ' مسیر', null, G),
+        card('vout', 'مسیرهای خروجی', I.outRoute, 'شماره‌های خروجی از کدام ترانک بیرون بروند', n(s.oroutes) + ' مسیر', null, G),
+        card('vtime', 'شرایط و گروه‌های زمانی', I.clock, 'ساعات کاری، تعطیلات و مسیر داخل/خارج ساعت', n(s.tconds) + ' شرط زمانی', null, A),
+        card('vring', 'گروه زنگ', I.bell, 'زنگ همزمان یا پشت‌سرهم چند داخلی و موبایل', n(s.rgroups) + ' گروه', null, A),
+        card('vfollow', 'دنبال‌کردن تماس', I.follow, 'انتقال تماس بی‌پاسخ داخلی به موبایل یا داخلی دیگر', Object.values(s.fmes || {}).filter(f => f.on).length + ' فعال', null, B),
+        card('vblack', 'لیست سیاه', I.block, 'مسدود کردن شماره‌های مزاحم و تماس ناشناس', n(s.blist) + ' شماره مسدود', null, R),
+      ] },
+      { title: 'یکپارچه‌سازی', sub: 'اتصال به سرویس‌های بیرونی', items: [
+        card('vai', 'هوش مصنوعی', I.ai, 'تبدیل گفتار به متن و تحلیل خودکار پیام‌ها: مدل، آدرس و کلید', ai ? (ai.enabled ? 'فعال · ' + (ai.llmProvider === 'claude' ? 'Claude' : ai.llmProvider === 'openai' ? 'OpenAI-سازگار' : 'کلیدواژه‌ای') : 'غیرفعال') : '…', ai && ai.enabled ? ok : off, K),
+        card('vapi', 'ارسال تماس‌ها (API)', I.code, 'ارسال اطلاعات هر تماس بعد از پایان به آدرس دلخواه', wh ? (wh.enabled ? 'فعال' : 'غیرفعال') : '…', wh && wh.enabled ? ok : off, K),
+      ] },
+      { title: 'نگهداری', sub: 'پشتیبان‌گیری و بازگردانی', items: [
+        card('vbackup', 'بکاپ و بازیابی', I.db, 'بکاپ گرفتن از بخش‌های دلخواه، دانلود و بازیابی', bks ? bks.length + ' بکاپ' + (s.bk.schedule && s.bk.schedule.enabled ? ' · خودکار فعال' : '') : '…', null, G),
+      ] },
+    ];
+    const TITLES = { vext: 'داخلی‌ها', vtrunk: 'ترانک‌ها', vqueue: 'صف‌ها', vivr: 'منوهای IVR', vsound: 'صداها', vroute: 'مسیرهای ورودی', vout: 'مسیرهای خروجی', vtime: 'شرایط و گروه‌های زمانی', vring: 'گروه زنگ', vfollow: 'دنبال‌کردن تماس', vblack: 'لیست سیاه', vai: 'هوش مصنوعی', vapi: 'ارسال تماس‌ها (API)', vbackup: 'بکاپ و بازیابی' };
+    return { hub: { groups }, crumb: { show: !!TITLES[s.page], title: TITLES[s.page] || '', back: go('settings') } };
+  }
+
+  // ---- «هوش مصنوعی» settings page
+  async loadAi() {
+    try {
+      const d = await api('/ai');
+      this.setState(st => ({ aiData: d, aiForm: st.aiForm && st.page === 'vai' && st.aiFormLoaded ? st.aiForm : { ...d.settings, sttKey: '', llmKey: '' }, aiFormLoaded: true }));
+    } catch (e) { this.toast('بارگذاری تنظیمات هوش مصنوعی ناموفق بود: ' + e.message); }
+  }
+
+  aiSettingsVals(s) {
+    const d = s.aiData;
+    const f = s.aiForm || { enabled: false, sttProvider: 'openai', sttUrl: '', sttKey: '', sttModel: 'whisper-1', sttLanguage: 'fa', llmProvider: 'claude', llmUrl: '', llmKey: '', llmModel: 'claude-opus-5-5', analyzeVoicemail: true, analyzeCalls: false, minSeconds: 3 };
+    const setF = o => this.setState({ aiForm: { ...f, ...o } });
+    const tg = on => ({ bg: on ? '#8DC63F' : '#d9dad6', j: on ? 'flex-end' : 'flex-start' });
+    const st = d ? d.status : null;
+    const MODELS = [['claude-opus-5-5', 'Opus 5.5 (پیشنهادی)'], ['claude-sonnet-5-5', 'Sonnet 5.5'], ['claude-haiku-5-5', 'Haiku 5.5 (ارزان‌تر)'], ['claude-fable-5-1', 'Fable 5.1']];
+    const URG = { high: 'فوری', mid: 'متوسط', low: 'عادی' }, SENT = { pos: 'مثبت', neu: 'خنثی', neg: 'منفی' };
+    const catName = id => ((d && d.categories.find(c => c.id === id)) || { name: id }).name;
+    const tr = s.aiTest;
+    const result = [];
+    if (tr) {
+      if (tr.analysis) {
+        const a = tr.analysis;
+        result.push({ k: 'دسته', v: catName(a.cat), c: '#3d6a0c' }, { k: 'اولویت', v: URG[a.urg], c: a.urg === 'high' ? '#b42318' : '#232425' }, { k: 'احساس', v: SENT[a.sent], c: '#232425' },
+          { k: 'خلاصه', v: a.sum.join(' · '), c: '#232425' }, { k: 'کلیدواژه‌ها', v: a.kw.join('، ') || '—', c: '#232425' }, { k: 'اقدام پیشنهادی', v: a.action || '—', c: '#3d6a0c' }, { k: 'زمان پاسخ', v: (tr.analysisMs / 1000).toFixed(1) + ' ثانیه', c: '#6b6e72' });
+      }
+      if (tr.analysisError) result.push({ k: 'خطای تحلیل', v: tr.analysisError, c: '#b42318' });
+      if (tr.stt) result.push({ k: 'متن پیاده‌شده', v: tr.stt.text || '(متنی تشخیص داده نشد)', c: '#232425' }, { k: 'دقت / زمان', v: (tr.stt.conf != null ? tr.stt.conf + '٪ · ' : '') + (tr.stt.ms / 1000).toFixed(1) + ' ثانیه', c: '#6b6e72' });
+      if (tr.sttError) result.push({ k: 'خطای تبدیل گفتار', v: tr.sttError, c: '#b42318' });
+    }
+    const persist = async () => { const r = await api('/ai', f, 'PUT'); this.setState(x => ({ aiData: { ...(x.aiData || {}), settings: r }, aiForm: { ...f, sttKey: '', llmKey: '' } })); return r; };
+    const runTest = async stt => {
+      this.setState({ aiBusy: stt ? 'در حال تبدیل گفتار و تحلیل…' : 'در حال تحلیل متن…', aiTest: null });
+      try { await persist(); const r = await api('/ai/test', { text: s.aiSample || undefined, stt }); this.setState({ aiTest: r, aiBusy: '' }); }
+      catch (e) { this.setState({ aiBusy: '', aiTest: { analysisError: e.message } }); }
+    };
+    const requeue = async failed => {
+      try { const r = await api('/ai/requeue', { days: 7, failed }); this.toast(r.queued + ' مورد به صف تحلیل اضافه شد'); setTimeout(() => this.loadAi(), 3000); }
+      catch (e) { this.toast(e.message); }
+    };
+    const isClaude = f.llmProvider === 'claude';
+    return { ai2: {
+      f, onT: tg(f.enabled), onLabel: f.enabled ? 'فعال' : 'غیرفعال', tog: () => setF({ enabled: !f.enabled }),
+      vmT: tg(f.analyzeVoicemail), togVm: () => setF({ analyzeVoicemail: !f.analyzeVoicemail }), callT: tg(f.analyzeCalls), togCall: () => setF({ analyzeCalls: !f.analyzeCalls }),
+      set: Object.fromEntries(['sttProvider', 'sttUrl', 'sttKey', 'sttModel', 'sttLanguage', 'llmUrl', 'llmKey', 'llmModel', 'minSeconds'].map(k => [k, e => setF({ [k]: e.target.value })]).concat([['llmProvider', e => {
+        const v = e.target.value; setF({ llmProvider: v, llmModel: v === 'claude' && !/^claude-/.test(f.llmModel) ? 'claude-opus-5-5' : v === 'openai' && /^claude-/.test(f.llmModel) ? '' : f.llmModel });
+      }]])),
+      sttUrlLabel: f.sttProvider === 'custom' ? 'آدرس کامل سرویس (فایل صوتی با POST ارسال می‌شود)' : 'آدرس پایه API',
+      sttKeyPh: d && d.settings.hasSttKey ? 'ذخیره‌شده (' + d.settings.sttKeyHint + ')' : 'sk-…',
+      sttHelp: f.sttProvider === 'openai' ? 'هر سرویسی که API تبدیل گفتار OpenAI را پشتیبانی کند (مثل OpenAI یا سرویس‌های واسط داخلی) قابل استفاده است؛ آدرس پایه معمولاً به /v1 ختم می‌شود.' : f.sttProvider === 'custom' ? 'فایل با فیلد file و زبان با فیلد language ارسال می‌شود؛ پاسخ باید JSON شامل text (و در صورت امکان confidence) باشد.' : 'بدون تبدیل گفتار، پیام‌ها تحلیل نمی‌شوند.',
+      isLlm: f.llmProvider !== 'keywords', isClaude,
+      models: MODELS.map(([id, label]) => ({ label, pick: () => setF({ llmModel: id }), bg: f.llmModel === id ? '#2E2F31' : '#fff', fg: f.llmModel === id ? '#fff' : '#3a3b3d', bd: f.llmModel === id ? '#2E2F31' : '#e1e3dc' })),
+      llmUrlLabel: isClaude ? 'آدرس API (اختیاری؛ خالی = آدرس رسمی Anthropic)' : 'آدرس پایه API',
+      llmUrlPh: isClaude ? 'https://api.anthropic.com' : 'https://api.example.com/v1',
+      llmKeyPh: d && d.settings.hasLlmKey ? 'ذخیره‌شده (' + d.settings.llmKeyHint + ')' : (isClaude ? 'sk-ant-…' : 'sk-…'),
+      llmHelp: isClaude ? 'پیشنهاد: Claude Opus 5.5. اگر مدل به دلیل سیاست‌های ایمنی از پاسخ خودداری کند، درخواست خودکار با مدل جایگزین پیشنهادی Anthropic تکرار می‌شود.' : f.llmProvider === 'openai' ? 'هر سرویس سازگار با API گفتگوی OpenAI که خروجی JSON پشتیبانی کند.' : 'دسته‌بندی ساده با کلیدواژه‌های فارسی؛ دقت کمتر، بدون هزینه و بدون ارسال داده به بیرون.',
+      sample: s.aiSample != null ? s.aiSample : 'سلام وقت بخیر، هفته پیش عمل بینی کردم و از دیشب ورم و درد دارم، لطفاً هرچه زودتر با من تماس بگیرید.',
+      setSample: e => this.setState({ aiSample: e.target.value }),
+      save: async () => { try { const r = await persist(); this.toast(r.enabled ? 'تنظیمات هوش مصنوعی ذخیره شد؛ تحلیل خودکار فعال است' : 'تنظیمات ذخیره شد (تحلیل خودکار خاموش است)'); } catch (e) { this.toast('ذخیره ناموفق بود: ' + e.message); } },
+      testLlm: () => runTest(false), testStt: () => runTest(true), testBusy: s.aiBusy || '',
+      hasResult: result.length > 0, result,
+      kpis: [
+        { label: 'تحلیل‌شده', value: st ? st.done : '…', color: '#3d6a0c' },
+        { label: 'در انتظار تحلیل', value: st ? st.queued : '…', color: '#8a5a00' },
+        { label: 'ناموفق', value: st ? st.failed : '…', color: st && st.failed ? '#b42318' : '#232425' },
+        { label: 'وضعیت', value: d ? (d.settings.enabled ? 'فعال' : 'غیرفعال') : '…', color: d && d.settings.enabled ? '#3d6a0c' : '#8b8e89' },
+      ],
+      hasErr: !!(st && st.lastError && st.failed), lastError: st ? st.lastError : '',
+      queuePending: () => requeue(false), queueFailed: () => requeue(true),
     } };
   }
 
@@ -803,9 +923,9 @@ export default class App extends LiveApp {
   const fol=c=>s.follow[c.id]||c.follow;
   const vms=C.filter(c=>c.st==='voicemail'&&this.deptOk(c,s));const AI=C.filter(c=>c.ai&&!c.ai.pending);
   const nv=(p,count)=>({go:()=>this.setState({page:p}),bg:s.page===p?'#8DC63F':'transparent',fg:s.page===p?'#1f2021':'#d9dad6',count,cbg:s.page===p?'rgba(31,32,33,.15)':'rgba(255,255,255,.08)'});
-  const nav={calls:nv('calls',C.length),inbound:nv('inbound',C.filter(c=>c.dir==='in').length),voice:nv('voice',vms.filter(c=>fol(c)==='new').length),reports:nv('reports',''),survey:nv('survey',C.filter(c=>c.survey).length),ai:nv('ai',AI.length),vext:nv('vext',s.exts.length),vtrunk:nv('vtrunk',s.trunks.length),vqueue:nv('vqueue',s.vqs.length),vivr:nv('vivr',s.ivrs.length),vsound:nv('vsound',s.snds.length),vroute:nv('vroute',s.routes.length),vout:nv('vout',(s.oroutes||[]).length),vapi:nv('vapi',''),vbackup:nv('vbackup',(s.bk&&s.bk.items.filter(b=>b.status==='done').length)||''),vtime:nv('vtime',s.tconds.length),vring:nv('vring',s.rgroups.length),vfollow:nv('vfollow',Object.values(s.fmes).filter(f=>f.on).length),vblack:nv('vblack',s.blist.length)};
+  const nav={calls:nv('calls',C.length),inbound:nv('inbound',C.filter(c=>c.dir==='in').length),voice:nv('voice',vms.filter(c=>fol(c)==='new').length),reports:nv('reports',''),survey:nv('survey',C.filter(c=>c.survey).length),ai:nv('ai',AI.length),vext:nv('vext',s.exts.length),vtrunk:nv('vtrunk',s.trunks.length),vqueue:nv('vqueue',s.vqs.length),vivr:nv('vivr',s.ivrs.length),vsound:nv('vsound',s.snds.length),vroute:nv('vroute',s.routes.length),vout:nv('vout',(s.oroutes||[]).length),vapi:nv('vapi',''),settings:nv('settings',''),vbackup:nv('vbackup',(s.bk&&s.bk.items.filter(b=>b.status==='done').length)||''),vtime:nv('vtime',s.tconds.length),vring:nv('vring',s.rgroups.length),vfollow:nv('vfollow',Object.values(s.fmes).filter(f=>f.on).length),vblack:nv('vblack',s.blist.length)};
   const isV=['vext','vtrunk','vqueue','vivr','vsound','vroute','vout','vtime','vring','vfollow','vblack','vbackup'].includes(s.page);nav.voipOpen=s.voipOpen||isV;nav.toggleVoip=()=>this.setState({voipOpen:!(s.voipOpen||isV)});nav.voipChev=nav.voipOpen?'rotate(180deg)':'none';nav.voipBg=isV?'rgba(141,198,63,.12)':'transparent';
-  const is={};['calls','inbound','voice','reports','survey','ai','vext','vtrunk','vqueue','vivr','vsound','vroute','vtime','vring','vfollow','vblack','vout','unreached','vapi','vbackup','file'].forEach(p=>is[p]=s.page===p);
+  const is={};['calls','inbound','voice','reports','survey','ai','vext','vtrunk','vqueue','vivr','vsound','vroute','vtime','vring','vfollow','vblack','vout','unreached','vapi','vbackup','settings','vai','file'].forEach(p=>is[p]=s.page===p);
   const qm=(c,q)=>!q||c.name.includes(q)||c.phoneRaw.includes(q.replace(/\s/g,''));
   const pill=(on)=>({bg:on?'#2E2F31':'#fff',fg:on?'#fff':'#3a3b3d',bd:on?'#2E2F31':'#e1e3dc'});
   const ops=OPS.map(o=>({id:o.id,label:o.name+' ('+o.ext+')'}));
@@ -857,7 +977,7 @@ export default class App extends LiveApp {
   const vm={kpis:[{value:vms.filter(c=>c.date===TODAY).length,label:'پیام صوتی امروز',bg:'#e5eff7',fg:'#5b9bd0'},{value:vms.filter(c=>fol(c)!=='done').length,label:'نیازمند پیگیری',bg:'#fbf1dc',fg:'#e0a83a'},{value:vms.filter(c=>fol(c)==='done').length,label:'پیگیری انجام‌شده',bg:'#eaf4dc',fg:'#8DC63F'},{value:today.filter(c=>c.st==='missed').length,label:'تماس بی‌پاسخ امروز',bg:'#fdeceb',fg:'#e0574a'}],
    tabs:VT.map(([id,label])=>({label,count:vms.filter(c=>id==='all'||fol(c)===id).length,onClick:()=>this.setState({vTab:id}),bg:s.vTab===id?'#8DC63F':'#f4f5f1',fg:s.vTab===id?'#1f2021':'#55585c'})),
    pickDate:v=>this.setState({vDate:v||'all'}),dateV:s.vDate==='all'?'':s.vDate,q:s.vQ,setQ:e=>this.setState({vQ:e.target.value}),dateF:s.vDate,setDate:e=>this.setState({vDate:e.target.value}),empty:!vl.length,
-   sugg:sel?SUGG[sel.ai.cat.id]:'',speedText:s.speed+'x',cycleSpeed:()=>this.setState({speed:[1,1.5,2][([1,1.5,2].indexOf(s.speed)+1)%3]}),
+   sugg:sel?(sel.ai.action||SUGG[sel.ai.cat.id]||''):'',speedText:s.speed+'x',cycleSpeed:()=>this.setState({speed:[1,1.5,2][([1,1.5,2].indexOf(s.speed)+1)%3]}),
    noteText:s.noteText,setNote:e=>this.setState({noteText:e.target.value}),notes:sel?(s.notes[sel.id]||[]).map(mkNote):[],hasNotes:!!(sel&&(s.notes[sel.id]||[]).length),
    refs:REFS.map(r=>{const on=s.noteRef===r.id;return {label:r.label,onClick:()=>this.setState({noteRef:r.id}),bg:on?r.fg:'#fff',fg:on?'#fff':r.fg,bd:on?r.fg:'#e1e3dc'}}),
    addNote:()=>{if(!sel||(!s.noteText.trim()&&s.noteRef==='none'))return;const r=REFS.find(x=>x.id===s.noteRef);this.setState({noteText:'',noteRef:'none',notes:{...s.notes,[sel.id]:[...(s.notes[sel.id]||[]),{t:s.noteText.trim(),ref:s.noteRef,by:ME.name,at:TODAY+' · '+new Date().toTimeString().slice(0,5)}]},follow:fol(sel)==='new'?{...s.follow,[sel.id]:'follow'}:s.follow});this.toast(r.id==='none'?'یادداشت ثبت شد':'یادداشت ثبت شد و '+r.label.replace('ارجاع به ','به ')+' ارجاع داده شد');},
@@ -948,6 +1068,6 @@ export default class App extends LiveApp {
    seek:e=>{const b=e.currentTarget.getBoundingClientRect();this.setState({pos:Math.min(1,Math.max(0,(b.right-e.clientX)/b.width))*(this.audDur||pc.dur)});},
    pct:s.pos/(this.audDur||pc.dur)*100+'%',posText:fmt(s.pos),durText:fmt((this.audDur||pc.dur)),speedText:s.speed+'x',cycleSpeed:()=>this.setState({speed:SP[(SP.indexOf(s.speed)+1)%SP.length]}),download:()=>this.download(pc)}:{show:false};
 
-  return {...this.voip(s),...this.voip2(s),...this.voipOut(s),...this.apiVals(s),...this.backupVals(s),pf,call,toast,nav:{...nav,unreached:nv('unreached',urV.navCount)},is,ur:urV,cl,ib,vm,rp,sv,ai,player,showAi,dates:[],hours:HOURS,ops,queues:s.vqs.map(q=>q.name),statuses,cats,me:this.meVals(),todayLong:jLong(new Date())};
+  return {...this.voip(s),...this.voip2(s),...this.voipOut(s),...this.apiVals(s),...this.backupVals(s),...this.settingsVals(s),...this.aiSettingsVals(s),pf,call,toast,nav:{...nav,unreached:nv('unreached',urV.navCount)},is,ur:urV,cl,ib,vm,rp,sv,ai,player,showAi,dates:[],hours:HOURS,ops,queues:s.vqs.map(q=>q.name),statuses,cats,me:this.meVals(),todayLong:jLong(new Date())};
  }
 }

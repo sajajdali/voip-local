@@ -127,6 +127,11 @@ sub("vapi:nv('vapi',''),", "vapi:nv('vapi',''),vbackup:nv('vbackup',(s.bk&&s.bk.
 sub("'vblack','vout','unreached','vapi','file'].forEach", "'vblack','vout','unreached','vapi','vbackup','file'].forEach")
 sub("['vext','vtrunk','vqueue','vivr','vsound','vroute','vout','vtime','vring','vfollow','vblack'].includes(s.page)", "['vext','vtrunk','vqueue','vivr','vsound','vroute','vout','vtime','vring','vfollow','vblack','vbackup'].includes(s.page)")
 sub("...this.apiVals(s),", "...this.apiVals(s),...this.backupVals(s),")
+# --- settings hub («تنظیمات») + AI settings page; AI's own suggested action wins over the fixed one
+sub("vapi:nv('vapi',''),", "vapi:nv('vapi',''),settings:nv('settings',''),")
+sub("'vapi','vbackup','file'].forEach", "'vapi','vbackup','settings','vai','file'].forEach")
+sub("...this.backupVals(s),", "...this.backupVals(s),...this.settingsVals(s),...this.aiSettingsVals(s),")
+sub("sugg:sel?SUGG[sel.ai.cat.id]:''", "sugg:sel?(sel.ai.action||SUGG[sel.ai.cat.id]||''):''")
 head = (root / 'tools/app-head.js').read_text(encoding='utf-8')
 src = src.replace("export default class App extends React.Component {", "export default class App extends LiveApp {")
 (root / 'web/src/App.jsx').write_text(head + '\n' + src.strip() + '\n', encoding='utf-8')

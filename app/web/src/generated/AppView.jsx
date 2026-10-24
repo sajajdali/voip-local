@@ -123,9 +123,14 @@ export default function AppView({ vm }) {
                 </div>
               </div>
             </>) : null}
-            <div onClick={vm.nav?.vapi?.go} style={{display: "flex", alignItems: "center", gap: "12px", padding: "11px 14px", borderRadius: "12px", cursor: "pointer", background: vm.nav?.vapi?.bg, color: vm.nav?.vapi?.fg, fontSize: "14px", fontWeight: "600"}}>
-              <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M8 9l-4 3 4 3M16 9l4 3-4 3M13.5 6l-3 12" /></svg>
-              <span style={{flex: "1"}}>{"تنظیمات API"}</span>
+            <div onClick={vm.nav?.settings?.go} style={{display: "flex", alignItems: "center", gap: "12px", padding: "11px 14px", borderRadius: "12px", cursor: "pointer", background: vm.nav?.settings?.bg, color: vm.nav?.settings?.fg, fontSize: "14px", fontWeight: "600"}}>
+              <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
+                <rect x="3" y="3" width="7" height="7" rx="2" />
+                <rect x="14" y="3" width="7" height="7" rx="2" />
+                <rect x="3" y="14" width="7" height="7" rx="2" />
+                <rect x="14" y="14" width="7" height="7" rx="2" />
+              </svg>
+              <span style={{flex: "1"}}>{"همه تنظیمات"}</span>
             </div>
           </>) : null}
         </nav>
@@ -157,6 +162,15 @@ export default function AppView({ vm }) {
             </>) : null}
           </div>
         </div>
+        {(vm.crumb?.show) ? (<>
+          <div style={{display: "flex", alignItems: "center", gap: "10px", marginBottom: "-8px"}}>
+            <button onClick={vm.crumb?.back} style={{display: "flex", alignItems: "center", gap: "6px", border: "1px solid #e1e3dc", background: "#fff", color: "#2E2F31", padding: "7px 14px", borderRadius: "999px", fontSize: "12px", fontWeight: "700", cursor: "pointer", fontFamily: "inherit"}}>
+              <span style={{fontSize: "14px"}}>{"→"}</span>
+              {"بازگشت به تنظیمات"}
+            </button>
+            <span style={{fontSize: "12px", color: "#8b8e89"}}>{"تنظیمات / "}{vm.crumb?.title}</span>
+          </div>
+        </>) : null}
         {(vm.is?.calls) ? (<>
           <div style={{display: "flex", flexDirection: "column", gap: "22px"}}>
             <div style={{display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: "16px", flexWrap: "wrap"}}>
@@ -1776,6 +1790,197 @@ export default function AppView({ vm }) {
               {(vm.bk?.empty) ? (<>
                 <div style={{padding: "30px", textAlign: "center", color: "#6b6e72", fontSize: "13px"}}>{"هنوز بکاپی گرفته نشده است."}</div>
               </>) : null}
+            </div>
+          </div>
+        </>) : null}
+        {(vm.is?.settings) ? (<>
+          <div style={{display: "flex", flexDirection: "column", gap: "26px"}}>
+            <div>
+              <h1 style={{margin: "0", fontSize: "28px", fontWeight: "800"}}>{"تنظیمات"}</h1>
+              <div style={{fontSize: "14px", color: "#6b6e72", marginTop: "6px"}}>{"همه تنظیمات مرکز تماس در یک جا؛ روی هر بخش بزنید تا تنظیمات آن باز شود."}</div>
+            </div>
+            {(vm.hub?.groups || []).map((g, __i6) => <React.Fragment key={__i6}>
+              <div style={{display: "flex", flexDirection: "column", gap: "12px"}}>
+                <div style={{display: "flex", alignItems: "center", gap: "10px"}}>
+                  <span style={{width: "6px", height: "18px", borderRadius: "3px", background: "#8DC63F"}} />
+                  <span style={{fontWeight: "800", fontSize: "16px"}}>{g?.title}</span>
+                  <span style={{fontSize: "12px", color: "#8b8e89"}}>{g?.sub}</span>
+                </div>
+                <div style={{display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(230px,1fr))", gap: "14px"}}>
+                  {(g?.items || []).map((it, __i9) => <React.Fragment key={__i9}>
+                    <div onClick={it?.go} style={{background: "#fff", border: "1px solid #e7e8e3", borderRadius: "18px", padding: "18px", cursor: "pointer", display: "flex", flexDirection: "column", gap: "12px", boxShadow: "0 1px 2px rgba(20,20,20,.03)"}}>
+                      <div style={{display: "flex", alignItems: "center", gap: "12px"}}>
+                        <span style={{width: "42px", height: "42px", borderRadius: "13px", background: it?.bg, color: it?.fg, display: "grid", placeItems: "center", flexShrink: "0"}}>
+                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d={it?.icon} /></svg>
+                        </span>
+                        <div style={{flex: "1", minWidth: "0"}}>
+                          <div style={{fontWeight: "800", fontSize: "15px"}}>{it?.title}</div>
+                          <div style={{fontSize: "12px", color: it?.statFg, fontWeight: "700", marginTop: "3px"}}>{it?.stat}</div>
+                        </div>
+                        <span style={{color: "#b9bbb6", fontSize: "16px"}}>{"←"}</span>
+                      </div>
+                      <div style={{fontSize: "12px", color: "#6b6e72", lineHeight: "1.8"}}>{it?.desc}</div>
+                    </div>
+                  </React.Fragment>)}
+                </div>
+              </div>
+            </React.Fragment>)}
+          </div>
+        </>) : null}
+        {(vm.is?.vai) ? (<>
+          <div style={{display: "flex", flexDirection: "column", gap: "20px"}}>
+            <div>
+              <h1 style={{margin: "0", fontSize: "28px", fontWeight: "800"}}>{"هوش مصنوعی"}</h1>
+              <div style={{fontSize: "14px", color: "#6b6e72", marginTop: "6px", maxWidth: "780px", lineHeight: "1.8"}}>
+                {"فایل صوتی پیام‌ها (و در صورت تمایل مکالمه‌های ضبط‌شده) به سرویس تبدیل گفتار فرستاده می‌شود و متن به‌دست‌آمده با مدل هوش مصنوعی دسته‌بندی، خلاصه و اولویت‌بندی می‌شود. نتیجه در صندوق پیام صوتی، صفحه تحلیل هوش مصنوعی و فیلترها نمایش داده می‌شود."}
+              </div>
+            </div>
+            <div style={{display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(180px,1fr))", gap: "14px"}}>
+              {(vm.ai2?.kpis || []).map((k, __i7) => <React.Fragment key={__i7}>
+                <div style={{background: "#fff", border: "1px solid #e7e8e3", borderRadius: "18px", padding: "16px 18px"}}>
+                  <div style={{fontSize: "12px", color: "#6b6e72"}}>{k?.label}</div>
+                  <div style={{fontSize: "24px", fontWeight: "800", marginTop: "4px", color: k?.color}}>{k?.value}</div>
+                </div>
+              </React.Fragment>)}
+            </div>
+            {(vm.ai2?.hasErr) ? (<>
+              <div style={{background: "#fdeceb", border: "1px solid #f5c2bd", color: "#b42318", borderRadius: "14px", padding: "12px 16px", fontSize: "13px", lineHeight: "1.8"}}>{"آخرین خطا: "}{vm.ai2?.lastError}</div>
+            </>) : null}
+            <div style={{background: "#fff", border: "1px solid #e7e8e3", borderRadius: "20px", padding: "20px", display: "flex", flexDirection: "column", gap: "14px"}}>
+              <div style={{display: "flex", alignItems: "center", gap: "12px"}}>
+                <div style={{flex: "1"}}>
+                  <div style={{fontWeight: "800", fontSize: "16px"}}>{"تحلیل خودکار"}</div>
+                  <div style={{fontSize: "12px", color: "#6b6e72", marginTop: "4px"}}>{"بعد از پایان هر تماس، موارد زیر خودکار تحلیل می‌شوند"}</div>
+                </div>
+                <span style={{fontSize: "12px", color: "#6b6e72"}}>{vm.ai2?.onLabel}</span>
+                <button onClick={vm.ai2?.tog} style={{width: "42px", height: "24px", borderRadius: "99px", border: "none", background: vm.ai2?.onT?.bg, display: "flex", justifyContent: vm.ai2?.onT?.j, alignItems: "center", padding: "3px", cursor: "pointer", flexShrink: "0"}}>
+                  <span style={{width: "18px", height: "18px", borderRadius: "50%", background: "#fff", boxShadow: "0 1px 2px rgba(0,0,0,.25)"}} />
+                </button>
+              </div>
+              <div style={{display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(240px,1fr))", gap: "12px"}}>
+                <div style={{display: "flex", alignItems: "center", gap: "12px", border: "1px solid #e7e8e3", borderRadius: "14px", padding: "12px 14px"}}>
+                  <div style={{flex: "1", fontSize: "13px", fontWeight: "700"}}>{"پیام‌های صوتی"}</div>
+                  <button onClick={vm.ai2?.togVm} style={{width: "42px", height: "24px", borderRadius: "99px", border: "none", background: vm.ai2?.vmT?.bg, display: "flex", justifyContent: vm.ai2?.vmT?.j, alignItems: "center", padding: "3px", cursor: "pointer", flexShrink: "0"}}>
+                    <span style={{width: "18px", height: "18px", borderRadius: "50%", background: "#fff", boxShadow: "0 1px 2px rgba(0,0,0,.25)"}} />
+                  </button>
+                </div>
+                <div style={{display: "flex", alignItems: "center", gap: "12px", border: "1px solid #e7e8e3", borderRadius: "14px", padding: "12px 14px"}}>
+                  <div style={{flex: "1"}}>
+                    <div style={{fontSize: "13px", fontWeight: "700"}}>{"مکالمه‌های ضبط‌شده"}</div>
+                    <div style={{fontSize: "11px", color: "#8b8e89", marginTop: "2px"}}>{"هزینه پردازش بیشتر"}</div>
+                  </div>
+                  <button onClick={vm.ai2?.togCall} style={{width: "42px", height: "24px", borderRadius: "99px", border: "none", background: vm.ai2?.callT?.bg, display: "flex", justifyContent: vm.ai2?.callT?.j, alignItems: "center", padding: "3px", cursor: "pointer", flexShrink: "0"}}>
+                    <span style={{width: "18px", height: "18px", borderRadius: "50%", background: "#fff", boxShadow: "0 1px 2px rgba(0,0,0,.25)"}} />
+                  </button>
+                </div>
+                <label style={{display: "flex", flexDirection: "column", gap: "6px", fontSize: "12px", color: "#6b6e72"}}>
+                  {"حداقل مدت فایل برای تحلیل (ثانیه)"}
+                  <input type="number" value={vm.ai2?.f?.minSeconds} onChange={vm.ai2?.set?.minSeconds} placeholder="" style={{border: "1px solid #e1e3dc", borderRadius: "10px", padding: "10px 12px", fontSize: "13px", outline: "none", background: "#fff", color: "#232425", fontFamily: "inherit", width: "100%"}} />
+                </label>
+              </div>
+            </div>
+            <div style={{display: "flex", flexWrap: "wrap", gap: "20px", alignItems: "flex-start"}}>
+              <div style={{background: "#fff", border: "1px solid #e7e8e3", borderRadius: "20px", padding: "20px", display: "flex", flexDirection: "column", gap: "14px", flex: "1 1 340px", minWidth: "0"}}>
+                <div style={{display: "flex", alignItems: "center", gap: "10px"}}>
+                  <span style={{width: "32px", height: "32px", borderRadius: "10px", background: "#e5eff7", color: "#1d5a85", display: "grid", placeItems: "center", fontWeight: "800"}}>{"۱"}</span>
+                  <div style={{fontWeight: "800", fontSize: "16px"}}>{"تبدیل گفتار به متن"}</div>
+                </div>
+                <label style={{display: "flex", flexDirection: "column", gap: "6px", fontSize: "12px", color: "#6b6e72"}}>
+                  {"سرویس"}
+                  <select value={vm.ai2?.f?.sttProvider} onChange={vm.ai2?.set?.sttProvider} style={{border: "1px solid #e1e3dc", borderRadius: "10px", padding: "10px 12px", fontSize: "13px", outline: "none", background: "#fff", color: "#232425", fontFamily: "inherit", width: "100%"}}>
+                    <option value="openai">{"سازگار با OpenAI (Whisper و مشابه)"}</option>
+                    <option value="custom">{"سرویس اختصاصی (آدرس کامل)"}</option>
+                    <option value="none">{"خاموش"}</option>
+                  </select>
+                </label>
+                <label style={{display: "flex", flexDirection: "column", gap: "6px", fontSize: "12px", color: "#6b6e72"}}>
+                  {vm.ai2?.sttUrlLabel}
+                  <input value={vm.ai2?.f?.sttUrl} onChange={vm.ai2?.set?.sttUrl} placeholder="https://api.openai.com/v1" style={{border: "1px solid #e1e3dc", borderRadius: "10px", padding: "10px 12px", fontSize: "13px", outline: "none", background: "#fff", color: "#232425", fontFamily: "inherit", width: "100%", direction: "ltr", textAlign: "left"}} />
+                </label>
+                <label style={{display: "flex", flexDirection: "column", gap: "6px", fontSize: "12px", color: "#6b6e72"}}>
+                  {"کلید / توکن"}
+                  <input type="password" value={vm.ai2?.f?.sttKey} onChange={vm.ai2?.set?.sttKey} placeholder={vm.ai2?.sttKeyPh} style={{border: "1px solid #e1e3dc", borderRadius: "10px", padding: "10px 12px", fontSize: "13px", outline: "none", background: "#fff", color: "#232425", fontFamily: "inherit", width: "100%", direction: "ltr", textAlign: "left"}} />
+                </label>
+                <div style={{display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px"}}>
+                  <label style={{display: "flex", flexDirection: "column", gap: "6px", fontSize: "12px", color: "#6b6e72"}}>
+                    {"مدل"}
+                    <input value={vm.ai2?.f?.sttModel} onChange={vm.ai2?.set?.sttModel} placeholder="whisper-1" style={{border: "1px solid #e1e3dc", borderRadius: "10px", padding: "10px 12px", fontSize: "13px", outline: "none", background: "#fff", color: "#232425", fontFamily: "inherit", width: "100%", direction: "ltr", textAlign: "left"}} />
+                  </label>
+                  <label style={{display: "flex", flexDirection: "column", gap: "6px", fontSize: "12px", color: "#6b6e72"}}>
+                    {"زبان"}
+                    <input value={vm.ai2?.f?.sttLanguage} onChange={vm.ai2?.set?.sttLanguage} placeholder="fa" style={{border: "1px solid #e1e3dc", borderRadius: "10px", padding: "10px 12px", fontSize: "13px", outline: "none", background: "#fff", color: "#232425", fontFamily: "inherit", width: "100%", direction: "ltr", textAlign: "left"}} />
+                  </label>
+                </div>
+                <div style={{fontSize: "12px", color: "#6b6e72", lineHeight: "1.8"}}>{vm.ai2?.sttHelp}</div>
+              </div>
+              <div style={{background: "#fff", border: "1px solid #e7e8e3", borderRadius: "20px", padding: "20px", display: "flex", flexDirection: "column", gap: "14px", flex: "1 1 340px", minWidth: "0"}}>
+                <div style={{display: "flex", alignItems: "center", gap: "10px"}}>
+                  <span style={{width: "32px", height: "32px", borderRadius: "10px", background: "#eaf4dc", color: "#3d6a0c", display: "grid", placeItems: "center", fontWeight: "800"}}>{"۲"}</span>
+                  <div style={{fontWeight: "800", fontSize: "16px"}}>{"تحلیل متن (دسته‌بندی و خلاصه)"}</div>
+                </div>
+                <label style={{display: "flex", flexDirection: "column", gap: "6px", fontSize: "12px", color: "#6b6e72"}}>
+                  {"سرویس"}
+                  <select value={vm.ai2?.f?.llmProvider} onChange={vm.ai2?.set?.llmProvider} style={{border: "1px solid #e1e3dc", borderRadius: "10px", padding: "10px 12px", fontSize: "13px", outline: "none", background: "#fff", color: "#232425", fontFamily: "inherit", width: "100%"}}>
+                    <option value="claude">{"Claude (Anthropic)"}</option>
+                    <option value="openai">{"سازگار با OpenAI"}</option>
+                    <option value="keywords">{"تحلیل داخلی با کلیدواژه (بدون سرویس خارجی)"}</option>
+                  </select>
+                </label>
+                {(vm.ai2?.isLlm) ? (<>
+                  <label style={{display: "flex", flexDirection: "column", gap: "6px", fontSize: "12px", color: "#6b6e72"}}>
+                    {"مدل"}
+                    <input value={vm.ai2?.f?.llmModel} onChange={vm.ai2?.set?.llmModel} placeholder="claude-opus-5-5" style={{border: "1px solid #e1e3dc", borderRadius: "10px", padding: "10px 12px", fontSize: "13px", outline: "none", background: "#fff", color: "#232425", fontFamily: "inherit", width: "100%", direction: "ltr", textAlign: "left"}} />
+                  </label>
+                  {(vm.ai2?.isClaude) ? (<>
+                    <div style={{display: "flex", gap: "6px", flexWrap: "wrap"}}>
+                      {(vm.ai2?.models || []).map((m, __i11) => <React.Fragment key={__i11}>
+                        <button onClick={m?.pick} style={{border: `1px solid ${m?.bd}`, background: m?.bg, color: m?.fg, padding: "5px 10px", borderRadius: "999px", fontSize: "11px", fontWeight: "700", cursor: "pointer", fontFamily: "inherit"}}>{m?.label}</button>
+                      </React.Fragment>)}
+                    </div>
+                  </>) : null}
+                  <label style={{display: "flex", flexDirection: "column", gap: "6px", fontSize: "12px", color: "#6b6e72"}}>
+                    {vm.ai2?.llmUrlLabel}
+                    <input value={vm.ai2?.f?.llmUrl} onChange={vm.ai2?.set?.llmUrl} placeholder={vm.ai2?.llmUrlPh} style={{border: "1px solid #e1e3dc", borderRadius: "10px", padding: "10px 12px", fontSize: "13px", outline: "none", background: "#fff", color: "#232425", fontFamily: "inherit", width: "100%", direction: "ltr", textAlign: "left"}} />
+                  </label>
+                  <label style={{display: "flex", flexDirection: "column", gap: "6px", fontSize: "12px", color: "#6b6e72"}}>
+                    {"کلید API"}
+                    <input type="password" value={vm.ai2?.f?.llmKey} onChange={vm.ai2?.set?.llmKey} placeholder={vm.ai2?.llmKeyPh} style={{border: "1px solid #e1e3dc", borderRadius: "10px", padding: "10px 12px", fontSize: "13px", outline: "none", background: "#fff", color: "#232425", fontFamily: "inherit", width: "100%", direction: "ltr", textAlign: "left"}} />
+                  </label>
+                </>) : null}
+                <div style={{fontSize: "12px", color: "#6b6e72", lineHeight: "1.8"}}>{vm.ai2?.llmHelp}</div>
+              </div>
+            </div>
+            <div style={{background: "#fff", border: "1px solid #e7e8e3", borderRadius: "20px", padding: "20px", display: "flex", flexDirection: "column", gap: "14px"}}>
+              <div style={{display: "flex", gap: "10px", flexWrap: "wrap", alignItems: "center"}}>
+                <button onClick={vm.ai2?.save} style={{border: "none", background: "#8DC63F", color: "#1f2021", padding: "11px 20px", borderRadius: "12px", fontSize: "13px", fontWeight: "800", cursor: "pointer", fontFamily: "inherit"}}>{"ذخیره تنظیمات"}</button>
+                <button onClick={vm.ai2?.testLlm} style={{border: "1px solid #e1e3dc", background: "#fff", padding: "11px 16px", borderRadius: "12px", fontSize: "13px", fontWeight: "700", cursor: "pointer", fontFamily: "inherit"}}>{"تست تحلیل متن"}</button>
+                <button onClick={vm.ai2?.testStt} style={{border: "1px solid #e1e3dc", background: "#fff", padding: "11px 16px", borderRadius: "12px", fontSize: "13px", fontWeight: "700", cursor: "pointer", fontFamily: "inherit"}}>{"تست تبدیل گفتار (آخرین فایل ضبط)"}</button>
+                <span style={{fontSize: "12px", color: "#6b6e72"}}>{vm.ai2?.testBusy}</span>
+              </div>
+              <label style={{display: "flex", flexDirection: "column", gap: "6px", fontSize: "12px", color: "#6b6e72"}}>
+                {"متن نمونه برای تست"}
+                <textarea value={vm.ai2?.sample} onChange={vm.ai2?.setSample} style={{border: "1px solid #e1e3dc", borderRadius: "10px", padding: "10px 12px", fontSize: "13px", outline: "none", background: "#fff", color: "#232425", fontFamily: "inherit", width: "100%", minHeight: "70px", resize: "vertical", lineHeight: "1.8"}} />
+              </label>
+              {(vm.ai2?.hasResult) ? (<>
+                <div style={{background: "linear-gradient(180deg,#f5faee,#fff)", border: "1px solid #dcebc4", borderRadius: "16px", padding: "16px", display: "flex", flexDirection: "column", gap: "10px"}}>
+                  {(vm.ai2?.result || []).map((r, __i9) => <React.Fragment key={__i9}>
+                    <div style={{display: "flex", gap: "10px", fontSize: "13px", lineHeight: "1.8"}}>
+                      <span style={{color: "#6b6e72", minWidth: "110px", flexShrink: "0"}}>{r?.k}</span>
+                      <b style={{color: r?.c, fontWeight: "700"}}>{r?.v}</b>
+                    </div>
+                  </React.Fragment>)}
+                </div>
+              </>) : null}
+            </div>
+            <div style={{background: "#fff", border: "1px solid #e7e8e3", borderRadius: "20px", padding: "20px", display: "flex", flexDirection: "column", gap: "14px"}}>
+              <div style={{fontWeight: "800", fontSize: "16px"}}>{"پردازش موارد قبلی"}</div>
+              <div style={{fontSize: "12px", color: "#6b6e72", lineHeight: "1.8"}}>
+                {"تماس‌هایی که قبل از فعال شدن تحلیل ضبط شده‌اند یا تحلیلشان ناموفق بوده را می‌توانید دوباره به صف تحلیل بفرستید."}
+              </div>
+              <div style={{display: "flex", gap: "10px", flexWrap: "wrap"}}>
+                <button onClick={vm.ai2?.queuePending} style={{border: "none", background: "#2E2F31", color: "#fff", padding: "10px 16px", borderRadius: "12px", fontSize: "13px", fontWeight: "700", cursor: "pointer", fontFamily: "inherit"}}>{"تحلیل موارد تحلیل‌نشده ۷ روز اخیر"}</button>
+                <button onClick={vm.ai2?.queueFailed} style={{border: "1px solid #e1e3dc", background: "#fff", padding: "10px 16px", borderRadius: "12px", fontSize: "13px", fontWeight: "700", cursor: "pointer", fontFamily: "inherit"}}>{"تحلیل دوباره موارد ناموفق"}</button>
+              </div>
             </div>
           </div>
         </>) : null}

@@ -62,6 +62,7 @@ model Call {
   recPath   String?
   ai        Json?
   aiState   String   @default("none") // none | queued | done | failed
+  aiError   String?
   survey    Json?
   callback  Boolean  @default(false)
   summary   String?
