@@ -127,9 +127,9 @@ export class ReportsController {
     // ---------------- sheet 2: calls in the report
     const ids = new Set((b.ids || []).map(String));
     const list = (await this.calls.list('1300/01/01')).filter(c => ids.has(c.id)).sort((a, z) => `${a.date} ${a.time}`.localeCompare(`${z.date} ${z.time}`));
-    const dh = ['ردیف', 'تاریخ', 'روز', 'ساعت', 'شماره', 'جهت', 'وضعیت', 'صف / مسیر', 'پاسخ‌دهنده', 'انتظار (ثانیه)', 'مدت مکالمه', 'ضبط'];
+    const dh = ['ردیف', 'تاریخ', 'روز', 'ساعت', 'شماره', 'جهت', 'وضعیت', 'صف / مسیر', 'پاسخ‌دهنده', 'انتظار (ثانیه)', 'مدت مکالمه', 'ضبط', 'تاریخ جراحی (سامانه بیماران)'];
     const ws2 = sheetBase(wb, 'جزئیات تماس‌ها', dh.length, C.ink);
-    ws2.columns = [7, 12, 11, 8, 15, 9, 13, 30, 18, 12, 12, 9].map(width => ({ width }));
+    ws2.columns = [7, 12, 11, 8, 15, 9, 13, 30, 18, 12, 12, 9, 24].map(width => ({ width }));
     titleBlock(ws2, dh.length, 'جزئیات تماس‌های این گزارش', `${list.length} تماس  ·  ${sub}`);
     headerRow(ws2, 5, dh);
     list.forEach((c, i) => {
@@ -137,7 +137,7 @@ export class ReportsController {
       const bg = i % 2 ? C.zebra : C.white;
       const [stl, stc] = ST[c.st] || [c.st, C.ink];
       const vals = [i + 1, c.date, WD[jalaliToDate(c.date).getUTCDay()], c.time, c.phoneRaw, c.dir === 'in' ? 'ورودی' : 'خروجی', stl, c.queue,
-        c.op ? `${c.op.name} (${c.op.ext})` : '—', c.wait, c.dur ? mmss(c.dur) : '—', c.hasRec ? 'دارد' : '—'];
+        c.op ? `${c.op.name} (${c.op.ext})` : '—', c.wait, c.dur ? mmss(c.dur) : '—', c.hasRec ? 'دارد' : '—', c.surgery || '—'];
       vals.forEach((v, k) => {
         const cell = x.getCell(k + 1);
         Object.assign(cell, { value: typeof v === 'string' && k !== 4 ? faDigits(v) : v, font: font(k === 6 ? { bold: true, color: { argb: stc } } : {}), fill: fill(bg), alignment: al(k === 7 || k === 8 ? 'right' : 'center'), border: { bottom: { style: 'hair', color: { argb: C.line } } } });
@@ -152,6 +152,60 @@ export class ReportsController {
     const buf = await wb.xlsx.writeBuffer();
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.setHeader('Content-Disposition', `attachment; filename="report.xlsx"; filename*=UTF-8''${encodeURIComponent(b.title)}.xlsx`);
+    res.send(Buffer.from(buf as ArrayBuffer));
+  }
+
+  /** «گزارش روزها»: summary sheet plus one sheet per table, each exactly as shown in the panel. */
+  @Post('days')
+  async days(@Body() b: { title: string; from: string; to: string; filters: string[]; kpis: { label: string; value: any }[]; sheets: { name: string; headers: string[]; rows: any[][] }[] }, @CurrentUser() me: Me, @Res() res: Response) {
+    if (!b || !Array.isArray(b.sheets) || !b.sheets.length) throw new BadRequestException('داده گزارش نامعتبر است');
+    const wb = new ExcelJS.Workbook();
+    wb.creator = 'مرکز تماس دکتر افلاکی';
+    wb.created = new Date();
+    const sub = `مرکز تماس دکتر افلاکی  ·  بازه ${b.from} تا ${b.to}  ·  تهیه: ${me.name} · ${jalaliDate(new Date())} ساعت ${hhmm(new Date())}`;
+    const filters = 'فیلترها: ' + (b.filters || []).filter(Boolean).join('  ·  ');
+    const tabs = [C.green, C.blue, C.ink, C.greenDark, C.amber, C.ink2];
+
+    b.sheets.slice(0, 12).forEach((sh, si) => {
+      const cols = Math.max(2, sh.headers.length);
+      const ws = sheetBase(wb, String(sh.name).slice(0, 30) || 'برگه ' + (si + 1), cols, tabs[si % tabs.length]);
+      ws.columns = sh.headers.map((h, i) => ({ width: i === 0 ? 30 : Math.max(12, Math.min(22, h.length + 4)) }));
+      titleBlock(ws, cols, `${b.title} — ${sh.name}`, sub, filters);
+      let r = 5;
+      // the first sheet also carries the headline numbers
+      if (si === 0 && b.kpis?.length) {
+        ws.mergeCells(r, 1, r, Math.min(cols, 3));
+        Object.assign(ws.getCell(r, 1), { value: 'خلاصه', font: font({ bold: true, size: 12, color: { argb: C.greenDark } }), alignment: al() });
+        r++;
+        for (const k of b.kpis) {
+          Object.assign(ws.getCell(r, 1), { value: faDigits(k.label), font: font({ color: { argb: C.grey } }), fill: fill(C.greenSoft), alignment: al() });
+          ws.mergeCells(r, 2, r, Math.min(cols, 4));
+          Object.assign(ws.getCell(r, 2), { value: num(k.value), font: font({ bold: true, size: 11 }), fill: fill(C.greenSoft), alignment: al() });
+          ws.getRow(r).height = 22;
+          r++;
+        }
+        r++;
+      }
+      const headR = r;
+      headerRow(ws, r, sh.headers);
+      r++;
+      (sh.rows || []).forEach((row, i) => {
+        const x = ws.getRow(r);
+        const bg = i % 2 ? C.zebra : C.white;
+        row.forEach((v, k) => Object.assign(x.getCell(k + 1), { value: num(v), font: font(k === 0 ? { bold: true } : {}), fill: fill(bg), alignment: al(k === 0 ? 'right' : 'center'), border: { bottom: { style: 'hair', color: { argb: C.line } } } }));
+        x.height = 22;
+        r++;
+      });
+      if (!sh.rows?.length) {
+        ws.mergeCells(r + 1, 1, r + 1, cols);
+        Object.assign(ws.getCell(r + 1, 1), { value: 'در این بازه و با این فیلترها داده‌ای نیست.', font: font({ color: { argb: C.grey } }), alignment: al('center') });
+      }
+      ws.views = [{ rightToLeft: true, showGridLines: false, state: 'frozen', ySplit: headR }];
+    });
+    await this.db.auditLog.create({ data: { userId: me.id, userName: me.name, action: 'report.days', target: b.title, detail: { from: b.from, to: b.to } } });
+    const buf = await wb.xlsx.writeBuffer();
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="days.xlsx"; filename*=UTF-8''${encodeURIComponent(b.title)}.xlsx`);
     res.send(Buffer.from(buf as ArrayBuffer));
   }
 }

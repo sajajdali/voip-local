@@ -728,6 +728,237 @@ class LiveApp extends React.Component {
     } };
   }
 
+  // ---- «گزارش روزها»: calls and answers by even/odd weekday, week, day and hour
+  async loadOlderCalls(from) {
+    if (this.state.drLoading || (this.state.drOlderFrom && this.state.drOlderFrom <= from)) return;
+    this.setState({ drLoading: true });
+    try {
+      const r = await api('/calls?from=' + encodeURIComponent(from));
+      this.drOlder = r.calls.map(enrich);
+      this.setState({ drOlderFrom: from, drLoading: false });
+    } catch (e) { this.setState({ drLoading: false }); this.toast('بارگذاری تماس‌های قدیمی‌تر ناموفق بود: ' + e.message); }
+  }
+
+  daysVals(s) {
+    const fa = n => String(n).replace(/\d/g, d => '۰۱۲۳۴۵۶۷۸۹'[d]);
+    const pct = (a, b) => (b ? Math.round(a / b * 100) : 0);
+    const dur = sec => { sec = Math.round(sec || 0); const h = Math.floor(sec / 3600), m = Math.floor(sec % 3600 / 60); return h ? fa(h) + ' ساعت ' + fa(m) + ' دقیقه' : m ? fa(m) + ' دقیقه' : fa(sec) + ' ثانیه'; };
+    const mmss = sec => { sec = Math.round(sec || 0); return fa(String(Math.floor(sec / 60)).padStart(2, '0') + ':' + String(sec % 60).padStart(2, '0')); };
+    const wdOf = date => { try { return jWeekday(jToDate(date)); } catch (e) { return -1; } }; // 0 = شنبه … 6 = جمعه
+    const GROUP = { zoj: [0, 2, 4], fard: [1, 3, 5], fri: [6] };
+    const GNAME = { zoj: 'روزهای زوج', fard: 'روزهای فرد', fri: 'جمعه' };
+    const GSUB = { zoj: 'شنبه، دوشنبه، چهارشنبه', fard: 'یکشنبه، سه‌شنبه، پنجشنبه', fri: 'تعطیل' };
+    const groupOf = w => (GROUP.zoj.includes(w) ? 'zoj' : GROUP.fard.includes(w) ? 'fard' : 'fri');
+    const TAG = { zoj: { label: 'زوج', bg: '#e5eff7', fg: '#1d5a85' }, fard: { label: 'فرد', bg: '#eef5e3', fg: '#3d6a0c' }, fri: { label: 'جمعه', bg: '#f2f3ef', fg: '#55585c' } };
+    const addDays = (date, n) => jAdd(n, jToDate(date));
+    const weekStart = date => addDays(date, -Math.max(0, wdOf(date)));
+    const thisWeek = weekStart(TODAY);
+    const prevMonthEnd = addDays(MONTH_START, -1), prevMonthStart = prevMonthEnd.slice(0, 8) + '01';
+
+    const f = { from: jAdd(-29), to: TODAY, days: 'all', wd: [true, true, true, true, true, true, true], h1: 0, h2: 23, dir: 'in', src: 'all', op: 'all', ...(s.dr || {}) };
+    const setF = o => this.setState({ dr: { ...f, ...o }, drDay: o.from || o.to ? null : s.drDay });
+    const LOADED_FROM = jAdd(-119);
+    if (f.from < LOADED_FROM && !(s.drOlderFrom && s.drOlderFrom <= f.from)) setTimeout(() => this.loadOlderCalls(f.from), 0);
+    const C = s.drOlderFrom && s.drOlderFrom <= f.from && this.drOlder ? this.drOlder : this.calls;
+
+    const hourOf = c => +String(c.time || '0').slice(0, 2);
+    const isAns = c => c.st === 'answered' || c.st === 'transferred';
+    const daysAllowed = f.days === 'custom' ? f.wd.map((on, i) => (on ? i : -1)).filter(i => i >= 0) : f.days === 'all' ? [0, 1, 2, 3, 4, 5, 6] : GROUP[f.days];
+    // everything except the weekday choice (the even/odd comparison must show all three groups)
+    const base = C.filter(c => c.date >= f.from && c.date <= f.to && (f.dir === 'all' || c.dir === f.dir) && hourOf(c) >= f.h1 && hourOf(c) <= f.h2
+      && (f.src === 'all' || c.queue === f.src) && (f.op === 'all' || (f.op === 'ivr' ? !c.op : c.op && String(c.op.id) === f.op)));
+    const L = base.filter(c => daysAllowed.includes(wdOf(c.date)));
+
+    const metrics = l => {
+      const ans = l.filter(isAns), talk = ans.reduce((n, c) => n + (c.dur || 0), 0);
+      const waitL = l.filter(c => c.dir === 'in' && isAns(c));
+      return {
+        n: l.length, ans: ans.length, missed: l.filter(c => c.st === 'missed').length, vm: l.filter(c => c.st === 'voicemail').length,
+        rate: pct(ans.length, l.length), talk, avgTalk: ans.length ? talk / ans.length : 0,
+        avgWait: waitL.length ? waitL.reduce((n, c) => n + (c.wait || 0), 0) / waitL.length : 0,
+        uniq: new Set(l.map(c => c.phoneRaw)).size, ai: l.filter(c => c.queue === 'دستیار هوشمند').length,
+      };
+    };
+    // calendar days of each kind inside the range (so per-day averages are fair even when a day had no call)
+    const calendar = [];
+    for (let d = f.from, i = 0; d <= f.to && i < 800; d = addDays(d, 1), i++) calendar.push(d);
+    const M = metrics(L);
+    const activeDays = new Set(L.map(c => c.date)).size;
+    const calDaysSel = calendar.filter(d => daysAllowed.includes(wdOf(d))).length;
+
+    const kpis = [
+      { label: 'کل تماس‌ها', value: fa(M.n), sub: 'میانگین ' + fa((M.n / Math.max(1, calDaysSel)).toFixed(1)) + ' در روز', color: '#232425' },
+      { label: 'پاسخ داده شد', value: fa(M.ans), sub: 'نرخ پاسخ ' + fa(M.rate) + '٪', color: '#3d6a0c' },
+      { label: 'بی‌پاسخ', value: fa(M.missed), sub: fa(pct(M.missed, M.n)) + '٪ از تماس‌ها', color: '#b42318' },
+      { label: 'پیام صوتی', value: fa(M.vm), sub: fa(pct(M.vm, M.n)) + '٪ از تماس‌ها', color: '#1d5a85' },
+      { label: 'تماس‌گیرنده یکتا', value: fa(M.uniq), sub: M.n ? fa((M.n / Math.max(1, M.uniq)).toFixed(1)) + ' تماس برای هر نفر' : '—', color: '#232425' },
+      { label: 'مجموع مکالمه', value: dur(M.talk), sub: 'میانگین هر مکالمه ' + mmss(M.avgTalk), color: '#232425', small: true },
+      { label: 'میانگین انتظار تا پاسخ', value: fa(Math.round(M.avgWait)) + ' ثانیه', sub: 'فقط تماس‌های پاسخ‌داده', color: '#8a5a00', small: true },
+      { label: 'روزهای دارای تماس', value: fa(activeDays), sub: 'از ' + fa(calDaysSel) + ' روز انتخاب‌شده', color: '#232425' },
+    ];
+
+    // even / odd / Friday comparison
+    const groups = ['zoj', 'fard', 'fri'].map(g => {
+      const l = base.filter(c => groupOf(wdOf(c.date)) === g), m = metrics(l);
+      const nd = calendar.filter(d => groupOf(wdOf(d)) === g).length;
+      const on = f.days === g;
+      return {
+        key: g, name: GNAME[g], sub: GSUB[g], days: fa(nd), n: fa(m.n), ans: fa(m.ans), missed: fa(m.missed), rate: fa(m.rate) + '٪', rateW: m.rate + '%',
+        perDay: fa((m.n / Math.max(1, nd)).toFixed(1)), ansPerDay: fa((m.ans / Math.max(1, nd)).toFixed(1)), talk: dur(m.talk), wait: fa(Math.round(m.avgWait)) + ' ثانیه',
+        pick: () => setF({ days: on ? 'all' : g }), bd: on ? '#8DC63F' : '#e7e8e3', bg: on ? '#f4f9ec' : '#fff', mark: on ? 'فیلتر فعال' : 'برای فیلتر کلیک کنید',
+        ...TAG[g], tagLabel: TAG[g].label,
+      };
+    });
+
+    // weekday chart (Sat … Fri): calls vs answered, total and per calendar day
+    const wdRows = WD_NAMES.map((name, i) => {
+      const l = base.filter(c => wdOf(c.date) === i), m = metrics(l), nd = calendar.filter(d => wdOf(d) === i).length;
+      return { i, name, m, nd };
+    });
+    const wdMax = Math.max(1, ...wdRows.map(r => r.m.n));
+    const weekdays = wdRows.map(r => {
+      const on = daysAllowed.includes(r.i);
+      return {
+        name: r.name, n: fa(r.m.n), ans: fa(r.m.ans), rate: fa(r.m.rate) + '٪', perDay: fa((r.m.n / Math.max(1, r.nd)).toFixed(1)),
+        hN: Math.round(r.m.n / wdMax * 150) + 'px', hA: Math.round(r.m.ans / wdMax * 150) + 'px',
+        tip: r.name + ': ' + fa(r.m.n) + ' تماس، ' + fa(r.m.ans) + ' پاسخ (' + fa(r.m.rate) + '٪) · میانگین ' + fa((r.m.n / Math.max(1, r.nd)).toFixed(1)) + ' تماس در هر ' + r.name,
+        op: on ? 1 : 0.35, ...TAG[groupOf(r.i)], tagLabel: TAG[groupOf(r.i)].label,
+        pick: () => { const wd = f.days === 'custom' ? [...f.wd] : [0, 1, 2, 3, 4, 5, 6].map(i => daysAllowed.includes(i)); const only = wd.filter(Boolean).length === 1 && wd[r.i]; setF({ days: only ? 'all' : 'custom', wd: only ? [true, true, true, true, true, true, true] : wd.map((_, j) => j === r.i) }); },
+      };
+    });
+
+    // hour of day
+    const hrs = [];
+    for (let h = 0; h < 24; h++) { const l = L.filter(c => hourOf(c) === h); hrs.push({ h, n: l.length, ans: l.filter(isAns).length }); }
+    const hMax = Math.max(1, ...hrs.map(x => x.n));
+    const hours = hrs.filter(x => x.h >= Math.min(f.h1, 7) && x.h <= Math.max(f.h2 < 23 ? f.h2 : 22, 20) || x.n).map(x => ({
+      label: fa(x.h), n: fa(x.n), hN: Math.round(x.n / hMax * 120) + 'px', hA: Math.round(x.ans / hMax * 120) + 'px',
+      tip: 'ساعت ' + fa(x.h) + ' تا ' + fa(x.h + 1) + ': ' + fa(x.n) + ' تماس، ' + fa(x.ans) + ' پاسخ (' + fa(pct(x.ans, x.n)) + '٪)',
+    }));
+    const peak = hrs.reduce((a, b) => (b.n > a.n ? b : a), hrs[0]);
+
+    // weekday × hour heat map (single-hue sequential)
+    const hmHours = []; for (let h = 7; h <= 22; h++) hmHours.push(h);
+    const cellN = {}; let cMax = 1;
+    for (const c of L) { const k = wdOf(c.date) + '-' + hourOf(c); cellN[k] = (cellN[k] || 0) + 1; cMax = Math.max(cMax, cellN[k]); }
+    const heat = WD_NAMES.map((name, i) => ({
+      name, cells: hmHours.map(h => { const n = cellN[i + '-' + h] || 0, a = n / cMax; return { n: n ? fa(n) : '', bg: n ? 'rgba(61,106,12,' + (0.1 + a * 0.85).toFixed(2) + ')' : '#f4f5f1', fg: a > 0.55 ? '#fff' : '#3a3b3d', tip: name + ' ساعت ' + fa(h) + ': ' + fa(n) + ' تماس' }; }),
+    }));
+
+    // weeks (Saturday → Friday)
+    const wk = {};
+    for (const c of L) { const k = weekStart(c.date); (wk[k] = wk[k] || []).push(c); }
+    const weeks = Object.keys(wk).sort().reverse().map(k => {
+      const m = metrics(wk[k]), end = addDays(k, 6);
+      return {
+        label: 'هفته ' + fa(k.slice(5)) + ' تا ' + fa(end.slice(5)), n: fa(m.n), ans: fa(m.ans), missed: fa(m.missed), rate: fa(m.rate) + '٪', rateW: m.rate + '%',
+        talk: dur(m.talk), wait: fa(Math.round(m.avgWait)) + ' ث', uniq: fa(m.uniq), cur: k === thisWeek, pick: () => setF({ from: k < f.from ? f.from : k, to: end > TODAY ? TODAY : end }),
+        _k: k, _m: m, _end: end,
+      };
+    });
+
+    // days
+    const dy = {};
+    for (const c of L) (dy[c.date] = dy[c.date] || []).push(c);
+    const sel = s.drDay && dy[s.drDay] ? s.drDay : null;
+    const days = Object.keys(dy).sort().reverse().map(d => {
+      const l = dy[d], m = metrics(l), w = wdOf(d), g = groupOf(w);
+      const hc = {}; l.forEach(c => { hc[hourOf(c)] = (hc[hourOf(c)] || 0) + 1; });
+      const ph = Object.entries(hc).sort((a, b) => b[1] - a[1])[0];
+      return {
+        date: fa(d), wd: WD_NAMES[w] || '', ...TAG[g], tagLabel: TAG[g].label, n: fa(m.n), ans: fa(m.ans), missed: fa(m.missed), vm: fa(m.vm),
+        rate: fa(m.rate) + '٪', rateW: m.rate + '%', rateFg: m.rate >= 80 ? '#3d6a0c' : m.rate >= 60 ? '#8a5a00' : '#b42318',
+        talk: dur(m.talk), wait: fa(Math.round(m.avgWait)) + ' ث', uniq: fa(m.uniq), peak: ph ? 'ساعت ' + fa(ph[0]) : '—',
+        pick: () => this.setState({ drDay: sel === d ? null : d }), rowBg: sel === d ? '#f4f9ec' : 'transparent', _d: d, _m: m, _w: w,
+      };
+    });
+
+    // selected day: hours and operators
+    const opRows = l => {
+      const by = {};
+      for (const c of l.filter(isAns)) { const k = c.op ? c.op.name + ' · داخلی ' + c.op.ext : c.queue === 'دستیار هوشمند' ? 'دستیار هوشمند' : 'بدون اپراتور'; (by[k] = by[k] || []).push(c); }
+      const tot = l.filter(isAns).length;
+      return Object.entries(by).map(([name, x]) => ({ name, n: x.length, talk: x.reduce((a, c) => a + c.dur, 0) })).sort((a, b) => b.n - a.n)
+        .map(o => ({ name: o.name, n: fa(o.n), talk: dur(o.talk), avg: mmss(o.talk / o.n), share: fa(pct(o.n, tot)) + '٪', w: pct(o.n, tot) + '%', _o: o }));
+    };
+    let day = null;
+    if (sel) {
+      const l = dy[sel], m = metrics(l), dh = [];
+      for (let h = 0; h < 24; h++) { const x = l.filter(c => hourOf(c) === h); if (x.length || (h >= 8 && h <= 20)) dh.push({ h, n: x.length, ans: x.filter(isAns).length }); }
+      const mx = Math.max(1, ...dh.map(x => x.n));
+      day = {
+        title: WD_NAMES[wdOf(sel)] + ' ' + fa(sel), n: fa(m.n), ans: fa(m.ans), rate: fa(m.rate) + '٪', talk: dur(m.talk), missed: fa(m.missed),
+        hours: dh.map(x => ({ label: fa(x.h), n: x.n ? fa(x.n) : '', hN: Math.round(x.n / mx * 90) + 'px', hA: Math.round(x.ans / mx * 90) + 'px', tip: 'ساعت ' + fa(x.h) + ': ' + fa(x.n) + ' تماس، ' + fa(x.ans) + ' پاسخ' })),
+        ops: opRows(l), close: () => this.setState({ drDay: null }),
+        openList: () => this.setState({ page: 'calls', cF: { ...(s.cF || {}), from: sel, to: sel } }),
+      };
+    }
+    const ops = opRows(L);
+
+    // filter controls
+    const pill = on => ({ bg: on ? '#2E2F31' : '#fff', fg: on ? '#fff' : '#3a3b3d', bd: on ? '#2E2F31' : '#e1e3dc' });
+    const QD = [['امروز', TODAY, TODAY], ['دیروز', jAdd(-1), jAdd(-1)], ['این هفته', thisWeek, TODAY], ['هفته قبل', addDays(thisWeek, -7), addDays(thisWeek, -1)],
+      ['این ماه', MONTH_START, TODAY], ['ماه قبل', prevMonthStart, prevMonthEnd], ['۳۰ روز اخیر', jAdd(-29), TODAY], ['۹۰ روز اخیر', jAdd(-89), TODAY]];
+    const DG = [['all', 'همه روزها'], ['zoj', 'زوج'], ['fard', 'فرد'], ['fri', 'جمعه']];
+    const srcs = [...new Set(C.filter(c => c.queue && c.queue !== '—').map(c => c.queue))].sort();
+    const opsAll = [...new Map(C.filter(c => c.op).map(c => [String(c.op.id), c.op])).values()].sort((a, b) => String(a.ext).localeCompare(String(b.ext)));
+    const hoursOpt = Array.from({ length: 24 }, (_, h) => ({ v: String(h), label: fa(String(h).padStart(2, '0')) + ':۰۰' }));
+    const active = [
+      f.days !== 'all' && (f.days === 'custom' ? 'روزها: ' + WD_NAMES.filter((_, i) => f.wd[i]).join('، ') : GNAME[f.days]),
+      (f.h1 > 0 || f.h2 < 23) && 'ساعت ' + fa(f.h1) + ' تا ' + fa(f.h2 + 1),
+      f.dir !== 'in' && (f.dir === 'out' ? 'تماس‌های خروجی' : 'ورودی و خروجی'),
+      f.src !== 'all' && 'مسیر: ' + f.src,
+      f.op !== 'all' && 'اپراتور: ' + (f.op === 'ivr' ? 'بدون اپراتور' : (opsAll.find(o => String(o.id) === f.op) || { name: f.op }).name),
+    ].filter(Boolean);
+
+    const exportX = () => {
+      const kp = kpis.map(k => ({ label: k.label, value: k.value + ' (' + k.sub + ')' }));
+      this.exportDays({
+        title: 'گزارش روزها', from: f.from, to: f.to, filters: active.length ? active : ['بدون فیلتر اضافه (تماس‌های ورودی)'], kpis: kp,
+        sheets: [
+          { name: 'زوج و فرد', headers: ['گروه روزها', 'تعداد روز', 'تماس', 'پاسخ‌داده', 'بی‌پاسخ', 'نرخ پاسخ', 'میانگین تماس در روز', 'میانگین پاسخ در روز', 'مجموع مکالمه', 'میانگین انتظار'],
+            rows: groups.map(g => [g.name + ' (' + g.sub + ')', g.days, g.n, g.ans, g.missed, g.rate, g.perDay, g.ansPerDay, g.talk, g.wait]) },
+          { name: 'روزهای هفته', headers: ['روز', 'گروه', 'تماس', 'پاسخ‌داده', 'نرخ پاسخ', 'میانگین تماس در روز'], rows: weekdays.map(w => [w.name, w.tagLabel, w.n, w.ans, w.rate, w.perDay]) },
+          { name: 'هفتگی', headers: ['هفته (شنبه تا جمعه)', 'تماس', 'پاسخ‌داده', 'بی‌پاسخ', 'نرخ پاسخ', 'تماس‌گیرنده یکتا', 'مجموع مکالمه', 'میانگین انتظار'],
+            rows: weeks.map(w => [fa(w._k) + ' تا ' + fa(w._end), w.n, w.ans, w.missed, w.rate, w.uniq, w.talk, w.wait]) },
+          { name: 'روزانه', headers: ['تاریخ', 'روز', 'زوج/فرد', 'تماس', 'پاسخ‌داده', 'بی‌پاسخ', 'پیام صوتی', 'نرخ پاسخ', 'تماس‌گیرنده یکتا', 'مجموع مکالمه', 'میانگین انتظار', 'شلوغ‌ترین ساعت'],
+            rows: days.map(d => [d.date, d.wd, d.tagLabel, d.n, d.ans, d.missed, d.vm, d.rate, d.uniq, d.talk, d.wait, d.peak]) },
+          { name: 'ساعتی', headers: ['ساعت', 'تماس', 'پاسخ‌داده', 'نرخ پاسخ'], rows: hrs.filter(x => x.n).map(x => [fa(x.h) + ' تا ' + fa(x.h + 1), fa(x.n), fa(x.ans), fa(pct(x.ans, x.n)) + '٪']) },
+          { name: 'اپراتورها', headers: ['پاسخ‌دهنده', 'تماس پاسخ‌داده', 'مجموع مکالمه', 'میانگین مکالمه', 'سهم'], rows: ops.map(o => [o.name, o.n, o.talk, o.avg, o.share]) },
+        ],
+      });
+    };
+
+    return { dr: {
+      from: f.from, to: f.to, pick: { from: x => setF({ from: x }), to: x => setF({ to: x }) },
+      quick: QD.map(([label, a, b]) => ({ label, onClick: () => setF({ from: a, to: b }), ...pill(f.from === a && f.to === b) })),
+      dgroups: DG.map(([k, label]) => ({ label, onClick: () => setF({ days: k }), ...pill(f.days === k) })),
+      wdChips: WD_NAMES.map((name, i) => ({ label: name, onClick: () => { const wd = f.days === 'custom' ? [...f.wd] : [0, 1, 2, 3, 4, 5, 6].map(j => daysAllowed.includes(j)); wd[i] = !wd[i]; if (!wd.some(Boolean)) return; setF({ days: 'custom', wd }); }, ...pill(daysAllowed.includes(i)) })),
+      h1: String(f.h1), h2: String(f.h2), hoursOpt, setH1: e => setF({ h1: Math.min(+e.target.value, f.h2) }), setH2: e => setF({ h2: Math.max(+e.target.value, f.h1) }),
+      dir: f.dir, setDir: e => setF({ dir: e.target.value }), src: f.src, setSrc: e => setF({ src: e.target.value }), srcs: srcs.map(x => ({ v: x, label: x })),
+      op: f.op, setOp: e => setF({ op: e.target.value }), opsOpt: opsAll.map(o => ({ v: String(o.id), label: o.name + ' (داخلی ' + o.ext + ')' })),
+      active: active.map(x => ({ x })), hasActive: active.length > 0, reset: () => this.setState({ dr: { from: f.from, to: f.to }, drDay: null }),
+      rangeText: f.from === f.to ? WD_NAMES[wdOf(f.from)] + ' ' + fa(f.from) : fa(f.from) + ' تا ' + fa(f.to) + ' · ' + fa(calendar.length) + ' روز',
+      loading: !!s.drLoading, empty: !L.length && !s.drLoading, has: L.length > 0,
+      kpis, groups, weekdays, hours, peakText: peak && peak.n ? 'شلوغ‌ترین ساعت: ' + fa(peak.h) + ' تا ' + fa(peak.h + 1) + ' با ' + fa(peak.n) + ' تماس' : '',
+      heat, hmHours: hmHours.map(h => ({ label: fa(h) })),
+      weeks, hasWeeks: weeks.length > 1, days, day, hasDay: !!day, ops, hasOps: ops.length > 0,
+      export: exportX,
+    } };
+  }
+
+  async exportDays(payload) {
+    this.toast('در حال ساخت فایل Excel گزارش…');
+    try {
+      const blob = await api.blob('/reports/days', payload);
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = payload.title + ' ' + payload.from.replace(/\//g, '-') + ' تا ' + payload.to.replace(/\//g, '-') + '.xlsx';
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(a.href), 10000);
+    } catch (e) { this.toast('ساخت فایل گزارش ناموفق بود: ' + e.message); }
+  }
+
   // ---- «هوش مصنوعی» settings page
   async loadAi() {
     try {

@@ -45,6 +45,10 @@ export default function AppView({ vm }) {
             <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M4 20V10M10 20V4M16 20v-7M21 20H3" /></svg>
             <span style={{flex: "1"}}>{"گزارش‌ساز"}</span>
           </div>
+          <div onClick={vm.nav?.days?.go} style={{display: "flex", alignItems: "center", gap: "12px", padding: "11px 14px", borderRadius: "12px", cursor: "pointer", background: vm.nav?.days?.bg, color: vm.nav?.days?.fg, fontSize: "14px", fontWeight: "600"}}>
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M4 6h16v14H4zM4 10h16M9 3v4M15 3v4M8 14h2M14 14h2M8 17h2" /></svg>
+            <span style={{flex: "1"}}>{"گزارش روزها"}</span>
+          </div>
           <div onClick={vm.nav?.survey?.go} style={{display: "flex", alignItems: "center", gap: "12px", padding: "11px 14px", borderRadius: "12px", cursor: "pointer", background: vm.nav?.survey?.bg, color: vm.nav?.survey?.fg, fontSize: "14px", fontWeight: "600"}}>
             <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round">
               <path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z" />
@@ -2187,6 +2191,448 @@ export default function AppView({ vm }) {
                 <pre style={{margin: "0", background: "#2E2F31", color: "#e6e7e2", borderRadius: "12px", padding: "12px 14px", fontSize: "11px", direction: "ltr", textAlign: "left", maxHeight: "260px", overflow: "auto", whiteSpace: "pre-wrap"}}>{vm.crm2?.raw}</pre>
               </>) : null}
             </div>
+          </div>
+        </>) : null}
+        {(vm.is?.days) ? (<>
+          <div style={{display: "flex", flexDirection: "column", gap: "18px"}}>
+            <div style={{display: "flex", alignItems: "flex-end", gap: "12px", flexWrap: "wrap"}}>
+              <div style={{flex: "1", minWidth: "240px"}}>
+                <h1 style={{margin: "0", fontSize: "28px", fontWeight: "800"}}>{"گزارش روزها"}</h1>
+                <div style={{fontSize: "14px", color: "#6b6e72", marginTop: "6px"}}>
+                  {"مقایسه روزهای زوج و فرد، روزهای هفته، هفته‌به‌هفته، روزبه‌روز و ساعت‌به‌ساعت · "}{vm.dr?.rangeText}
+                </div>
+              </div>
+              <button onClick={vm.dr?.export} style={{background: "#2E2F31", color: "#fff", border: "none", padding: "11px 18px", borderRadius: "12px", fontSize: "13px", fontWeight: "700", cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: "8px"}}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M12 3v12M7 10l5 5 5-5M5 21h14" /></svg>
+                {"خروجی Excel"}
+              </button>
+            </div>
+            <div style={{background: "#fff", border: "1px solid #e7e8e3", borderRadius: "20px", padding: "16px 18px", display: "flex", flexDirection: "column", gap: "12px"}}>
+              <div style={{display: "flex", gap: "8px", flexWrap: "wrap", alignItems: "flex-end"}}>
+                <div style={{width: "170px"}}>
+                  <JalaliDatePicker label="از تاریخ" value={vm.dr?.from} rangeStart={vm.dr?.from} rangeEnd={vm.dr?.to} onChange={vm.dr?.pick?.from} />
+                </div>
+                <div style={{width: "170px"}}>
+                  <JalaliDatePicker label="تا تاریخ" value={vm.dr?.to} rangeStart={vm.dr?.from} rangeEnd={vm.dr?.to} onChange={vm.dr?.pick?.to} />
+                </div>
+                <div style={{display: "flex", gap: "6px", flexWrap: "wrap", flex: "1", minWidth: "240px", paddingBottom: "4px"}}>
+                  {(vm.dr?.quick || []).map((p, __i9) => <React.Fragment key={__i9}>
+                    <button onClick={p?.onClick} style={{background: p?.bg, color: p?.fg, border: `1px solid ${p?.bd}`, padding: "6px 12px", borderRadius: "999px", fontSize: "12px", fontWeight: "700", cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap"}}>{p?.label}</button>
+                  </React.Fragment>)}
+                </div>
+              </div>
+              <div style={{display: "flex", gap: "8px", flexWrap: "wrap", alignItems: "center"}}>
+                <span style={{fontSize: "12px", color: "#6b6e72", width: "62px"}}>{"روزها"}</span>
+                {(vm.dr?.dgroups || []).map((p, __i8) => <React.Fragment key={__i8}>
+                  <button onClick={p?.onClick} style={{background: p?.bg, color: p?.fg, border: `1px solid ${p?.bd}`, padding: "6px 12px", borderRadius: "999px", fontSize: "12px", fontWeight: "700", cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap"}}>{p?.label}</button>
+                </React.Fragment>)}
+                <span style={{width: "1px", height: "22px", background: "#e1e3dc", margin: "0 4px"}} />
+                {(vm.dr?.wdChips || []).map((p, __i8) => <React.Fragment key={__i8}>
+                  <button onClick={p?.onClick} style={{background: p?.bg, color: p?.fg, border: `1px solid ${p?.bd}`, padding: "6px 12px", borderRadius: "999px", fontSize: "12px", fontWeight: "700", cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap"}}>{p?.label}</button>
+                </React.Fragment>)}
+              </div>
+              <div style={{display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(150px,1fr))", gap: "10px"}}>
+                <label style={{display: "flex", flexDirection: "column", gap: "5px", fontSize: "12px", color: "#6b6e72"}}>
+                  {"از ساعت"}
+                  <select value={vm.dr?.h1} onChange={vm.dr?.setH1} style={{border: "1px solid #e1e3dc", borderRadius: "10px", padding: "9px 10px", fontSize: "13px", outline: "none", background: "#fff", color: "#232425", fontFamily: "inherit"}}>
+                    {(vm.dr?.hoursOpt || []).map((o, __i10) => <React.Fragment key={__i10}>
+                      <option value={o?.v}>{o?.label}</option>
+                    </React.Fragment>)}
+                  </select>
+                </label>
+                <label style={{display: "flex", flexDirection: "column", gap: "5px", fontSize: "12px", color: "#6b6e72"}}>
+                  {"تا ساعت"}
+                  <select value={vm.dr?.h2} onChange={vm.dr?.setH2} style={{border: "1px solid #e1e3dc", borderRadius: "10px", padding: "9px 10px", fontSize: "13px", outline: "none", background: "#fff", color: "#232425", fontFamily: "inherit"}}>
+                    {(vm.dr?.hoursOpt || []).map((o, __i10) => <React.Fragment key={__i10}>
+                      <option value={o?.v}>{o?.label}</option>
+                    </React.Fragment>)}
+                  </select>
+                </label>
+                <label style={{display: "flex", flexDirection: "column", gap: "5px", fontSize: "12px", color: "#6b6e72"}}>
+                  {"نوع تماس"}
+                  <select value={vm.dr?.dir} onChange={vm.dr?.setDir} style={{border: "1px solid #e1e3dc", borderRadius: "10px", padding: "9px 10px", fontSize: "13px", outline: "none", background: "#fff", color: "#232425", fontFamily: "inherit"}}>
+                    <option value="in">{"ورودی"}</option>
+                    <option value="out">{"خروجی"}</option>
+                    <option value="all">{"ورودی و خروجی"}</option>
+                  </select>
+                </label>
+                <label style={{display: "flex", flexDirection: "column", gap: "5px", fontSize: "12px", color: "#6b6e72"}}>
+                  {"صف / مسیر"}
+                  <select value={vm.dr?.src} onChange={vm.dr?.setSrc} style={{border: "1px solid #e1e3dc", borderRadius: "10px", padding: "9px 10px", fontSize: "13px", outline: "none", background: "#fff", color: "#232425", fontFamily: "inherit"}}>
+                    <option value="all">{"همه"}</option>
+                    {(vm.dr?.srcs || []).map((o, __i10) => <React.Fragment key={__i10}>
+                      <option value={o?.v}>{o?.label}</option>
+                    </React.Fragment>)}
+                  </select>
+                </label>
+                <label style={{display: "flex", flexDirection: "column", gap: "5px", fontSize: "12px", color: "#6b6e72"}}>
+                  {"اپراتور"}
+                  <select value={vm.dr?.op} onChange={vm.dr?.setOp} style={{border: "1px solid #e1e3dc", borderRadius: "10px", padding: "9px 10px", fontSize: "13px", outline: "none", background: "#fff", color: "#232425", fontFamily: "inherit"}}>
+                    <option value="all">{"همه اپراتورها"}</option>
+                    <option value="ivr">{"بدون اپراتور"}</option>
+                    {(vm.dr?.opsOpt || []).map((o, __i10) => <React.Fragment key={__i10}>
+                      <option value={o?.v}>{o?.label}</option>
+                    </React.Fragment>)}
+                  </select>
+                </label>
+              </div>
+              {(vm.dr?.hasActive) ? (<>
+                <div style={{display: "flex", gap: "6px", flexWrap: "wrap", alignItems: "center"}}>
+                  <span style={{fontSize: "12px", color: "#6b6e72"}}>{"فیلترهای فعال:"}</span>
+                  {(vm.dr?.active || []).map((a, __i9) => <React.Fragment key={__i9}>
+                    <span style={{background: "#f4f9ec", color: "#3d6a0c", border: "1px solid #d6eabb", padding: "3px 10px", borderRadius: "999px", fontSize: "12px", fontWeight: "600"}}>{a?.x}</span>
+                  </React.Fragment>)}
+                  <button onClick={vm.dr?.reset} style={{background: "none", border: "none", color: "#b42318", fontSize: "12px", fontWeight: "700", cursor: "pointer", fontFamily: "inherit"}}>{"حذف فیلترها"}</button>
+                </div>
+              </>) : null}
+            </div>
+            {(vm.dr?.loading) ? (<>
+              <div style={{background: "#fff", border: "1px solid #e7e8e3", borderRadius: "20px", padding: "16px", fontSize: "13px", color: "#6b6e72"}}>{"در حال بارگذاری تماس‌های قدیمی‌تر…"}</div>
+            </>) : null}
+            {(vm.dr?.empty) ? (<>
+              <div style={{background: "#fff", border: "1px solid #e7e8e3", borderRadius: "20px", padding: "40px", textAlign: "center", color: "#6b6e72", fontSize: "14px"}}>{"در این بازه و با این فیلترها تماسی پیدا نشد."}</div>
+            </>) : null}
+            <div style={{display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(170px,1fr))", gap: "12px"}}>
+              {(vm.dr?.kpis || []).map((k, __i7) => <React.Fragment key={__i7}>
+                <div style={{background: "#fff", border: "1px solid #e7e8e3", borderRadius: "20px", padding: "14px 16px"}}>
+                  <div style={{fontSize: "12px", color: "#6b6e72"}}>{k?.label}</div>
+                  <div style={{fontSize: "24px", fontWeight: "800", marginTop: "4px", color: k?.color}}>{k?.value}</div>
+                  <div style={{fontSize: "11px", color: "#8b8e89", marginTop: "2px"}}>{k?.sub}</div>
+                </div>
+              </React.Fragment>)}
+            </div>
+            <div style={{display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(260px,1fr))", gap: "14px"}}>
+              {(vm.dr?.groups || []).map((g, __i7) => <React.Fragment key={__i7}>
+                <div onClick={g?.pick} style={{background: g?.bg, border: `1.5px solid ${g?.bd}`, borderRadius: "20px", padding: "16px 18px", cursor: "pointer", display: "flex", flexDirection: "column", gap: "10px"}}>
+                  <div style={{display: "flex", alignItems: "center", gap: "10px"}}>
+                    <span style={{background: g?.bg, color: g?.fg, padding: "4px 10px", borderRadius: "999px", fontSize: "12px", fontWeight: "800", border: `1px solid ${g?.fg}`}}>{g?.tagLabel}</span>
+                    <div style={{flex: "1"}}>
+                      <div style={{fontWeight: "800", fontSize: "16px"}}>{g?.name}</div>
+                      <div style={{fontSize: "11px", color: "#6b6e72"}}>{g?.sub}{" · "}{g?.days}{" روز در بازه"}</div>
+                    </div>
+                  </div>
+                  <div style={{display: "flex", gap: "16px", alignItems: "flex-end"}}>
+                    <div>
+                      <div style={{fontSize: "11px", color: "#6b6e72"}}>{"تماس"}</div>
+                      <div style={{fontSize: "26px", fontWeight: "800"}}>{g?.n}</div>
+                    </div>
+                    <div>
+                      <div style={{fontSize: "11px", color: "#6b6e72"}}>{"پاسخ‌داده"}</div>
+                      <div style={{fontSize: "26px", fontWeight: "800", color: "#3d6a0c"}}>{g?.ans}</div>
+                    </div>
+                    <div>
+                      <div style={{fontSize: "11px", color: "#6b6e72"}}>{"بی‌پاسخ"}</div>
+                      <div style={{fontSize: "20px", fontWeight: "800", color: "#b42318"}}>{g?.missed}</div>
+                    </div>
+                  </div>
+                  <div>
+                    <div style={{display: "flex", justifyContent: "space-between", fontSize: "12px", color: "#55585c", marginBottom: "4px"}}>
+                      <span>{"نرخ پاسخ"}</span>
+                      <b>{g?.rate}</b>
+                    </div>
+                    <div style={{height: "8px", background: "#eef0ea", borderRadius: "99px", overflow: "hidden"}}>
+                      <div style={{height: "100%", width: g?.rateW, background: "#7FB536", borderRadius: "99px"}} />
+                    </div>
+                  </div>
+                  <div style={{display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px", fontSize: "12px", color: "#55585c"}}>
+                    <div>
+                      {"میانگین روزانه: "}
+                      <b>{g?.perDay}</b>
+                      {" تماس"}
+                    </div>
+                    <div>
+                      {"پاسخ در روز: "}
+                      <b>{g?.ansPerDay}</b>
+                    </div>
+                    <div>
+                      {"مکالمه: "}
+                      <b>{g?.talk}</b>
+                    </div>
+                    <div>
+                      {"انتظار: "}
+                      <b>{g?.wait}</b>
+                    </div>
+                  </div>
+                  <div style={{fontSize: "11px", color: "#8b8e89"}}>{g?.mark}</div>
+                </div>
+              </React.Fragment>)}
+            </div>
+            {(vm.dr?.has) ? (<>
+              <div style={{display: "flex", flexWrap: "wrap", gap: "14px"}}>
+                <div style={{background: "#fff", border: "1px solid #e7e8e3", borderRadius: "20px", padding: "16px 18px", flex: "1 1 360px", minWidth: "0", display: "flex", flexDirection: "column", gap: "10px"}}>
+                  <div style={{display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap"}}>
+                    <div style={{flex: "1", fontWeight: "800", fontSize: "15px"}}>{"روزهای هفته"}</div>
+                    <div style={{display: "flex", gap: "14px", fontSize: "12px", color: "#55585c"}}>
+                      <span style={{display: "flex", alignItems: "center", gap: "6px"}}>
+                        <span style={{width: "10px", height: "10px", borderRadius: "3px", background: "#3B7FB8"}} />
+                        {"کل تماس‌ها"}
+                      </span>
+                      <span style={{display: "flex", alignItems: "center", gap: "6px"}}>
+                        <span style={{width: "10px", height: "10px", borderRadius: "3px", background: "#7FB536"}} />
+                        {"پاسخ‌داده"}
+                      </span>
+                    </div>
+                  </div>
+                  <div style={{fontSize: "11px", color: "#8b8e89", marginTop: "-6px"}}>
+                    {"روی هر روز کلیک کنید تا فقط همان روز فیلتر شود؛ با نگه‌داشتن ماوس جزئیات را ببینید."}
+                  </div>
+                  <div style={{display: "flex", alignItems: "flex-end", gap: "10px", height: "190px", padding: "0 4px", borderBottom: "1px solid #d9dad6", overflowX: "auto"}}>
+                    {(vm.dr?.weekdays || []).map((b, __i10) => <React.Fragment key={__i10}>
+                      <div title={b?.tip} onClick={b?.pick} style={{flex: "1 0 34px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "flex-end", gap: "4px", height: "100%", cursor: "pointer", opacity: b?.op}}>
+                        <div style={{fontSize: "11px", color: "#3a3b3d", fontWeight: "700"}}>{b?.n}</div>
+                        <div style={{display: "flex", alignItems: "flex-end", gap: "2px"}}>
+                          <div style={{width: "14px", height: b?.hN, background: "#3B7FB8", borderRadius: "4px 4px 0 0", minHeight: "2px"}} />
+                          <div style={{width: "14px", height: b?.hA, background: "#7FB536", borderRadius: "4px 4px 0 0", minHeight: "2px"}} />
+                        </div>
+                      </div>
+                    </React.Fragment>)}
+                  </div>
+                  <div style={{display: "flex", gap: "10px", padding: "6px 4px 0", overflowX: "auto"}}>
+                    {(vm.dr?.weekdays || []).map((b, __i10) => <React.Fragment key={__i10}>
+                      <div style={{flex: "1 0 34px", textAlign: "center", fontSize: "11px", color: "#6b6e72"}}>{b?.name}</div>
+                    </React.Fragment>)}
+                  </div>
+                  <div style={{display: "flex", gap: "10px", padding: "0 4px", overflowX: "auto"}}>
+                    {(vm.dr?.weekdays || []).map((b, __i10) => <React.Fragment key={__i10}>
+                      <div style={{flex: "1 0 34px", textAlign: "center"}}>
+                        <span style={{background: b?.bg, color: b?.fg, padding: "1px 6px", borderRadius: "6px", fontSize: "10px", fontWeight: "700"}}>{b?.tagLabel}</span>
+                        <div style={{fontSize: "10px", color: "#8b8e89", marginTop: "3px"}}>{b?.rate}</div>
+                      </div>
+                    </React.Fragment>)}
+                  </div>
+                </div>
+                <div style={{background: "#fff", border: "1px solid #e7e8e3", borderRadius: "20px", padding: "16px 18px", flex: "1 1 420px", minWidth: "0", display: "flex", flexDirection: "column", gap: "10px"}}>
+                  <div style={{display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap"}}>
+                    <div style={{flex: "1"}}>
+                      <div style={{fontWeight: "800", fontSize: "15px"}}>{"ساعت‌های روز"}</div>
+                      <div style={{fontSize: "11px", color: "#8b8e89"}}>{vm.dr?.peakText}</div>
+                    </div>
+                    <div style={{display: "flex", gap: "14px", fontSize: "12px", color: "#55585c"}}>
+                      <span style={{display: "flex", alignItems: "center", gap: "6px"}}>
+                        <span style={{width: "10px", height: "10px", borderRadius: "3px", background: "#3B7FB8"}} />
+                        {"کل تماس‌ها"}
+                      </span>
+                      <span style={{display: "flex", alignItems: "center", gap: "6px"}}>
+                        <span style={{width: "10px", height: "10px", borderRadius: "3px", background: "#7FB536"}} />
+                        {"پاسخ‌داده"}
+                      </span>
+                    </div>
+                  </div>
+                  <div style={{display: "flex", alignItems: "flex-end", gap: "10px", height: "160px", padding: "0 4px", borderBottom: "1px solid #d9dad6", overflowX: "auto"}}>
+                    {(vm.dr?.hours || []).map((b, __i10) => <React.Fragment key={__i10}>
+                      <div title={b?.tip} style={{flex: "1 0 22px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "flex-end", gap: "4px", height: "100%", cursor: "default", opacity: b?.op}}>
+                        <div style={{fontSize: "11px", color: "#3a3b3d", fontWeight: "700"}}>{b?.n}</div>
+                        <div style={{display: "flex", alignItems: "flex-end", gap: "2px"}}>
+                          <div style={{width: "8px", height: b?.hN, background: "#3B7FB8", borderRadius: "4px 4px 0 0", minHeight: "2px"}} />
+                          <div style={{width: "8px", height: b?.hA, background: "#7FB536", borderRadius: "4px 4px 0 0", minHeight: "2px"}} />
+                        </div>
+                      </div>
+                    </React.Fragment>)}
+                  </div>
+                  <div style={{display: "flex", gap: "10px", padding: "6px 4px 0", overflowX: "auto"}}>
+                    {(vm.dr?.hours || []).map((b, __i10) => <React.Fragment key={__i10}>
+                      <div style={{flex: "1 0 22px", textAlign: "center", fontSize: "11px", color: "#6b6e72"}}>{b?.label}</div>
+                    </React.Fragment>)}
+                  </div>
+                </div>
+              </div>
+              <div style={{background: "#fff", border: "1px solid #e7e8e3", borderRadius: "20px", padding: "16px 18px", display: "flex", flexDirection: "column", gap: "10px"}}>
+                <div style={{fontWeight: "800", fontSize: "15px"}}>{"نقشه شلوغی (روز هفته × ساعت)"}</div>
+                <div style={{overflowX: "auto"}}>
+                  <div style={{display: "grid", gridTemplateColumns: "70px repeat(16,minmax(30px,1fr))", gap: "3px", minWidth: "620px"}}>
+                    <div />
+                    {(vm.dr?.hmHours || []).map((h, __i10) => <React.Fragment key={__i10}>
+                      <div style={{fontSize: "10px", color: "#6b6e72", textAlign: "center"}}>{h?.label}</div>
+                    </React.Fragment>)}
+                    {(vm.dr?.heat || []).map((r, __i10) => <React.Fragment key={__i10}>
+                      <div style={{fontSize: "12px", color: "#3a3b3d", display: "flex", alignItems: "center"}}>{r?.name}</div>
+                      {(r?.cells || []).map((c, __i11) => <React.Fragment key={__i11}>
+                        <div title={c?.tip} style={{height: "28px", borderRadius: "5px", background: c?.bg, color: c?.fg, fontSize: "10px", fontWeight: "700", display: "grid", placeItems: "center"}}>{c?.n}</div>
+                      </React.Fragment>)}
+                    </React.Fragment>)}
+                  </div>
+                </div>
+                <div style={{display: "flex", alignItems: "center", gap: "6px", fontSize: "11px", color: "#6b6e72"}}>
+                  {"کم"}
+                  <span style={{width: "120px", height: "8px", borderRadius: "99px", background: "linear-gradient(to left,rgba(61,106,12,.95),rgba(61,106,12,.1))"}} />
+                  {"زیاد"}
+                </div>
+              </div>
+              {(vm.dr?.hasWeeks) ? (<>
+                <div style={{background: "#fff", border: "1px solid #e7e8e3", borderRadius: "20px", overflow: "hidden"}}>
+                  <div style={{padding: "14px 18px", fontWeight: "800", fontSize: "15px"}}>
+                    {"هفته‌به‌هفته "}
+                    <span style={{fontSize: "11px", color: "#8b8e89", fontWeight: "500"}}>{"(شنبه تا جمعه · برای دیدن فقط آن هفته کلیک کنید)"}</span>
+                  </div>
+                  <div style={{overflowX: "auto"}}>
+                    <table style={{width: "100%", borderCollapse: "collapse"}}>
+                      <thead>
+                        <tr>
+                          <th style={{padding: "10px 12px", fontSize: "12px", color: "#6b6e72", fontWeight: "600", textAlign: "right", whiteSpace: "nowrap", borderBottom: "1px solid #eeefeb", background: "#fafaf8"}}>{"هفته"}</th>
+                          <th style={{padding: "10px 12px", fontSize: "12px", color: "#6b6e72", fontWeight: "600", textAlign: "right", whiteSpace: "nowrap", borderBottom: "1px solid #eeefeb", background: "#fafaf8"}}>{"تماس"}</th>
+                          <th style={{padding: "10px 12px", fontSize: "12px", color: "#6b6e72", fontWeight: "600", textAlign: "right", whiteSpace: "nowrap", borderBottom: "1px solid #eeefeb", background: "#fafaf8"}}>{"پاسخ‌داده"}</th>
+                          <th style={{padding: "10px 12px", fontSize: "12px", color: "#6b6e72", fontWeight: "600", textAlign: "right", whiteSpace: "nowrap", borderBottom: "1px solid #eeefeb", background: "#fafaf8"}}>{"بی‌پاسخ"}</th>
+                          <th style={{padding: "10px 12px", fontSize: "12px", color: "#6b6e72", fontWeight: "600", textAlign: "right", whiteSpace: "nowrap", borderBottom: "1px solid #eeefeb", background: "#fafaf8", minWidth: "140px"}}>{"نرخ پاسخ"}</th>
+                          <th style={{padding: "10px 12px", fontSize: "12px", color: "#6b6e72", fontWeight: "600", textAlign: "right", whiteSpace: "nowrap", borderBottom: "1px solid #eeefeb", background: "#fafaf8"}}>{"تماس‌گیرنده یکتا"}</th>
+                          <th style={{padding: "10px 12px", fontSize: "12px", color: "#6b6e72", fontWeight: "600", textAlign: "right", whiteSpace: "nowrap", borderBottom: "1px solid #eeefeb", background: "#fafaf8"}}>{"مجموع مکالمه"}</th>
+                          <th style={{padding: "10px 12px", fontSize: "12px", color: "#6b6e72", fontWeight: "600", textAlign: "right", whiteSpace: "nowrap", borderBottom: "1px solid #eeefeb", background: "#fafaf8"}}>{"میانگین انتظار"}</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {(vm.dr?.weeks || []).map((w, __i12) => <React.Fragment key={__i12}>
+                          <tr onClick={w?.pick} style={{cursor: "pointer"}}>
+                            <td style={{padding: "10px 12px", fontSize: "13px", borderBottom: "1px solid #f1f2ee", whiteSpace: "nowrap", fontWeight: "700"}}>{w?.label}</td>
+                            <td style={{padding: "10px 12px", fontSize: "13px", borderBottom: "1px solid #f1f2ee", whiteSpace: "nowrap"}}>{w?.n}</td>
+                            <td style={{padding: "10px 12px", fontSize: "13px", borderBottom: "1px solid #f1f2ee", whiteSpace: "nowrap", color: "#3d6a0c", fontWeight: "700"}}>{w?.ans}</td>
+                            <td style={{padding: "10px 12px", fontSize: "13px", borderBottom: "1px solid #f1f2ee", whiteSpace: "nowrap", color: "#b42318"}}>{w?.missed}</td>
+                            <td style={{padding: "10px 12px", fontSize: "13px", borderBottom: "1px solid #f1f2ee", whiteSpace: "nowrap"}}>
+                              <div style={{display: "flex", alignItems: "center", gap: "8px"}}>
+                                <div style={{flex: "1", height: "6px", background: "#eef0ea", borderRadius: "99px", overflow: "hidden"}}><div style={{height: "100%", width: w?.rateW, background: "#7FB536"}} /></div>
+                                <b style={{fontSize: "12px"}}>{w?.rate}</b>
+                              </div>
+                            </td>
+                            <td style={{padding: "10px 12px", fontSize: "13px", borderBottom: "1px solid #f1f2ee", whiteSpace: "nowrap"}}>{w?.uniq}</td>
+                            <td style={{padding: "10px 12px", fontSize: "13px", borderBottom: "1px solid #f1f2ee", whiteSpace: "nowrap"}}>{w?.talk}</td>
+                            <td style={{padding: "10px 12px", fontSize: "13px", borderBottom: "1px solid #f1f2ee", whiteSpace: "nowrap"}}>{w?.wait}</td>
+                          </tr>
+                        </React.Fragment>)}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </>) : null}
+              <div style={{display: "flex", flexWrap: "wrap", gap: "14px", alignItems: "flex-start"}}>
+                <div style={{background: "#fff", border: "1px solid #e7e8e3", borderRadius: "20px", overflow: "hidden", flex: "3 1 560px", minWidth: "0"}}>
+                  <div style={{padding: "14px 18px", fontWeight: "800", fontSize: "15px"}}>
+                    {"روزبه‌روز "}
+                    <span style={{fontSize: "11px", color: "#8b8e89", fontWeight: "500"}}>{"(برای جزئیات هر روز کلیک کنید)"}</span>
+                  </div>
+                  <div style={{overflow: "auto", maxHeight: "620px"}}>
+                    <table style={{width: "100%", borderCollapse: "collapse"}}>
+                      <thead style={{position: "sticky", top: "0"}}>
+                        <tr>
+                          <th style={{padding: "10px 12px", fontSize: "12px", color: "#6b6e72", fontWeight: "600", textAlign: "right", whiteSpace: "nowrap", borderBottom: "1px solid #eeefeb", background: "#fafaf8"}}>{"تاریخ"}</th>
+                          <th style={{padding: "10px 12px", fontSize: "12px", color: "#6b6e72", fontWeight: "600", textAlign: "right", whiteSpace: "nowrap", borderBottom: "1px solid #eeefeb", background: "#fafaf8"}}>{"روز"}</th>
+                          <th style={{padding: "10px 12px", fontSize: "12px", color: "#6b6e72", fontWeight: "600", textAlign: "right", whiteSpace: "nowrap", borderBottom: "1px solid #eeefeb", background: "#fafaf8"}}>{"تماس"}</th>
+                          <th style={{padding: "10px 12px", fontSize: "12px", color: "#6b6e72", fontWeight: "600", textAlign: "right", whiteSpace: "nowrap", borderBottom: "1px solid #eeefeb", background: "#fafaf8"}}>{"پاسخ"}</th>
+                          <th style={{padding: "10px 12px", fontSize: "12px", color: "#6b6e72", fontWeight: "600", textAlign: "right", whiteSpace: "nowrap", borderBottom: "1px solid #eeefeb", background: "#fafaf8"}}>{"بی‌پاسخ"}</th>
+                          <th style={{padding: "10px 12px", fontSize: "12px", color: "#6b6e72", fontWeight: "600", textAlign: "right", whiteSpace: "nowrap", borderBottom: "1px solid #eeefeb", background: "#fafaf8"}}>{"پیام صوتی"}</th>
+                          <th style={{padding: "10px 12px", fontSize: "12px", color: "#6b6e72", fontWeight: "600", textAlign: "right", whiteSpace: "nowrap", borderBottom: "1px solid #eeefeb", background: "#fafaf8", minWidth: "120px"}}>{"نرخ پاسخ"}</th>
+                          <th style={{padding: "10px 12px", fontSize: "12px", color: "#6b6e72", fontWeight: "600", textAlign: "right", whiteSpace: "nowrap", borderBottom: "1px solid #eeefeb", background: "#fafaf8"}}>{"مکالمه"}</th>
+                          <th style={{padding: "10px 12px", fontSize: "12px", color: "#6b6e72", fontWeight: "600", textAlign: "right", whiteSpace: "nowrap", borderBottom: "1px solid #eeefeb", background: "#fafaf8"}}>{"انتظار"}</th>
+                          <th style={{padding: "10px 12px", fontSize: "12px", color: "#6b6e72", fontWeight: "600", textAlign: "right", whiteSpace: "nowrap", borderBottom: "1px solid #eeefeb", background: "#fafaf8"}}>{"شلوغ‌ترین"}</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {(vm.dr?.days || []).map((d, __i12) => <React.Fragment key={__i12}>
+                          <tr onClick={d?.pick} style={{cursor: "pointer", background: d?.rowBg}}>
+                            <td style={{padding: "10px 12px", fontSize: "13px", borderBottom: "1px solid #f1f2ee", whiteSpace: "nowrap", fontWeight: "700"}}>{d?.date}</td>
+                            <td style={{padding: "10px 12px", fontSize: "13px", borderBottom: "1px solid #f1f2ee", whiteSpace: "nowrap"}}>
+                              {d?.wd}{" "}
+                              <span style={{background: d?.bg, color: d?.fg, padding: "1px 7px", borderRadius: "6px", fontSize: "10px", fontWeight: "700", marginRight: "4px"}}>{d?.tagLabel}</span>
+                            </td>
+                            <td style={{padding: "10px 12px", fontSize: "13px", borderBottom: "1px solid #f1f2ee", whiteSpace: "nowrap", fontWeight: "700"}}>{d?.n}</td>
+                            <td style={{padding: "10px 12px", fontSize: "13px", borderBottom: "1px solid #f1f2ee", whiteSpace: "nowrap", color: "#3d6a0c", fontWeight: "700"}}>{d?.ans}</td>
+                            <td style={{padding: "10px 12px", fontSize: "13px", borderBottom: "1px solid #f1f2ee", whiteSpace: "nowrap", color: "#b42318"}}>{d?.missed}</td>
+                            <td style={{padding: "10px 12px", fontSize: "13px", borderBottom: "1px solid #f1f2ee", whiteSpace: "nowrap", color: "#1d5a85"}}>{d?.vm}</td>
+                            <td style={{padding: "10px 12px", fontSize: "13px", borderBottom: "1px solid #f1f2ee", whiteSpace: "nowrap"}}>
+                              <div style={{display: "flex", alignItems: "center", gap: "8px"}}>
+                                <div style={{flex: "1", height: "6px", background: "#eef0ea", borderRadius: "99px", overflow: "hidden"}}><div style={{height: "100%", width: d?.rateW, background: "#7FB536"}} /></div>
+                                <b style={{fontSize: "12px", color: d?.rateFg}}>{d?.rate}</b>
+                              </div>
+                            </td>
+                            <td style={{padding: "10px 12px", fontSize: "13px", borderBottom: "1px solid #f1f2ee", whiteSpace: "nowrap"}}>{d?.talk}</td>
+                            <td style={{padding: "10px 12px", fontSize: "13px", borderBottom: "1px solid #f1f2ee", whiteSpace: "nowrap"}}>{d?.wait}</td>
+                            <td style={{padding: "10px 12px", fontSize: "13px", borderBottom: "1px solid #f1f2ee", whiteSpace: "nowrap"}}>{d?.peak}</td>
+                          </tr>
+                        </React.Fragment>)}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+                <div style={{flex: "2 1 320px", minWidth: "0", display: "flex", flexDirection: "column", gap: "14px"}}>
+                  {(vm.dr?.hasDay) ? (<>
+                    <div style={{background: "#fff", border: "1px solid #e7e8e3", borderRadius: "20px", padding: "16px 18px", display: "flex", flexDirection: "column", gap: "12px", borderColor: "#8DC63F"}}>
+                      <div style={{display: "flex", alignItems: "center", gap: "8px"}}>
+                        <div style={{flex: "1", fontWeight: "800", fontSize: "16px"}}>{vm.dr?.day?.title}</div>
+                        <button onClick={vm.dr?.day?.close} style={{background: "none", border: "none", fontSize: "16px", color: "#6b6e72", cursor: "pointer"}}>{"✕"}</button>
+                      </div>
+                      <div style={{display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: "6px", textAlign: "center"}}>
+                        <div style={{background: "#f7f8f4", borderRadius: "10px", padding: "8px"}}>
+                          <div style={{fontSize: "10px", color: "#6b6e72"}}>{"تماس"}</div>
+                          <b>{vm.dr?.day?.n}</b>
+                        </div>
+                        <div style={{background: "#f4f9ec", borderRadius: "10px", padding: "8px"}}>
+                          <div style={{fontSize: "10px", color: "#6b6e72"}}>{"پاسخ"}</div>
+                          <b style={{color: "#3d6a0c"}}>{vm.dr?.day?.ans}</b>
+                        </div>
+                        <div style={{background: "#fdf2f1", borderRadius: "10px", padding: "8px"}}>
+                          <div style={{fontSize: "10px", color: "#6b6e72"}}>{"بی‌پاسخ"}</div>
+                          <b style={{color: "#b42318"}}>{vm.dr?.day?.missed}</b>
+                        </div>
+                        <div style={{background: "#f7f8f4", borderRadius: "10px", padding: "8px"}}>
+                          <div style={{fontSize: "10px", color: "#6b6e72"}}>{"نرخ"}</div>
+                          <b>{vm.dr?.day?.rate}</b>
+                        </div>
+                      </div>
+                      <div style={{fontSize: "12px", color: "#55585c"}}>
+                        {"مجموع مکالمه: "}
+                        <b>{vm.dr?.day?.talk}</b>
+                      </div>
+                      <div style={{display: "flex", alignItems: "flex-end", gap: "10px", height: "120px", padding: "0 4px", borderBottom: "1px solid #d9dad6", overflowX: "auto"}}>
+                        {(vm.dr?.day?.hours || []).map((b, __i12) => <React.Fragment key={__i12}>
+                          <div title={b?.tip} style={{flex: "1 0 18px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "flex-end", gap: "4px", height: "100%", cursor: "default"}}>
+                            <div style={{fontSize: "11px", color: "#3a3b3d", fontWeight: "700"}}>{b?.n}</div>
+                            <div style={{display: "flex", alignItems: "flex-end", gap: "2px"}}>
+                              <div style={{width: "7px", height: b?.hN, background: "#3B7FB8", borderRadius: "4px 4px 0 0", minHeight: "2px"}} />
+                              <div style={{width: "7px", height: b?.hA, background: "#7FB536", borderRadius: "4px 4px 0 0", minHeight: "2px"}} />
+                            </div>
+                          </div>
+                        </React.Fragment>)}
+                      </div>
+                      <div style={{display: "flex", gap: "10px", padding: "6px 4px 0", overflowX: "auto"}}>
+                        {(vm.dr?.day?.hours || []).map((b, __i12) => <React.Fragment key={__i12}>
+                          <div style={{flex: "1 0 18px", textAlign: "center", fontSize: "11px", color: "#6b6e72"}}>{b?.label}</div>
+                        </React.Fragment>)}
+                      </div>
+                      <div style={{fontWeight: "700", fontSize: "13px", marginTop: "4px"}}>{"پاسخ‌دهنده‌ها"}</div>
+                      {(vm.dr?.day?.ops || []).map((o, __i11) => <React.Fragment key={__i11}>
+                        <div style={{display: "flex", alignItems: "center", gap: "8px", fontSize: "12px"}}>
+                          <div style={{flex: "1", minWidth: "0"}}>
+                            {o?.name}
+                            <div style={{height: "5px", background: "#eef0ea", borderRadius: "99px", overflow: "hidden", marginTop: "3px"}}><div style={{height: "100%", width: o?.w, background: "#7FB536"}} /></div>
+                          </div>
+                          <b>{o?.n}</b>
+                          <span style={{color: "#6b6e72", width: "90px", textAlign: "left"}}>{o?.talk}</span>
+                        </div>
+                      </React.Fragment>)}
+                      <button onClick={vm.dr?.day?.openList} style={{background: "#fff", border: "1px solid #e1e3dc", color: "#3a3b3d", padding: "9px 14px", borderRadius: "10px", fontSize: "12px", fontWeight: "700", cursor: "pointer", fontFamily: "inherit"}}>{"مشاهده تماس‌های این روز در لیست تماس‌ها"}</button>
+                    </div>
+                  </>) : null}
+                  {(vm.dr?.hasOps) ? (<>
+                    <div style={{background: "#fff", border: "1px solid #e7e8e3", borderRadius: "20px", padding: "16px 18px", display: "flex", flexDirection: "column", gap: "10px"}}>
+                      <div style={{fontWeight: "800", fontSize: "15px"}}>{"پاسخ‌دهنده‌ها در کل بازه"}</div>
+                      {(vm.dr?.ops || []).map((o, __i11) => <React.Fragment key={__i11}>
+                        <div style={{display: "flex", alignItems: "center", gap: "8px", fontSize: "12px"}}>
+                          <div style={{flex: "1", minWidth: "0"}}>
+                            <div style={{display: "flex", justifyContent: "space-between"}}>
+                              <span>{o?.name}</span>
+                              <span style={{color: "#6b6e72"}}>{o?.share}</span>
+                            </div>
+                            <div style={{height: "6px", background: "#eef0ea", borderRadius: "99px", overflow: "hidden", marginTop: "3px"}}><div style={{height: "100%", width: o?.w, background: "#7FB536"}} /></div>
+                          </div>
+                          <div style={{textAlign: "left", width: "110px"}}>
+                            <b>{o?.n}</b>
+                            {" پاسخ"}
+                            <div style={{fontSize: "11px", color: "#6b6e72"}}>{o?.talk}{" · میانگین "}{o?.avg}</div>
+                          </div>
+                        </div>
+                      </React.Fragment>)}
+                    </div>
+                  </>) : null}
+                </div>
+              </div>
+            </>) : null}
           </div>
         </>) : null}
         {(vm.is?.aiconv) ? (<>

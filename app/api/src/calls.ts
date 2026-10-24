@@ -311,6 +311,9 @@ export class CallsController {
     const mmss = (s: number) => `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
     const when = (c: any) => `${c.date} ${c.time}`;
     const anyName = rows.some(c => c.known);
+    // last surgery from the patient system (Jalali date and how long ago), only when someone has one
+    const anySurg = rows.some(c => c.surgery && c.surgery !== '—');
+    const SURG = 'تاریخ جراحی (سامانه بیماران)';
     // latest real conversation per number (answered inbound / answered outbound)
     const lastOk: Record<string, string> = {};
     for (const x of all) {
@@ -339,6 +342,7 @@ export class CallsController {
       { h: 'ساعت', w: 8, v: c => c.time, center: true },
       { h: 'شماره تماس‌گیرنده', w: 16, v: c => c.phoneRaw, center: true },
       ...(anyName ? [{ h: 'نام بیمار', w: 20, v: (c: any) => (c.known ? c.name : '') }] : []),
+      ...(anySurg ? [{ h: SURG, w: 24, v: (c: any) => c.surgery || '—', center: true }] : []),
       { h: 'مرحله قطع تماس', w: 36, v: c => stage(c) },
       { h: 'مدت انتظار تا قطع (ثانیه)', w: 14, v: c => c.wait, center: true },
       { h: 'داخلی‌های زنگ‌خورده بدون پاسخ', w: 22, v: c => [...(rings.get(c.id.replace(/^C/, '')) || [])].sort().join('، ') || '—', center: true },
@@ -351,6 +355,7 @@ export class CallsController {
       { h: 'ردیف', w: 7, v: (_, i) => i + 1, center: true },
       { h: 'شماره تماس‌گیرنده', w: 16, v: g => g.p, center: true },
       ...(anyName ? [{ h: 'نام بیمار', w: 20, v: (g: any) => (g.last.known ? g.last.name : '') }] : []),
+      ...(anySurg ? [{ h: SURG, w: 24, v: (g: any) => g.last.surgery || '—', center: true }] : []),
       { h: 'تعداد تلاش بدون ارتباط', w: 14, v: g => g.l.length, center: true },
       { h: 'اولین تلاش', w: 18, v: g => `${g.l[0].date} ساعت ${g.l[0].time}`, center: true },
       { h: 'آخرین تلاش', w: 18, v: g => `${g.last.date} ساعت ${g.last.time}`, center: true },
@@ -367,6 +372,7 @@ export class CallsController {
       { h: 'ساعت', w: 8, v: c => c.time, center: true },
       { h: 'شماره تماس‌گیرنده', w: 16, v: c => c.phoneRaw, center: true },
       ...(anyName ? [{ h: 'نام بیمار', w: 20, v: (c: any) => (c.known ? c.name : '') }] : []),
+      ...(anySurg ? [{ h: SURG, w: 24, v: (c: any) => c.surgery || '—', center: true }] : []),
       { h: 'وضعیت', w: 14, v: c => ST[c.st] || c.st, center: true },
       { h: 'مسیر / مرحله', w: 36, v: c => { const vq = cfg.vqs.find((x: any) => x.name === c.queue); return c.st === 'answered' || c.st === 'transferred' ? (vq ? `صف ${vq.num}` : c.queue) : stage(c); } },
       { h: 'پاسخ‌دهنده (داخلی)', w: 14, v: c => (c.op ? c.op.ext : '—'), center: true },
