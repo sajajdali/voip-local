@@ -2418,20 +2418,20 @@ export default function AppView({ vm }) {
                       </span>
                     </div>
                   </div>
-                  <div style={{display: "flex", alignItems: "flex-end", gap: "10px", height: "160px", padding: "0 4px", borderBottom: "1px solid #d9dad6", overflowX: "auto"}}>
+                  <div style={{display: "flex", alignItems: "flex-end", gap: "3px", height: "160px", padding: "0 4px", borderBottom: "1px solid #d9dad6"}}>
                     {(vm.dr?.hours || []).map((b, __i10) => <React.Fragment key={__i10}>
-                      <div title={b?.tip} style={{flex: "1 0 22px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "flex-end", gap: "4px", height: "100%", cursor: "default", opacity: b?.op}}>
-                        <div style={{fontSize: "11px", color: "#3a3b3d", fontWeight: "700"}}>{b?.n}</div>
-                        <div style={{display: "flex", alignItems: "flex-end", gap: "2px"}}>
-                          <div style={{width: "8px", height: b?.hN, background: "#3B7FB8", borderRadius: "4px 4px 0 0", minHeight: "2px"}} />
-                          <div style={{width: "8px", height: b?.hA, background: "#7FB536", borderRadius: "4px 4px 0 0", minHeight: "2px"}} />
+                      <div title={b?.tip} style={{flex: "1 1 0", minWidth: "0", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "flex-end", gap: "4px", height: "100%", cursor: "default", opacity: b?.op}}>
+                        <div style={{fontSize: "9px", color: "#3a3b3d", fontWeight: "700", whiteSpace: "nowrap"}}>{b?.n}</div>
+                        <div style={{display: "flex", alignItems: "flex-end", justifyContent: "center", gap: "2px", width: "100%"}}>
+                          <div style={{width: "calc(50% - 1px)", maxWidth: "9px", height: b?.hN, background: "#3B7FB8", borderRadius: "4px 4px 0 0", minHeight: "2px"}} />
+                          <div style={{width: "calc(50% - 1px)", maxWidth: "9px", height: b?.hA, background: "#7FB536", borderRadius: "4px 4px 0 0", minHeight: "2px"}} />
                         </div>
                       </div>
                     </React.Fragment>)}
                   </div>
-                  <div style={{display: "flex", gap: "10px", padding: "6px 4px 0", overflowX: "auto"}}>
+                  <div style={{display: "flex", gap: "3px", padding: "6px 4px 0"}}>
                     {(vm.dr?.hours || []).map((b, __i10) => <React.Fragment key={__i10}>
-                      <div style={{flex: "1 0 22px", textAlign: "center", fontSize: "11px", color: "#6b6e72"}}>{b?.label}</div>
+                      <div style={{flex: "1 1 0", minWidth: "0", textAlign: "center", fontSize: "10px", color: "#6b6e72"}}>{b?.label}</div>
                     </React.Fragment>)}
                   </div>
                 </div>
@@ -2579,20 +2579,20 @@ export default function AppView({ vm }) {
                         {"مجموع مکالمه: "}
                         <b>{vm.dr?.day?.talk}</b>
                       </div>
-                      <div style={{display: "flex", alignItems: "flex-end", gap: "10px", height: "120px", padding: "0 4px", borderBottom: "1px solid #d9dad6", overflowX: "auto"}}>
+                      <div style={{display: "flex", alignItems: "flex-end", gap: "3px", height: "120px", padding: "0 4px", borderBottom: "1px solid #d9dad6"}}>
                         {(vm.dr?.day?.hours || []).map((b, __i12) => <React.Fragment key={__i12}>
-                          <div title={b?.tip} style={{flex: "1 0 18px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "flex-end", gap: "4px", height: "100%", cursor: "default"}}>
-                            <div style={{fontSize: "11px", color: "#3a3b3d", fontWeight: "700"}}>{b?.n}</div>
-                            <div style={{display: "flex", alignItems: "flex-end", gap: "2px"}}>
-                              <div style={{width: "7px", height: b?.hN, background: "#3B7FB8", borderRadius: "4px 4px 0 0", minHeight: "2px"}} />
-                              <div style={{width: "7px", height: b?.hA, background: "#7FB536", borderRadius: "4px 4px 0 0", minHeight: "2px"}} />
+                          <div title={b?.tip} style={{flex: "1 1 0", minWidth: "0", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "flex-end", gap: "4px", height: "100%", cursor: "default"}}>
+                            <div style={{fontSize: "9px", color: "#3a3b3d", fontWeight: "700", whiteSpace: "nowrap"}}>{b?.n}</div>
+                            <div style={{display: "flex", alignItems: "flex-end", justifyContent: "center", gap: "2px", width: "100%"}}>
+                              <div style={{width: "calc(50% - 1px)", maxWidth: "8px", height: b?.hN, background: "#3B7FB8", borderRadius: "4px 4px 0 0", minHeight: "2px"}} />
+                              <div style={{width: "calc(50% - 1px)", maxWidth: "8px", height: b?.hA, background: "#7FB536", borderRadius: "4px 4px 0 0", minHeight: "2px"}} />
                             </div>
                           </div>
                         </React.Fragment>)}
                       </div>
-                      <div style={{display: "flex", gap: "10px", padding: "6px 4px 0", overflowX: "auto"}}>
+                      <div style={{display: "flex", gap: "3px", padding: "6px 4px 0"}}>
                         {(vm.dr?.day?.hours || []).map((b, __i12) => <React.Fragment key={__i12}>
-                          <div style={{flex: "1 0 18px", textAlign: "center", fontSize: "11px", color: "#6b6e72"}}>{b?.label}</div>
+                          <div style={{flex: "1 1 0", minWidth: "0", textAlign: "center", fontSize: "10px", color: "#6b6e72"}}>{b?.label}</div>
                         </React.Fragment>)}
                       </div>
                       <div style={{fontWeight: "700", fontSize: "13px", marginTop: "4px"}}>{"پاسخ‌دهنده‌ها"}</div>
