@@ -26,8 +26,8 @@ export interface AiSettings {
 }
 const DEFAULTS: AiSettings = {
   enabled: false,
-  sttProvider: 'openai', sttUrl: 'https://api.openai.com/v1', sttKey: '', sttModel: 'whisper-1', sttLanguage: 'fa',
-  llmProvider: 'claude', llmUrl: '', llmKey: '', llmModel: 'claude-opus-5-5',
+  sttProvider: 'openai', sttUrl: 'https://api.openai.com/v1', sttKey: '', sttModel: 'gpt-transcribe', sttLanguage: 'fa',
+  llmProvider: 'openai', llmUrl: 'https://api.openai.com/v1', llmKey: '', llmModel: 'gpt-6-astra',
   analyzeVoicemail: true, analyzeCalls: false, minSeconds: 3,
 };
 // Claude models that support the server-side refusal fallback
@@ -140,7 +140,12 @@ export class AiService {
       url = s.sttUrl + '/audio/transcriptions';
       fd.append('model', s.sttModel);
       fd.append('language', s.sttLanguage);
-      fd.append('response_format', 'verbose_json');
+      // whisper-1 gives segment log-probs in verbose_json; the newer transcribe models only answer json
+      if (/^whisper/.test(s.sttModel)) fd.append('response_format', 'verbose_json');
+      else {
+        fd.append('response_format', 'json');
+        if (/^gpt-4o(-mini)?-transcribe(?!-diarize)/.test(s.sttModel)) fd.append('include[]', 'logprobs');
+      }
       if (s.sttKey) headers.Authorization = 'Bearer ' + s.sttKey;
     } else {
       fd.append('language', s.sttLanguage);
@@ -154,6 +159,10 @@ export class AiService {
     let conf: number | null = typeof d.confidence === 'number' ? Math.round(d.confidence <= 1 ? d.confidence * 100 : d.confidence) : null;
     if (conf === null && Array.isArray(d.segments) && d.segments.length) {
       const lp = d.segments.map((x: any) => x.avg_logprob).filter((x: any) => typeof x === 'number');
+      if (lp.length) conf = Math.round(Math.exp(lp.reduce((a: number, b: number) => a + b, 0) / lp.length) * 100);
+    }
+    if (conf === null && Array.isArray(d.logprobs) && d.logprobs.length) {
+      const lp = d.logprobs.map((x: any) => x.logprob).filter((x: any) => typeof x === 'number');
       if (lp.length) conf = Math.round(Math.exp(lp.reduce((a: number, b: number) => a + b, 0) / lp.length) * 100);
     }
     return { text, conf };
@@ -180,6 +189,9 @@ export class AiService {
       return JSON.parse(block.text);
     }
     // OpenAI-compatible chat completions
+    if (!s.llmUrl) throw new Error('آدرس API سرویس تحلیل وارد نشده است');
+    if (!s.llmKey && /api\.openai\.com/.test(s.llmUrl)) throw new Error('کلید API برای OpenAI وارد نشده است');
+    const reasoning = /^(gpt-5|gpt-6|o\d)/.test(s.llmModel);
     const r = await fetch(s.llmUrl + '/chat/completions', {
       method: 'POST', signal: AbortSignal.timeout(120e3),
       headers: { 'Content-Type': 'application/json', ...(s.llmKey ? { Authorization: 'Bearer ' + s.llmKey } : {}) },
@@ -187,6 +199,7 @@ export class AiService {
         model: s.llmModel,
         messages: [{ role: 'system', content: SYSTEM + '\nاسکیمای JSON:\n' + JSON.stringify(SCHEMA) }, { role: 'user', content: 'متن تماس:\n' + text }],
         response_format: { type: 'json_object' },
+        ...(reasoning ? { reasoning_effort: 'low' } : {}),
       }),
     });
     if (!r.ok) throw new Error(`سرویس تحلیل: خطای ${r.status} ${(await r.text().catch(() => '')).slice(0, 160)}`);

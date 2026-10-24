@@ -1904,13 +1904,20 @@ export default function AppView({ vm }) {
                 <div style={{display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px"}}>
                   <label style={{display: "flex", flexDirection: "column", gap: "6px", fontSize: "12px", color: "#6b6e72"}}>
                     {"مدل"}
-                    <input value={vm.ai2?.f?.sttModel} onChange={vm.ai2?.set?.sttModel} placeholder="whisper-1" style={{border: "1px solid #e1e3dc", borderRadius: "10px", padding: "10px 12px", fontSize: "13px", outline: "none", background: "#fff", color: "#232425", fontFamily: "inherit", width: "100%", direction: "ltr", textAlign: "left"}} />
+                    <input value={vm.ai2?.f?.sttModel} onChange={vm.ai2?.set?.sttModel} placeholder="gpt-transcribe" style={{border: "1px solid #e1e3dc", borderRadius: "10px", padding: "10px 12px", fontSize: "13px", outline: "none", background: "#fff", color: "#232425", fontFamily: "inherit", width: "100%", direction: "ltr", textAlign: "left"}} />
                   </label>
                   <label style={{display: "flex", flexDirection: "column", gap: "6px", fontSize: "12px", color: "#6b6e72"}}>
                     {"زبان"}
                     <input value={vm.ai2?.f?.sttLanguage} onChange={vm.ai2?.set?.sttLanguage} placeholder="fa" style={{border: "1px solid #e1e3dc", borderRadius: "10px", padding: "10px 12px", fontSize: "13px", outline: "none", background: "#fff", color: "#232425", fontFamily: "inherit", width: "100%", direction: "ltr", textAlign: "left"}} />
                   </label>
                 </div>
+                {(vm.ai2?.isSttOpenai) ? (<>
+                  <div style={{display: "flex", gap: "6px", flexWrap: "wrap"}}>
+                    {(vm.ai2?.sttModels || []).map((m, __i10) => <React.Fragment key={__i10}>
+                      <button onClick={m?.pick} style={{border: `1px solid ${m?.bd}`, background: m?.bg, color: m?.fg, padding: "5px 10px", borderRadius: "999px", fontSize: "11px", fontWeight: "700", cursor: "pointer", fontFamily: "inherit"}}>{m?.label}</button>
+                    </React.Fragment>)}
+                  </div>
+                </>) : null}
                 <div style={{fontSize: "12px", color: "#6b6e72", lineHeight: "1.8"}}>{vm.ai2?.sttHelp}</div>
               </div>
               <div style={{background: "#fff", border: "1px solid #e7e8e3", borderRadius: "20px", padding: "20px", display: "flex", flexDirection: "column", gap: "14px", flex: "1 1 340px", minWidth: "0"}}>
@@ -1921,17 +1928,17 @@ export default function AppView({ vm }) {
                 <label style={{display: "flex", flexDirection: "column", gap: "6px", fontSize: "12px", color: "#6b6e72"}}>
                   {"سرویس"}
                   <select value={vm.ai2?.f?.llmProvider} onChange={vm.ai2?.set?.llmProvider} style={{border: "1px solid #e1e3dc", borderRadius: "10px", padding: "10px 12px", fontSize: "13px", outline: "none", background: "#fff", color: "#232425", fontFamily: "inherit", width: "100%"}}>
-                    <option value="claude">{"Claude (Anthropic)"}</option>
                     <option value="openai">{"سازگار با OpenAI"}</option>
+                    <option value="claude">{"Claude (Anthropic)"}</option>
                     <option value="keywords">{"تحلیل داخلی با کلیدواژه (بدون سرویس خارجی)"}</option>
                   </select>
                 </label>
                 {(vm.ai2?.isLlm) ? (<>
                   <label style={{display: "flex", flexDirection: "column", gap: "6px", fontSize: "12px", color: "#6b6e72"}}>
                     {"مدل"}
-                    <input value={vm.ai2?.f?.llmModel} onChange={vm.ai2?.set?.llmModel} placeholder="claude-opus-5-5" style={{border: "1px solid #e1e3dc", borderRadius: "10px", padding: "10px 12px", fontSize: "13px", outline: "none", background: "#fff", color: "#232425", fontFamily: "inherit", width: "100%", direction: "ltr", textAlign: "left"}} />
+                    <input value={vm.ai2?.f?.llmModel} onChange={vm.ai2?.set?.llmModel} placeholder="gpt-6-astra" style={{border: "1px solid #e1e3dc", borderRadius: "10px", padding: "10px 12px", fontSize: "13px", outline: "none", background: "#fff", color: "#232425", fontFamily: "inherit", width: "100%", direction: "ltr", textAlign: "left"}} />
                   </label>
-                  {(vm.ai2?.isClaude) ? (<>
+                  {(vm.ai2?.isLlm) ? (<>
                     <div style={{display: "flex", gap: "6px", flexWrap: "wrap"}}>
                       {(vm.ai2?.models || []).map((m, __i11) => <React.Fragment key={__i11}>
                         <button onClick={m?.pick} style={{border: `1px solid ${m?.bd}`, background: m?.bg, color: m?.fg, padding: "5px 10px", borderRadius: "999px", fontSize: "11px", fontWeight: "700", cursor: "pointer", fontFamily: "inherit"}}>{m?.label}</button>
