@@ -8,7 +8,17 @@ import { Bus } from './bus';
 import { PrismaService } from './prisma.service';
 
 export const ARRAY_KEYS = ['exts', 'trunks', 'vqs', 'ivrs', 'snds', 'routes', 'oroutes', 'tgroups', 'tconds', 'holidays', 'rgroups', 'blist'] as const;
-export const OBJECT_KEYS = ['fmes', 'bset'] as const;
+export const OBJECT_KEYS = ['fmes', 'bset', 'survey'] as const;
+
+/** Post-call survey: off until prompts are recorded; the three questions match the survey report. */
+export const DEFAULT_SURVEY = {
+  on: false, minTalk: 10, timeout: 5, retry: 1, intro: '', thanks: '', invalid: '',
+  qs: [
+    { label: 'برخورد اپراتور', snd: '' },
+    { label: 'پاسخ به سؤال', snd: '' },
+    { label: 'زمان انتظار', snd: '' },
+  ],
+};
 export const KEYS = [...ARRAY_KEYS, ...OBJECT_KEYS] as string[];
 const LIVE: Record<string, string[]> = { exts: ['st'], vqs: ['waiting', 'sla'], trunks: ['reg', 'used'] };
 const ID: Record<string, string> = { exts: 'n', blist: 'num', holidays: 'date' };
@@ -24,7 +34,7 @@ export class ConfigStore {
     if (!this.cache) {
       const rows = await this.db.configEntry.findMany();
       const c: Record<string, any> = {};
-      for (const k of KEYS) c[k] = ARRAY_KEYS.includes(k as any) ? [] : k === 'bset' ? { anon: false, action: 'hang', sound: '' } : {};
+      for (const k of KEYS) c[k] = ARRAY_KEYS.includes(k as any) ? [] : k === 'bset' ? { anon: false, action: 'hang', sound: '' } : k === 'survey' ? DEFAULT_SURVEY : {};
       for (const r of rows) c[r.key] = r.data;
       this.cache = c;
     }

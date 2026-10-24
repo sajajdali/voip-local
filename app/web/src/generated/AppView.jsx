@@ -1827,6 +1827,181 @@ export default function AppView({ vm }) {
             </React.Fragment>)}
           </div>
         </>) : null}
+        {(vm.is?.vsurvey) ? (<>
+          <div style={{display: "flex", flexDirection: "column", gap: "20px"}}>
+            <div>
+              <h1 style={{margin: "0", fontSize: "28px", fontWeight: "800"}}>{"نظرسنجی بعد از تماس"}</h1>
+              <div style={{fontSize: "14px", color: "#6b6e72", marginTop: "6px", maxWidth: "780px", lineHeight: "1.8"}}>
+                {"وقتی اپراتور گوشی را می‌گذارد، تماس‌گیرنده روی خط می‌ماند و به هر سؤال با یک عدد از ۱ تا ۵ امتیاز می‌دهد. نتیجه کنار همان تماس ذخیره می‌شود و در صفحه «نظرسنجی»، گزارش‌ها و ارسال API دیده می‌شود."}
+              </div>
+            </div>
+            <div style={{display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(180px,1fr))", gap: "14px"}}>
+              {(vm.sv2?.kpis || []).map((k, __i7) => <React.Fragment key={__i7}>
+                <div style={{background: "#fff", border: "1px solid #e7e8e3", borderRadius: "18px", padding: "16px 18px"}}>
+                  <div style={{fontSize: "12px", color: "#6b6e72"}}>{k?.label}</div>
+                  <div style={{fontSize: "24px", fontWeight: "800", marginTop: "4px", color: k?.color, direction: "ltr", textAlign: "right"}}>{k?.value}</div>
+                </div>
+              </React.Fragment>)}
+            </div>
+            <div style={{background: "#fff", border: "1px solid #e7e8e3", borderRadius: "20px", padding: "20px", display: "flex", flexDirection: "column", gap: "14px"}}>
+              <div style={{display: "flex", alignItems: "center", gap: "12px"}}>
+                <div style={{flex: "1"}}>
+                  <div style={{fontWeight: "800", fontSize: "16px"}}>{"نظرسنجی خودکار"}</div>
+                  <div style={{fontSize: "12px", color: "#6b6e72", marginTop: "4px"}}>
+                    {"فقط برای تماس‌های ورودی که اپراتور جواب داده و خودِ اپراتور تماس را قطع کرده است"}
+                  </div>
+                </div>
+                <span style={{fontSize: "12px", color: "#6b6e72"}}>{vm.sv2?.onLabel}</span>
+                <button onClick={vm.sv2?.tog} style={{width: "42px", height: "24px", borderRadius: "99px", border: "none", background: vm.sv2?.onT?.bg, display: "flex", justifyContent: vm.sv2?.onT?.j, alignItems: "center", padding: "3px", cursor: "pointer", flexShrink: "0"}}>
+                  <span style={{width: "18px", height: "18px", borderRadius: "50%", background: "#fff", boxShadow: "0 1px 2px rgba(0,0,0,.25)"}} />
+                </button>
+              </div>
+              <div style={{background: vm.sv2?.statusBg, color: vm.sv2?.statusFg, borderRadius: "12px", padding: "10px 14px", fontSize: "13px", lineHeight: "1.8", fontWeight: "600"}}>{vm.sv2?.status}</div>
+              <div style={{display: "flex", flexWrap: "wrap", gap: "8px"}}>
+                <div style={{display: "flex", alignItems: "center", gap: "10px", flex: "1 1 150px", minWidth: "0", background: "#f7f8f4", borderRadius: "14px", padding: "10px 12px"}}>
+                  <span style={{width: "26px", height: "26px", borderRadius: "8px", background: "#2E2F31", color: "#8DC63F", display: "grid", placeItems: "center", fontWeight: "800", fontSize: "12px", flexShrink: "0"}}>{"۱"}</span>
+                  <div style={{minWidth: "0"}}>
+                    <div style={{fontSize: "12px", fontWeight: "800"}}>{"پایان مکالمه"}</div>
+                    <div style={{fontSize: "11px", color: "#6b6e72", marginTop: "2px"}}>{"اپراتور قطع می‌کند"}</div>
+                  </div>
+                </div>
+                <div style={{display: "flex", alignItems: "center", gap: "10px", flex: "1 1 150px", minWidth: "0", background: "#f7f8f4", borderRadius: "14px", padding: "10px 12px"}}>
+                  <span style={{width: "26px", height: "26px", borderRadius: "8px", background: "#2E2F31", color: "#8DC63F", display: "grid", placeItems: "center", fontWeight: "800", fontSize: "12px", flexShrink: "0"}}>{"۲"}</span>
+                  <div style={{minWidth: "0"}}>
+                    <div style={{fontSize: "12px", fontWeight: "800"}}>{"پیام آغاز"}</div>
+                    <div style={{fontSize: "11px", color: "#6b6e72", marginTop: "2px"}}>{"توضیح نظرسنجی"}</div>
+                  </div>
+                </div>
+                <div style={{display: "flex", alignItems: "center", gap: "10px", flex: "1 1 150px", minWidth: "0", background: "#f7f8f4", borderRadius: "14px", padding: "10px 12px"}}>
+                  <span style={{width: "26px", height: "26px", borderRadius: "8px", background: "#2E2F31", color: "#8DC63F", display: "grid", placeItems: "center", fontWeight: "800", fontSize: "12px", flexShrink: "0"}}>{"۳"}</span>
+                  <div style={{minWidth: "0"}}>
+                    <div style={{fontSize: "12px", fontWeight: "800"}}>{"سؤال‌ها"}</div>
+                    <div style={{fontSize: "11px", color: "#6b6e72", marginTop: "2px"}}>{"کلید ۱ تا ۵"}</div>
+                  </div>
+                </div>
+                <div style={{display: "flex", alignItems: "center", gap: "10px", flex: "1 1 150px", minWidth: "0", background: "#f7f8f4", borderRadius: "14px", padding: "10px 12px"}}>
+                  <span style={{width: "26px", height: "26px", borderRadius: "8px", background: "#2E2F31", color: "#8DC63F", display: "grid", placeItems: "center", fontWeight: "800", fontSize: "12px", flexShrink: "0"}}>{"۴"}</span>
+                  <div style={{minWidth: "0"}}>
+                    <div style={{fontSize: "12px", fontWeight: "800"}}>{"پیام تشکر"}</div>
+                    <div style={{fontSize: "11px", color: "#6b6e72", marginTop: "2px"}}>{"و قطع تماس"}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div style={{background: "#fff", border: "1px solid #e7e8e3", borderRadius: "20px", padding: "20px", display: "flex", flexDirection: "column", gap: "14px"}}>
+              <div style={{display: "flex", alignItems: "center", gap: "10px"}}>
+                <div style={{flex: "1"}}>
+                  <div style={{fontWeight: "800", fontSize: "16px"}}>{"سؤال‌ها"}</div>
+                  <div style={{fontSize: "12px", color: "#6b6e72", marginTop: "4px"}}>
+                    {"برای هر سؤال یک فایل صوتی انتخاب کنید. عنوان سؤال در گزارش‌ها نمایش داده می‌شود. حداکثر ۵ سؤال."}
+                  </div>
+                </div>
+                <button onClick={vm.sv2?.goSounds} style={{background: "#fff", border: "1px solid #e1e3dc", color: "#3a3b3d", padding: "8px 12px", borderRadius: "10px", fontSize: "12px", fontWeight: "700", cursor: "pointer", fontFamily: "inherit"}}>{"بارگذاری صدا"}</button>
+              </div>
+              {(vm.sv2?.qs || []).map((q, __i7) => <React.Fragment key={__i7}>
+                <div style={{border: "1px solid #e7e8e3", borderRadius: "16px", padding: "14px", display: "flex", flexDirection: "column", gap: "10px"}}>
+                  <div style={{display: "flex", alignItems: "center", gap: "10px"}}>
+                    <span style={{width: "28px", height: "28px", borderRadius: "9px", background: "#fbf1dc", color: "#8a5a00", display: "grid", placeItems: "center", fontWeight: "800", flexShrink: "0"}}>{q?.n}</span>
+                    <div style={{flex: "1", fontSize: "12px", color: "#6b6e72", lineHeight: "1.7"}}>{"متن پیشنهادی برای ضبط: "}{q?.script}</div>
+                    {(q?.canUp) ? (<>
+                      <button onClick={q?.up} title="بالاتر" style={{background: "#fff", border: "1px solid #e1e3dc", borderRadius: "8px", width: "30px", height: "30px", cursor: "pointer", color: "#55585c"}}>{"↑"}</button>
+                    </>) : null}
+                    <button onClick={q?.del} title="حذف" style={{background: "#fff", border: "1px solid #f5c2bd", borderRadius: "8px", width: "30px", height: "30px", cursor: "pointer", color: "#b42318"}}>{"✕"}</button>
+                  </div>
+                  <div style={{display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(220px,1fr))", gap: "10px"}}>
+                    <label style={{display: "flex", flexDirection: "column", gap: "6px", fontSize: "12px", color: "#6b6e72"}}>
+                      {"عنوان در گزارش"}
+                      <input value={q?.label} onChange={q?.setLabel} style={{border: "1px solid #e1e3dc", borderRadius: "10px", padding: "10px 12px", fontSize: "13px", outline: "none", background: "#fff", color: "#232425", fontFamily: "inherit", width: "100%"}} />
+                    </label>
+                    <label style={{display: "flex", flexDirection: "column", gap: "6px", fontSize: "12px", color: "#6b6e72"}}>
+                      {"فایل صوتی سؤال"}
+                      <select value={q?.snd} onChange={q?.setSnd} style={{border: "1px solid #e1e3dc", borderRadius: "10px", padding: "10px 12px", fontSize: "13px", outline: "none", background: "#fff", color: "#232425", fontFamily: "inherit", width: "100%"}}>
+                        <option value="">{"— انتخاب کنید —"}</option>
+                        {(vm.sv2?.snds || []).map((o, __i12) => <React.Fragment key={__i12}>
+                          <option value={o?.id}>{o?.name}</option>
+                        </React.Fragment>)}
+                      </select>
+                    </label>
+                  </div>
+                  {(q?.warn) ? (<>
+                    <div style={{fontSize: "12px", color: "#b42318"}}>{"این سؤال صدا ندارد و پخش نمی‌شود."}</div>
+                  </>) : null}
+                </div>
+              </React.Fragment>)}
+              {(vm.sv2?.canAdd) ? (<>
+                <button onClick={vm.sv2?.add} style={{alignSelf: "flex-start", background: "#2E2F31", color: "#fff", border: "none", padding: "10px 16px", borderRadius: "12px", fontSize: "13px", fontWeight: "700", cursor: "pointer", fontFamily: "inherit"}}>{"+ افزودن سؤال"}</button>
+              </>) : null}
+            </div>
+            <div style={{display: "flex", flexWrap: "wrap", gap: "20px", alignItems: "flex-start"}}>
+              <div style={{background: "#fff", border: "1px solid #e7e8e3", borderRadius: "20px", padding: "20px", display: "flex", flexDirection: "column", gap: "14px", flex: "1 1 340px", minWidth: "0"}}>
+                <div style={{fontWeight: "800", fontSize: "16px"}}>{"پیام‌ها"}</div>
+                <label style={{display: "flex", flexDirection: "column", gap: "6px", fontSize: "12px", color: "#6b6e72"}}>
+                  {"پیام آغاز (اختیاری)"}
+                  <select value={vm.sv2?.intro} onChange={vm.sv2?.setIntro} style={{border: "1px solid #e1e3dc", borderRadius: "10px", padding: "10px 12px", fontSize: "13px", outline: "none", background: "#fff", color: "#232425", fontFamily: "inherit", width: "100%"}}>
+                    <option value="">{"— بدون پیام —"}</option>
+                    {(vm.sv2?.snds || []).map((o, __i10) => <React.Fragment key={__i10}>
+                      <option value={o?.id}>{o?.name}</option>
+                    </React.Fragment>)}
+                  </select>
+                </label>
+                <div style={{fontSize: "11px", color: "#8b8e89", lineHeight: "1.7", marginTop: "-6px"}}>
+                  {"پیشنهاد: «از تماس شما سپاسگزاریم. لطفاً برای بهبود خدمات، به چند سؤال کوتاه با عدد ۱ تا ۵ پاسخ دهید؛ ۵ یعنی کاملاً راضی.»"}
+                </div>
+                <label style={{display: "flex", flexDirection: "column", gap: "6px", fontSize: "12px", color: "#6b6e72"}}>
+                  {"پیام تشکر (اختیاری)"}
+                  <select value={vm.sv2?.thanks} onChange={vm.sv2?.setThanks} style={{border: "1px solid #e1e3dc", borderRadius: "10px", padding: "10px 12px", fontSize: "13px", outline: "none", background: "#fff", color: "#232425", fontFamily: "inherit", width: "100%"}}>
+                    <option value="">{"— فقط بوق —"}</option>
+                    {(vm.sv2?.snds || []).map((o, __i10) => <React.Fragment key={__i10}>
+                      <option value={o?.id}>{o?.name}</option>
+                    </React.Fragment>)}
+                  </select>
+                </label>
+                <div style={{fontSize: "11px", color: "#8b8e89", lineHeight: "1.7", marginTop: "-6px"}}>{"پیشنهاد: «از وقتی که گذاشتید سپاسگزاریم. روز خوبی داشته باشید.»"}</div>
+                <label style={{display: "flex", flexDirection: "column", gap: "6px", fontSize: "12px", color: "#6b6e72"}}>
+                  {"پیام کلید نامعتبر (اختیاری)"}
+                  <select value={vm.sv2?.invalid} onChange={vm.sv2?.setInvalid} style={{border: "1px solid #e1e3dc", borderRadius: "10px", padding: "10px 12px", fontSize: "13px", outline: "none", background: "#fff", color: "#232425", fontFamily: "inherit", width: "100%"}}>
+                    <option value="">{"— بدون پیام، سؤال تکرار می‌شود —"}</option>
+                    {(vm.sv2?.snds || []).map((o, __i10) => <React.Fragment key={__i10}>
+                      <option value={o?.id}>{o?.name}</option>
+                    </React.Fragment>)}
+                  </select>
+                </label>
+                <div style={{fontSize: "11px", color: "#8b8e89", lineHeight: "1.7", marginTop: "-6px"}}>{"پیشنهاد: «لطفاً فقط عددی بین ۱ تا ۵ وارد کنید.»"}</div>
+              </div>
+              <div style={{background: "#fff", border: "1px solid #e7e8e3", borderRadius: "20px", padding: "20px", display: "flex", flexDirection: "column", gap: "14px", flex: "1 1 300px", minWidth: "0"}}>
+                <div style={{fontWeight: "800", fontSize: "16px"}}>{"زمان‌بندی"}</div>
+                <label style={{display: "flex", flexDirection: "column", gap: "6px", fontSize: "12px", color: "#6b6e72"}}>
+                  {"حداقل مدت مکالمه برای نظرسنجی (ثانیه)"}
+                  <input type="number" value={vm.sv2?.minTalk} onChange={vm.sv2?.setMinTalk} style={{border: "1px solid #e1e3dc", borderRadius: "10px", padding: "10px 12px", fontSize: "13px", outline: "none", background: "#fff", color: "#232425", fontFamily: "inherit", width: "100%"}} />
+                </label>
+                <label style={{display: "flex", flexDirection: "column", gap: "6px", fontSize: "12px", color: "#6b6e72"}}>
+                  {"مهلت پاسخ به هر سؤال (ثانیه)"}
+                  <input type="number" value={vm.sv2?.timeout} onChange={vm.sv2?.setTimeout} style={{border: "1px solid #e1e3dc", borderRadius: "10px", padding: "10px 12px", fontSize: "13px", outline: "none", background: "#fff", color: "#232425", fontFamily: "inherit", width: "100%"}} />
+                </label>
+                <label style={{display: "flex", flexDirection: "column", gap: "6px", fontSize: "12px", color: "#6b6e72"}}>
+                  {"تکرار سؤال در صورت پاسخ ندادن یا کلید اشتباه"}
+                  <input type="number" value={vm.sv2?.retry} onChange={vm.sv2?.setRetry} style={{border: "1px solid #e1e3dc", borderRadius: "10px", padding: "10px 12px", fontSize: "13px", outline: "none", background: "#fff", color: "#232425", fontFamily: "inherit", width: "100%"}} />
+                </label>
+                <div style={{fontSize: "12px", color: "#6b6e72", lineHeight: "1.8"}}>
+                  {"اگر تماس‌گیرنده به سؤالی جواب ندهد، نظرسنجی همان‌جا تمام می‌شود و پاسخ‌های قبلی ذخیره می‌شوند."}
+                </div>
+              </div>
+            </div>
+            <div style={{background: "#fff", border: "1px solid #e7e8e3", borderRadius: "20px", padding: "20px", display: "flex", flexDirection: "column", gap: "14px"}}>
+              <div style={{display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap"}}>
+                <div style={{flex: "1", minWidth: "220px"}}>
+                  <div style={{fontWeight: "800", fontSize: "16px"}}>{"امتحان با گوشی"}</div>
+                  <div style={{fontSize: "13px", color: "#6b6e72", marginTop: "4px", lineHeight: "1.8"}}>
+                    {"از هر داخلی کد "}
+                    <b style={{direction: "ltr", display: "inline-block", color: "#232425"}}>{"*77"}</b>
+                    {" را بگیرید تا نظرسنجی را دقیقاً مثل تماس‌گیرنده بشنوید (چیزی ثبت نمی‌شود). تغییرات این صفحه خودکار ذخیره و اعمال می‌شوند."}
+                  </div>
+                </div>
+                <button onClick={vm.sv2?.goReport} style={{background: "#fff", border: "1px solid #e1e3dc", color: "#3a3b3d", padding: "10px 14px", borderRadius: "12px", fontSize: "13px", fontWeight: "700", cursor: "pointer", fontFamily: "inherit"}}>{"مشاهده نتایج نظرسنجی"}</button>
+              </div>
+            </div>
+          </div>
+        </>) : null}
         {(vm.is?.vai) ? (<>
           <div style={{display: "flex", flexDirection: "column", gap: "20px"}}>
             <div>

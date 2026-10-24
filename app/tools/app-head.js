@@ -14,7 +14,7 @@ let OPS = [];
 const ROLE_LABEL = { admin: 'مدیر سامانه', supervisor: 'سرپرست مرکز تماس', operator: 'اپراتور', accounting: 'حسابداری', reception: 'پذیرش', emergency: 'پشتیبانی اضطراری' };
 const DEPT_REF = { accounting: 'acc', reception: 'rec', emergency: 'emg' };
 // Collections that mirror the Asterisk configuration; saved to /api/config/:key (admin only).
-const VOIP_KEYS = ['oroutes', 'routes', 'tgroups', 'holidays', 'tconds', 'rgroups', 'fmes', 'blist', 'bset', 'exts', 'trunks', 'vqs', 'ivrs', 'snds'];
+const VOIP_KEYS = ['survey', 'oroutes', 'routes', 'tgroups', 'holidays', 'tconds', 'rgroups', 'fmes', 'blist', 'bset', 'exts', 'trunks', 'vqs', 'ivrs', 'snds'];
 // Live fields come from AMI and are never written back.
 const LIVE_FIELDS = { exts: ['st'], vqs: ['waiting', 'sla'], trunks: ['reg', 'used'] };
 const WORKFLOW_KEYS = ['follow', 'doneAt', 'notes'];
@@ -437,6 +437,7 @@ class LiveApp extends React.Component {
     const ai = s.aiData && s.aiData.settings, wh = s.apiData && s.apiData.settings;
     const bks = s.bk ? s.bk.items.filter(b => b.status === 'done') : null;
     const ok = '#3d6a0c', off = '#8b8e89';
+    const sv = s.survey || {}, svReady = (sv.qs || []).filter(q => q.snd && (s.snds || []).some(x => x.id === q.snd)).length;
     const I = {
       phone: 'M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2',
       pulse: 'M3 12h4l3-8 4 16 3-8h4', list: 'M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01', chat: 'M4 4h16v12H8l-4 4z',
@@ -445,7 +446,8 @@ class LiveApp extends React.Component {
       outRoute: 'M15 3h6v6M21 3l-7 7M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2',
       clock: 'M12 7v5l3 2M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z', bell: 'M6 16v-5a6 6 0 0 1 12 0v5l2 2H4zM10 21h4',
       follow: 'M17 1l4 4-4 4M3 11V9a4 4 0 0 1 4-4h14M7 23l-4-4 4-4M21 13v2a4 4 0 0 1-4 4H3', block: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM5.6 5.6l12.8 12.8',
-      ai: 'M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z', code: 'M8 9l-4 3 4 3M16 9l4 3-4 3M13.5 6l-3 12',
+      ai: 'M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z',
+      star: 'M12 3l2.8 5.7 6.2.9-4.5 4.4 1 6.2L12 17.3 6.5 20.2l1-6.2L3 9.6l6.2-.9z', code: 'M8 9l-4 3 4 3M16 9l4 3-4 3M13.5 6l-3 12',
       db: 'M4 6c0-1.7 3.6-3 8-3s8 1.3 8 3-3.6 3-8 3-8-1.3-8-3zM4 6v12c0 1.7 3.6 3 8 3s8-1.3 8-3V6M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3',
     };
     const card = (page, title, icon, desc, stat, statFg, tone) => ({ title, icon, desc, stat, statFg: statFg || '#55585c', go: go(page), bg: tone[0], fg: tone[1] });
@@ -462,6 +464,7 @@ class LiveApp extends React.Component {
         card('vtime', 'شرایط و گروه‌های زمانی', I.clock, 'ساعات کاری، تعطیلات و مسیر داخل/خارج ساعت', n(s.tconds) + ' شرط زمانی', null, A),
         card('vring', 'گروه زنگ', I.bell, 'زنگ همزمان یا پشت‌سرهم چند داخلی و موبایل', n(s.rgroups) + ' گروه', null, A),
         card('vfollow', 'دنبال‌کردن تماس', I.follow, 'انتقال تماس بی‌پاسخ داخلی به موبایل یا داخلی دیگر', Object.values(s.fmes || {}).filter(f => f.on).length + ' فعال', null, B),
+        card('vsurvey', 'نظرسنجی بعد از تماس', I.star, 'بعد از قطع تماس توسط اپراتور، تماس‌گیرنده به سؤالات امتیاز ۱ تا ۵ می‌دهد', sv.on ? (svReady ? 'فعال · ' + svReady + ' سؤال' : 'فعال · صدا انتخاب نشده') : 'غیرفعال', sv.on && svReady ? ok : sv.on ? '#b42318' : off, A),
         card('vblack', 'لیست سیاه', I.block, 'مسدود کردن شماره‌های مزاحم و تماس ناشناس', n(s.blist) + ' شماره مسدود', null, R),
       ] },
       { title: 'یکپارچه‌سازی', sub: 'اتصال به سرویس‌های بیرونی', items: [
@@ -472,8 +475,56 @@ class LiveApp extends React.Component {
         card('vbackup', 'بکاپ و بازیابی', I.db, 'بکاپ گرفتن از بخش‌های دلخواه، دانلود و بازیابی', bks ? bks.length + ' بکاپ' + (s.bk.schedule && s.bk.schedule.enabled ? ' · خودکار فعال' : '') : '…', null, G),
       ] },
     ];
-    const TITLES = { vext: 'داخلی‌ها', vtrunk: 'ترانک‌ها', vqueue: 'صف‌ها', vivr: 'منوهای IVR', vsound: 'صداها', vroute: 'مسیرهای ورودی', vout: 'مسیرهای خروجی', vtime: 'شرایط و گروه‌های زمانی', vring: 'گروه زنگ', vfollow: 'دنبال‌کردن تماس', vblack: 'لیست سیاه', vai: 'هوش مصنوعی', vapi: 'ارسال تماس‌ها (API)', vbackup: 'بکاپ و بازیابی' };
+    const TITLES = { vext: 'داخلی‌ها', vtrunk: 'ترانک‌ها', vqueue: 'صف‌ها', vivr: 'منوهای IVR', vsound: 'صداها', vroute: 'مسیرهای ورودی', vout: 'مسیرهای خروجی', vtime: 'شرایط و گروه‌های زمانی', vring: 'گروه زنگ', vfollow: 'دنبال‌کردن تماس', vblack: 'لیست سیاه', vsurvey: 'نظرسنجی بعد از تماس', vai: 'هوش مصنوعی', vapi: 'ارسال تماس‌ها (API)', vbackup: 'بکاپ و بازیابی' };
     return { hub: { groups }, crumb: { show: !!TITLES[s.page], title: TITLES[s.page] || '', back: go('settings') } };
+  }
+
+  // ---- «نظرسنجی بعد از تماس» settings page (saved like every VoIP setting: automatically, then applied to Asterisk)
+  svLabels(s) {
+    const qs = ((s.survey || {}).qs || []).map(q => q.label || 'سؤال');
+    return qs.length ? qs : ['برخورد اپراتور', 'پاسخ به سؤال', 'زمان انتظار'];
+  }
+
+  surveyVals(s) {
+    const sv = { on: false, minTalk: 10, timeout: 5, retry: 1, intro: '', thanks: '', invalid: '', qs: [], ...(s.survey || {}) };
+    const put = o => this.setState({ survey: { ...sv, ...o } });
+    const snds = (s.snds || []).filter(x => x.file);
+    const exists = id => !!id && snds.some(x => x.id === id);
+    const SCRIPT = ['از برخورد کارشناس ما چقدر راضی بودید؟', 'پاسخ کارشناس چقدر به سؤال شما کمک کرد؟', 'از مدت زمان انتظار چقدر راضی بودید؟', 'چقدر احتمال دارد کلینیک را به دیگران پیشنهاد کنید؟', 'به طور کلی از این تماس چقدر راضی بودید؟'];
+    const qs = sv.qs.map((q, i) => ({
+      n: (i + 1).toLocaleString('fa-IR'), label: q.label, snd: q.snd || '', script: SCRIPT[i] ? '«' + SCRIPT[i] + ' لطفاً عددی بین ۱ تا ۵ وارد کنید.»' : '',
+      setLabel: e => put({ qs: sv.qs.map((x, j) => j === i ? { ...x, label: e.target.value } : x) }),
+      setSnd: e => put({ qs: sv.qs.map((x, j) => j === i ? { ...x, snd: e.target.value } : x) }),
+      del: () => put({ qs: sv.qs.filter((x, j) => j !== i) }),
+      up: () => { if (!i) return; const a = [...sv.qs]; [a[i - 1], a[i]] = [a[i], a[i - 1]]; put({ qs: a }); },
+      warn: !exists(q.snd), canUp: i > 0,
+    }));
+    const ready = qs.filter(q => !q.warn).length;
+    const all = this.calls.filter(c => c.dir === 'in' && (c.st === 'answered' || c.st === 'transferred'));
+    const since = jStr(new Date(Date.now() - 30 * 864e5)), recent = all.filter(c => c.date >= since);
+    const done = recent.filter(c => c.survey);
+    const avg = done.length ? (done.reduce((a, c) => a + c.survey.score, 0) / done.length).toFixed(1) : '—';
+    const tg = on => ({ bg: on ? '#8DC63F' : '#d9dad6', j: on ? 'flex-end' : 'flex-start' });
+    const num = (k, min, max) => e => { const v = Math.min(max, Math.max(min, parseInt(e.target.value, 10) || 0)); put({ [k]: v }); };
+    let status, statusBg, statusFg;
+    if (!sv.on) { status = 'نظرسنجی خاموش است؛ تماس‌ها مثل قبل بعد از قطع اپراتور تمام می‌شوند.'; statusBg = '#f2f3ef'; statusFg = '#55585c'; }
+    else if (!ready) { status = 'نظرسنجی روشن است ولی برای هیچ سؤالی صدا انتخاب نشده؛ تا صدا انتخاب نشود نظرسنجی پخش نمی‌شود.'; statusBg = '#fdeceb'; statusFg = '#b42318'; }
+    else { status = 'فعال: بعد از قطع تماس توسط اپراتور، ' + ready.toLocaleString('fa-IR') + ' سؤال برای تماس‌گیرنده پخش می‌شود' + (ready < qs.length ? ' (سؤال‌های بدون صدا رد می‌شوند)' : '') + '.'; statusBg = '#eaf4dc'; statusFg = '#3d6a0c'; }
+    return { sv2: {
+      onT: tg(sv.on), onLabel: sv.on ? 'فعال' : 'غیرفعال', tog: () => put({ on: !sv.on }),
+      status, statusBg, statusFg,
+      kpis: [
+        { label: 'نظرسنجی ۳۰ روز اخیر', value: done.length.toLocaleString('fa-IR'), color: '#232425' },
+        { label: 'میانگین امتیاز', value: avg === '—' ? avg : avg + ' / ۵', color: '#3d6a0c' },
+        { label: 'نرخ مشارکت', value: Math.round(done.length / Math.max(1, recent.length) * 100) + '٪', color: '#1d5a85' },
+      ],
+      minTalk: sv.minTalk, setMinTalk: num('minTalk', 0, 600), timeout: sv.timeout, setTimeout: num('timeout', 2, 15), retry: sv.retry, setRetry: num('retry', 0, 3),
+      snds: snds.map(x => ({ id: x.id, name: x.name })),
+      intro: sv.intro, setIntro: e => put({ intro: e.target.value }), thanks: sv.thanks, setThanks: e => put({ thanks: e.target.value }), invalid: sv.invalid, setInvalid: e => put({ invalid: e.target.value }),
+      qs, hasQs: qs.length > 0, canAdd: qs.length < 5,
+      add: () => put({ qs: [...sv.qs, { label: ['برخورد اپراتور', 'پاسخ به سؤال', 'زمان انتظار', 'پیشنهاد به دیگران', 'رضایت کلی'][sv.qs.length] || 'سؤال جدید', snd: '' }] }),
+      goSounds: () => this.setState({ page: 'vsound' }), goReport: () => this.setState({ page: 'survey' }),
+    } };
   }
 
   // ---- «هوش مصنوعی» settings page

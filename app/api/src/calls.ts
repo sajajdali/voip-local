@@ -113,7 +113,8 @@ export class CallsService {
     else if (q.ansext || ansts) { st = q.xfer === '1' ? 'transferred' : 'answered'; dur = Math.max(1, end - (ansts || start)); wait = Math.max(0, (ansts || start) - start); }
     else { st = 'missed'; dur = 0; wait = Math.max(0, end - start); }
     const sv = (q.sv || '').replace(/\D/g, '').split('').map(Number).filter(n => n >= 1 && n <= 5);
-    const survey = sv.length === 3 ? { answers: sv, score: Math.round((sv.reduce((a, b) => a + b, 0) / 3) * 10) / 10, comment: '' } : null;
+    // answers stop at the first unanswered question; a partial survey still counts
+    const survey = sv.length ? { answers: sv.slice(0, 5), score: Math.round((sv.reduce((a, b) => a + b, 0) / sv.length) * 10) / 10, comment: '' } : null;
     const orig = q.orig ? this.origs.get(q.orig) : undefined;
     const at = new Date(start * 1000);
     const opExt = dir === 'in' ? digits(q.ansext) || null : digits(q.opext || q.ansext) || null;
