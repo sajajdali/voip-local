@@ -13,3 +13,9 @@ button,input,select,textarea{font-family:inherit}
   #root > div[dir="rtl"] > aside{display:none!important}
   #root > div[dir="rtl"]{grid-template-columns:1fr!important}
 }
+/* live calls page */
+@keyframes cc-pulse{0%{box-shadow:0 0 0 0 rgba(127,181,54,.55)}70%{box-shadow:0 0 0 10px rgba(127,181,54,0)}100%{box-shadow:0 0 0 0 rgba(127,181,54,0)}}
+@keyframes cc-pulse-red{0%{box-shadow:0 0 0 0 rgba(224,87,74,.6)}70%{box-shadow:0 0 0 10px rgba(224,87,74,0)}100%{box-shadow:0 0 0 0 rgba(224,87,74,0)}}
+@keyframes cc-eq{0%,100%{transform:scaleY(.3)}50%{transform:scaleY(1)}}
+@keyframes cc-ring{0%,100%{transform:rotate(0)}10%,30%{transform:rotate(-14deg)}20%,40%{transform:rotate(14deg)}50%{transform:rotate(0)}}
+@keyframes cc-fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}

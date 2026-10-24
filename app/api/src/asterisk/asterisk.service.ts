@@ -83,6 +83,7 @@ export class AsteriskService extends EventEmitter implements OnModuleInit {
     const trunks: Live['trunks'] = {};
     const regs = await this.ami.action({ Action: 'PJSIPShowRegistrationsOutbound' }, true).catch(() => ({ events: [] }));
     const chans = await this.ami.action({ Action: 'CoreShowChannels' }, true).catch(() => ({ events: [] }));
+    this.emit('channels', (chans.events || []).filter((c: any) => c.Event === 'CoreShowChannel'));
     for (const t of cfg.trunks) {
       const r = (regs.events || []).find((e: any) => e.ObjectName === `trunk-${t.id}-reg`);
       const used = (chans.events || []).filter((c: any) => String(c.Channel || '').startsWith(`PJSIP/trunk-${t.id}-`)).length;

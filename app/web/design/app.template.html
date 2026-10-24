@@ -16,6 +16,12 @@
       <svg width="19" height="19" sc-camel-view-box="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2"></path><path d="M21 3l-6 6M15 4v5h5"></path></svg>
       <span style="flex:1">تماس‌های ورودی</span><span style="font-size:11px;padding:2px 8px;border-radius:99px;background:{{ nav.inbound.cbg }}">{{ nav.inbound.count }}</span>
     </div>
+    <sc-if value="{{ me.isAdmin }}">
+    <div sc-camel-on-click="{{ nav.live.go }}" style="display:flex;align-items:center;gap:12px;padding:11px 14px;border-radius:12px;cursor:pointer;background:{{ nav.live.bg }};color:{{ nav.live.fg }};font-size:14px;font-weight:600">
+      <svg width="19" height="19" sc-camel-view-box="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 14v-2a9 9 0 0 1 18 0v2M3 14a2 2 0 0 1 2-2h1v7H5a2 2 0 0 1-2-2zM21 14a2 2 0 0 0-2-2h-1v7h1a2 2 0 0 0 2-2z"></path></svg>
+      <span style="flex:1">تماس‌های زنده</span><span style="font-size:11px;padding:2px 8px;border-radius:99px;background:#7FB536;color:#fff">{{ nav.live.count }}</span>
+    </div>
+    </sc-if>
     <div sc-camel-on-click="{{ nav.voice.go }}" style="display:flex;align-items:center;gap:12px;padding:11px 14px;border-radius:12px;cursor:pointer;background:{{ nav.voice.bg }};color:{{ nav.voice.fg }};font-size:14px;font-weight:600">
       <svg width="19" height="19" sc-camel-view-box="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="9" y="3" width="6" height="11" rx="3"></rect><path d="M5 11a7 7 0 0 0 14 0M12 18v3"></path></svg>
       <span style="flex:1">پیام‌های صوتی</span><span style="font-size:11px;padding:2px 8px;border-radius:99px;background:#e0574a;color:#fff">{{ nav.voice.count }}</span>
@@ -836,6 +842,77 @@
       <div style="display:flex;gap:10px;flex-wrap:wrap"><input value="{{ crm2.testPhone }}" sc-camel-on-change="{{ crm2.setTestPhone }}" placeholder="09121234567" style="border:1px solid #e1e3dc;border-radius:10px;padding:10px 12px;font-size:13px;outline:none;background:#fff;color:#232425;font-family:inherit;width:100%;direction:ltr;text-align:left;flex:1 1 200px;width:auto"><button sc-camel-on-click="{{ crm2.test }}" style="background:#2E2F31;color:#fff;border:none;padding:10px 18px;border-radius:12px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">{{ crm2.testLabel }}</button></div>
       <sc-if value="{{ crm2.hasResult }}"><div style="border:1px solid #e7e8e3;border-radius:14px;padding:6px 14px"><sc-for list="{{ crm2.result }}" as="r"><div style="display:flex;gap:12px;padding:8px 0;border-bottom:1px solid #f1f2ee;font-size:13px"><div style="width:110px;color:#6b6e72;flex-shrink:0">{{ r.k }}</div><div style="flex:1;font-weight:700;color:{{ r.c }};line-height:1.7">{{ r.v }}</div></div></sc-for></div></sc-if>
       <sc-if value="{{ crm2.hasRaw }}"><pre style="margin:0;background:#2E2F31;color:#e6e7e2;border-radius:12px;padding:12px 14px;font-size:11px;direction:ltr;text-align:left;max-height:260px;overflow:auto;white-space:pre-wrap">{{ crm2.raw }}</pre></sc-if>
+    </div>
+  </div>
+  </sc-if>
+
+  <!-- ===== LIVE CALLS ===== -->
+  <sc-if value="{{ is.live }}">
+  <div style="display:flex;flex-direction:column;gap:18px">
+    <div style="background:linear-gradient(135deg,#2E2F31 0%,#1c1d1e 100%);border-radius:24px;padding:22px 24px;color:#f2f3ef;display:flex;flex-direction:column;gap:18px;position:relative;overflow:hidden">
+      <div style="position:absolute;inset:auto auto -80px -60px;width:260px;height:260px;border-radius:50%;background:radial-gradient(circle,rgba(127,181,54,.22),rgba(127,181,54,0) 70%)"></div>
+      <div style="display:flex;align-items:flex-start;gap:16px;flex-wrap:wrap;position:relative">
+        <div style="flex:1;min-width:220px">
+          <div style="display:flex;align-items:center;gap:12px"><h1 style="margin:0;font-size:28px;font-weight:800;color:#fff">تماس‌های زنده</h1><span style="display:inline-flex;align-items:center;gap:7px;font-size:11px;letter-spacing:1px;font-weight:800;padding:5px 11px;border-radius:999px;background:rgba(224,87,74,.16);color:#ff8d82;border:1px solid rgba(224,87,74,.35)"><span style="width:8px;height:8px;border-radius:50%;background:#e0574a;animation:cc-pulse-red 1.6s infinite"></span>LIVE</span></div>
+          <div style="font-size:13px;color:#b8bab5;margin-top:8px;line-height:1.8;max-width:620px">همه تماس‌های در جریان، لحظه‌به‌لحظه. با «گوش بده» صدای مکالمه همین‌جا پخش می‌شود؛ فقط شنیدن است و طرفین متوجه نمی‌شوند. هر شنود با نام شما ثبت می‌شود.</div>
+        </div>
+        <div style="text-align:left"><div style="font-size:34px;font-weight:800;color:#fff;direction:ltr;letter-spacing:1px">{{ lv.time }}</div><div style="font-size:12px;color:#b8bab5">{{ lv.date }}</div></div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;position:relative">
+        <sc-for list="{{ lv.kpis }}" as="k"><div style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:12px 14px;border-top:3px solid {{ k.accent }}"><div style="font-size:30px;font-weight:800;color:#fff;line-height:1.2">{{ k.value }}</div><div style="font-size:12px;color:#b8bab5;margin-top:2px">{{ k.label }}</div></div></sc-for>
+      </div>
+      <div style="position:relative"><div style="display:flex;justify-content:space-between;font-size:12px;color:#b8bab5;margin-bottom:6px"><span>ظرفیت اپراتورها</span><span>{{ lv.capText }}</span></div><div style="display:flex;height:8px;border-radius:99px;overflow:hidden;background:rgba(255,255,255,.08);gap:2px"><sc-for list="{{ lv.cap }}" as="c"><div style="width:{{ c.w }};background:{{ c.bg }};transition:width .6s"></div></sc-for></div></div>
+    </div>
+
+    <sc-if value="{{ lv.listening }}">
+    <div style="position:sticky;top:10px;z-index:6;background:rgba(35,36,37,.96);backdrop-filter:blur(8px);color:#fff;border:1px solid rgba(127,181,54,.5);border-radius:20px;padding:14px 18px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;box-shadow:0 18px 40px rgba(0,0,0,.28)">
+      <div style="width:44px;height:44px;border-radius:50%;background:rgba(127,181,54,.16);display:grid;place-items:center;animation:cc-pulse 1.8s infinite;flex-shrink:0"><svg width="22" height="22" sc-camel-view-box="0 0 24 24" fill="none" stroke="#9fd25a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 14v-2a9 9 0 0 1 18 0v2M3 14a2 2 0 0 1 2-2h1v7H5a2 2 0 0 1-2-2zM21 14a2 2 0 0 0-2-2h-1v7h1a2 2 0 0 0 2-2z"></path></svg></div>
+      <div style="min-width:160px;flex:1"><div style="font-size:11px;color:#9fd25a;font-weight:700;letter-spacing:.5px">در حال شنیدن · {{ lv.lsState }}</div><div style="font-weight:800;font-size:15px;margin-top:2px">{{ lv.lsWho }}</div></div>
+      <div style="display:flex;align-items:center;gap:2px;height:36px;flex:0 1 220px;justify-content:center;direction:ltr"><sc-for list="{{ lv.vu }}" as="v"><span style="width:4px;height:{{ v.h }};background:{{ v.bg }};border-radius:3px;transition:height .12s"></span></sc-for></div>
+      <div style="font-size:20px;font-weight:800;direction:ltr;min-width:64px;text-align:center">{{ lv.lsTime }}</div>
+      <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:#b8bab5"><svg width="16" height="16" sc-camel-view-box="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M11 5L6 9H2v6h4l5 4zM15.5 8.5a5 5 0 0 1 0 7M19 5a10 10 0 0 1 0 14"></path></svg><input type="range" min="0" max="2" step="0.1" value="{{ lv.vol }}" sc-camel-on-change="{{ lv.setVol }}" style="width:96px;accent-color:#7FB536"></label>
+      <button sc-camel-on-click="{{ lv.stop }}" style="background:#e0574a;color:#fff;border:none;padding:10px 18px;border-radius:12px;font-size:13px;font-weight:800;cursor:pointer;font-family:inherit">قطع شنود</button>
+    </div>
+    </sc-if>
+
+    <sc-if value="{{ lv.empty }}"><div style="background:#fff;border:1px dashed #d9dad6;border-radius:24px;padding:56px 20px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:12px"><div style="width:64px;height:64px;border-radius:50%;background:#f2f3ef;display:grid;place-items:center"><svg width="28" height="28" sc-camel-view-box="0 0 24 24" fill="none" stroke="#9a9d97" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2"></path></svg></div><div style="font-weight:800;font-size:16px">الان تماسی برقرار نیست</div><div style="font-size:13px;color:#6b6e72">تماس‌ها به محض شروع، همین‌جا ظاهر می‌شوند.</div></div></sc-if>
+
+    <sc-if value="{{ lv.has }}">
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(310px,1fr));gap:14px">
+      <sc-for list="{{ lv.cards }}" as="c">
+      <div style="background:{{ c.cardBg }};color:{{ c.cardFg }};border:1.5px solid {{ c.cardBd }};border-radius:22px;overflow:hidden;box-shadow:{{ c.shadow }};transition:background .25s,box-shadow .25s;display:flex;flex-direction:column">
+        <div style="height:4px;background:{{ c.accent }}"></div>
+        <div style="padding:16px 18px;display:flex;flex-direction:column;gap:14px">
+          <div style="display:flex;align-items:center;gap:12px">
+            <div style="width:48px;height:48px;border-radius:50%;background:{{ c.avBg }};color:{{ c.fg }};display:grid;place-items:center;font-weight:800;font-size:16px;border:2px solid {{ c.accent }};flex-shrink:0">{{ c.ini }}</div>
+            <div style="flex:1;min-width:0"><div style="font-weight:800;font-size:16px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ c.title }}</div><sc-if value="{{ c.hasPhone }}"><div style="font-size:12px;color:{{ c.subFg }};direction:ltr;text-align:right">{{ c.phone }}</div></sc-if></div>
+            <span style="font-size:11px;font-weight:700;color:{{ c.subFg }};border:1px solid {{ c.cardBd }};padding:3px 9px;border-radius:999px;white-space:nowrap">{{ c.dir }}</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:12px">
+            <div style="flex:1;min-width:0">
+              <div style="display:flex;align-items:center;gap:8px">
+                <sc-if value="{{ c.isTalk }}"><span style="display:inline-flex;align-items:flex-end;gap:2px;height:16px"><sc-for list="{{ c.eq }}" as="q"><span style="width:3px;height:16px;background:{{ c.accent }};border-radius:2px;transform-origin:bottom;animation:cc-eq {{ q.dur }} ease-in-out {{ q.delay }} infinite"></span></sc-for></span></sc-if>
+                <sc-if value="{{ c.notTalk }}"><span style="width:9px;height:9px;border-radius:50%;background:{{ c.accent }};animation:cc-pulse 1.6s infinite"></span></sc-if>
+                <span style="font-size:13px;font-weight:800;color:{{ c.fg }}">{{ c.state }}</span>
+              </div>
+              <sc-if value="{{ c.hasWith }}"><div style="font-size:13px;margin-top:6px;color:{{ c.cardFg }}"><span style="opacity:.6">{{ c.withIcon }}</span> {{ c.with }}</div></sc-if>
+              <sc-if value="{{ c.hasQueue }}"><div style="font-size:12px;margin-top:4px;color:{{ c.subFg }}">صف {{ c.queue }}</div></sc-if>
+            </div>
+            <div style="text-align:left"><div style="font-size:26px;font-weight:800;direction:ltr;line-height:1.1">{{ c.timer }}</div><div style="font-size:11px;color:{{ c.subFg }}">{{ c.timerLabel }}</div><sc-if value="{{ c.showTotal }}"><div style="font-size:10px;color:{{ c.subFg }};margin-top:2px">از شروع تماس {{ c.total }}</div></sc-if></div>
+          </div>
+          <sc-if value="{{ c.on }}"><div style="display:flex;align-items:center;justify-content:center;gap:3px;height:30px;direction:ltr"><sc-for list="{{ c.vu }}" as="v"><span style="width:5px;height:{{ v.h }};background:#7FB536;border-radius:3px;transition:height .12s"></span></sc-for></div></sc-if>
+          <button sc-camel-on-click="{{ c.listen }}" style="background:{{ c.btnBg }};color:#fff;border:none;padding:11px 14px;border-radius:14px;font-size:13px;font-weight:800;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:8px"><svg width="17" height="17" sc-camel-view-box="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 14v-2a9 9 0 0 1 18 0v2M3 14a2 2 0 0 1 2-2h1v7H5a2 2 0 0 1-2-2zM21 14a2 2 0 0 0-2-2h-1v7h1a2 2 0 0 0 2-2z"></path></svg>{{ c.listenLabel }}</button>
+        </div>
+      </div>
+      </sc-for>
+    </div>
+    </sc-if>
+
+    <div style="background:#fff;border:1px solid #e7e8e3;border-radius:22px;padding:16px 18px;display:flex;flex-direction:column;gap:12px">
+      <div style="font-weight:800;font-size:15px">داخلی‌ها</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px">
+        <sc-for list="{{ lv.exts }}" as="e"><div style="background:{{ e.bg }};border:1px solid {{ e.bd }};border-radius:16px;padding:12px;display:flex;align-items:center;gap:10px;opacity:{{ e.op }}"><span style="width:10px;height:10px;border-radius:50%;background:{{ e.dot }};flex-shrink:0;animation:{{ e.anim }}"></span><div style="min-width:0"><div style="font-weight:800;font-size:15px">{{ e.n }}</div><div style="font-size:11px;color:#6b6e72;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ e.name }} · {{ e.label }}</div></div></div></sc-for>
+      </div>
     </div>
   </div>
   </sc-if>

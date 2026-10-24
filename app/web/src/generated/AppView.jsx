@@ -25,6 +25,15 @@ export default function AppView({ vm }) {
             <span style={{flex: "1"}}>{"تماس‌های ورودی"}</span>
             <span style={{fontSize: "11px", padding: "2px 8px", borderRadius: "99px", background: vm.nav?.inbound?.cbg}}>{vm.nav?.inbound?.count}</span>
           </div>
+          {(vm.me?.isAdmin) ? (<>
+            <div onClick={vm.nav?.live?.go} style={{display: "flex", alignItems: "center", gap: "12px", padding: "11px 14px", borderRadius: "12px", cursor: "pointer", background: vm.nav?.live?.bg, color: vm.nav?.live?.fg, fontSize: "14px", fontWeight: "600"}}>
+              <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M3 14v-2a9 9 0 0 1 18 0v2M3 14a2 2 0 0 1 2-2h1v7H5a2 2 0 0 1-2-2zM21 14a2 2 0 0 0-2-2h-1v7h1a2 2 0 0 0 2-2z" />
+              </svg>
+              <span style={{flex: "1"}}>{"تماس‌های زنده"}</span>
+              <span style={{fontSize: "11px", padding: "2px 8px", borderRadius: "99px", background: "#7FB536", color: "#fff"}}>{vm.nav?.live?.count}</span>
+            </div>
+          </>) : null}
           <div onClick={vm.nav?.voice?.go} style={{display: "flex", alignItems: "center", gap: "12px", padding: "11px 14px", borderRadius: "12px", cursor: "pointer", background: vm.nav?.voice?.bg, color: vm.nav?.voice?.fg, fontSize: "14px", fontWeight: "600"}}>
             <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
               <rect x="9" y="3" width="6" height="11" rx="3" />
@@ -2190,6 +2199,166 @@ export default function AppView({ vm }) {
               {(vm.crm2?.hasRaw) ? (<>
                 <pre style={{margin: "0", background: "#2E2F31", color: "#e6e7e2", borderRadius: "12px", padding: "12px 14px", fontSize: "11px", direction: "ltr", textAlign: "left", maxHeight: "260px", overflow: "auto", whiteSpace: "pre-wrap"}}>{vm.crm2?.raw}</pre>
               </>) : null}
+            </div>
+          </div>
+        </>) : null}
+        {(vm.is?.live) ? (<>
+          <div style={{display: "flex", flexDirection: "column", gap: "18px"}}>
+            <div style={{background: "linear-gradient(135deg,#2E2F31 0%,#1c1d1e 100%)", borderRadius: "24px", padding: "22px 24px", color: "#f2f3ef", display: "flex", flexDirection: "column", gap: "18px", position: "relative", overflow: "hidden"}}>
+              <div style={{position: "absolute", inset: "auto auto -80px -60px", width: "260px", height: "260px", borderRadius: "50%", background: "radial-gradient(circle,rgba(127,181,54,.22),rgba(127,181,54,0) 70%)"}} />
+              <div style={{display: "flex", alignItems: "flex-start", gap: "16px", flexWrap: "wrap", position: "relative"}}>
+                <div style={{flex: "1", minWidth: "220px"}}>
+                  <div style={{display: "flex", alignItems: "center", gap: "12px"}}>
+                    <h1 style={{margin: "0", fontSize: "28px", fontWeight: "800", color: "#fff"}}>{"تماس‌های زنده"}</h1>
+                    <span style={{display: "inline-flex", alignItems: "center", gap: "7px", fontSize: "11px", letterSpacing: "1px", fontWeight: "800", padding: "5px 11px", borderRadius: "999px", background: "rgba(224,87,74,.16)", color: "#ff8d82", border: "1px solid rgba(224,87,74,.35)"}}>
+                      <span style={{width: "8px", height: "8px", borderRadius: "50%", background: "#e0574a", animation: "cc-pulse-red 1.6s infinite"}} />
+                      {"LIVE"}
+                    </span>
+                  </div>
+                  <div style={{fontSize: "13px", color: "#b8bab5", marginTop: "8px", lineHeight: "1.8", maxWidth: "620px"}}>
+                    {"همه تماس‌های در جریان، لحظه‌به‌لحظه. با «گوش بده» صدای مکالمه همین‌جا پخش می‌شود؛ فقط شنیدن است و طرفین متوجه نمی‌شوند. هر شنود با نام شما ثبت می‌شود."}
+                  </div>
+                </div>
+                <div style={{textAlign: "left"}}>
+                  <div style={{fontSize: "34px", fontWeight: "800", color: "#fff", direction: "ltr", letterSpacing: "1px"}}>{vm.lv?.time}</div>
+                  <div style={{fontSize: "12px", color: "#b8bab5"}}>{vm.lv?.date}</div>
+                </div>
+              </div>
+              <div style={{display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(130px,1fr))", gap: "10px", position: "relative"}}>
+                {(vm.lv?.kpis || []).map((k, __i8) => <React.Fragment key={__i8}>
+                  <div style={{background: "rgba(255,255,255,.06)", border: "1px solid rgba(255,255,255,.08)", borderRadius: "16px", padding: "12px 14px", borderTop: `3px solid ${k?.accent}`}}>
+                    <div style={{fontSize: "30px", fontWeight: "800", color: "#fff", lineHeight: "1.2"}}>{k?.value}</div>
+                    <div style={{fontSize: "12px", color: "#b8bab5", marginTop: "2px"}}>{k?.label}</div>
+                  </div>
+                </React.Fragment>)}
+              </div>
+              <div style={{position: "relative"}}>
+                <div style={{display: "flex", justifyContent: "space-between", fontSize: "12px", color: "#b8bab5", marginBottom: "6px"}}>
+                  <span>{"ظرفیت اپراتورها"}</span>
+                  <span>{vm.lv?.capText}</span>
+                </div>
+                <div style={{display: "flex", height: "8px", borderRadius: "99px", overflow: "hidden", background: "rgba(255,255,255,.08)", gap: "2px"}}>
+                  {(vm.lv?.cap || []).map((c, __i9) => <React.Fragment key={__i9}>
+                    <div style={{width: c?.w, background: c?.bg, transition: "width .6s"}} />
+                  </React.Fragment>)}
+                </div>
+              </div>
+            </div>
+            {(vm.lv?.listening) ? (<>
+              <div style={{position: "sticky", top: "10px", zIndex: "6", background: "rgba(35,36,37,.96)", backdropFilter: "blur(8px)", color: "#fff", border: "1px solid rgba(127,181,54,.5)", borderRadius: "20px", padding: "14px 18px", display: "flex", alignItems: "center", gap: "16px", flexWrap: "wrap", boxShadow: "0 18px 40px rgba(0,0,0,.28)"}}>
+                <div style={{width: "44px", height: "44px", borderRadius: "50%", background: "rgba(127,181,54,.16)", display: "grid", placeItems: "center", animation: "cc-pulse 1.8s infinite", flexShrink: "0"}}>
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#9fd25a" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M3 14v-2a9 9 0 0 1 18 0v2M3 14a2 2 0 0 1 2-2h1v7H5a2 2 0 0 1-2-2zM21 14a2 2 0 0 0-2-2h-1v7h1a2 2 0 0 0 2-2z" />
+                  </svg>
+                </div>
+                <div style={{minWidth: "160px", flex: "1"}}>
+                  <div style={{fontSize: "11px", color: "#9fd25a", fontWeight: "700", letterSpacing: ".5px"}}>{"در حال شنیدن · "}{vm.lv?.lsState}</div>
+                  <div style={{fontWeight: "800", fontSize: "15px", marginTop: "2px"}}>{vm.lv?.lsWho}</div>
+                </div>
+                <div style={{display: "flex", alignItems: "center", gap: "2px", height: "36px", flex: "0 1 220px", justifyContent: "center", direction: "ltr"}}>
+                  {(vm.lv?.vu || []).map((v, __i9) => <React.Fragment key={__i9}>
+                    <span style={{width: "4px", height: v?.h, background: v?.bg, borderRadius: "3px", transition: "height .12s"}} />
+                  </React.Fragment>)}
+                </div>
+                <div style={{fontSize: "20px", fontWeight: "800", direction: "ltr", minWidth: "64px", textAlign: "center"}}>{vm.lv?.lsTime}</div>
+                <label style={{display: "flex", alignItems: "center", gap: "8px", fontSize: "12px", color: "#b8bab5"}}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M11 5L6 9H2v6h4l5 4zM15.5 8.5a5 5 0 0 1 0 7M19 5a10 10 0 0 1 0 14" /></svg>
+                  <input type="range" min="0" max="2" step="0.1" value={vm.lv?.vol} onChange={vm.lv?.setVol} style={{width: "96px", accentColor: "#7FB536"}} />
+                </label>
+                <button onClick={vm.lv?.stop} style={{background: "#e0574a", color: "#fff", border: "none", padding: "10px 18px", borderRadius: "12px", fontSize: "13px", fontWeight: "800", cursor: "pointer", fontFamily: "inherit"}}>{"قطع شنود"}</button>
+              </div>
+            </>) : null}
+            {(vm.lv?.empty) ? (<>
+              <div style={{background: "#fff", border: "1px dashed #d9dad6", borderRadius: "24px", padding: "56px 20px", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: "12px"}}>
+                <div style={{width: "64px", height: "64px", borderRadius: "50%", background: "#f2f3ef", display: "grid", placeItems: "center"}}>
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#9a9d97" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2" />
+                  </svg>
+                </div>
+                <div style={{fontWeight: "800", fontSize: "16px"}}>{"الان تماسی برقرار نیست"}</div>
+                <div style={{fontSize: "13px", color: "#6b6e72"}}>{"تماس‌ها به محض شروع، همین‌جا ظاهر می‌شوند."}</div>
+              </div>
+            </>) : null}
+            {(vm.lv?.has) ? (<>
+              <div style={{display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(310px,1fr))", gap: "14px"}}>
+                {(vm.lv?.cards || []).map((c, __i8) => <React.Fragment key={__i8}>
+                  <div style={{background: c?.cardBg, color: c?.cardFg, border: `1.5px solid ${c?.cardBd}`, borderRadius: "22px", overflow: "hidden", boxShadow: c?.shadow, transition: "background .25s,box-shadow .25s", display: "flex", flexDirection: "column"}}>
+                    <div style={{height: "4px", background: c?.accent}} />
+                    <div style={{padding: "16px 18px", display: "flex", flexDirection: "column", gap: "14px"}}>
+                      <div style={{display: "flex", alignItems: "center", gap: "12px"}}>
+                        <div style={{width: "48px", height: "48px", borderRadius: "50%", background: c?.avBg, color: c?.fg, display: "grid", placeItems: "center", fontWeight: "800", fontSize: "16px", border: `2px solid ${c?.accent}`, flexShrink: "0"}}>{c?.ini}</div>
+                        <div style={{flex: "1", minWidth: "0"}}>
+                          <div style={{fontWeight: "800", fontSize: "16px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap"}}>{c?.title}</div>
+                          {(c?.hasPhone) ? (<>
+                            <div style={{fontSize: "12px", color: c?.subFg, direction: "ltr", textAlign: "right"}}>{c?.phone}</div>
+                          </>) : null}
+                        </div>
+                        <span style={{fontSize: "11px", fontWeight: "700", color: c?.subFg, border: `1px solid ${c?.cardBd}`, padding: "3px 9px", borderRadius: "999px", whiteSpace: "nowrap"}}>{c?.dir}</span>
+                      </div>
+                      <div style={{display: "flex", alignItems: "center", gap: "12px"}}>
+                        <div style={{flex: "1", minWidth: "0"}}>
+                          <div style={{display: "flex", alignItems: "center", gap: "8px"}}>
+                            {(c?.isTalk) ? (<>
+                              <span style={{display: "inline-flex", alignItems: "flex-end", gap: "2px", height: "16px"}}>
+                                {(c?.eq || []).map((q, __i16) => <React.Fragment key={__i16}>
+                                  <span style={{width: "3px", height: "16px", background: c?.accent, borderRadius: "2px", transformOrigin: "bottom", animation: `cc-eq ${q?.dur} ease-in-out ${q?.delay} infinite`}} />
+                                </React.Fragment>)}
+                              </span>
+                            </>) : null}
+                            {(c?.notTalk) ? (<>
+                              <span style={{width: "9px", height: "9px", borderRadius: "50%", background: c?.accent, animation: "cc-pulse 1.6s infinite"}} />
+                            </>) : null}
+                            <span style={{fontSize: "13px", fontWeight: "800", color: c?.fg}}>{c?.state}</span>
+                          </div>
+                          {(c?.hasWith) ? (<>
+                            <div style={{fontSize: "13px", marginTop: "6px", color: c?.cardFg}}>
+                              <span style={{opacity: ".6"}}>{c?.withIcon}</span>
+                              {" "}{c?.with}
+                            </div>
+                          </>) : null}
+                          {(c?.hasQueue) ? (<>
+                            <div style={{fontSize: "12px", marginTop: "4px", color: c?.subFg}}>{"صف "}{c?.queue}</div>
+                          </>) : null}
+                        </div>
+                        <div style={{textAlign: "left"}}>
+                          <div style={{fontSize: "26px", fontWeight: "800", direction: "ltr", lineHeight: "1.1"}}>{c?.timer}</div>
+                          <div style={{fontSize: "11px", color: c?.subFg}}>{c?.timerLabel}</div>
+                          {(c?.showTotal) ? (<>
+                            <div style={{fontSize: "10px", color: c?.subFg, marginTop: "2px"}}>{"از شروع تماس "}{c?.total}</div>
+                          </>) : null}
+                        </div>
+                      </div>
+                      {(c?.on) ? (<>
+                        <div style={{display: "flex", alignItems: "center", justifyContent: "center", gap: "3px", height: "30px", direction: "ltr"}}>
+                          {(c?.vu || []).map((v, __i13) => <React.Fragment key={__i13}>
+                            <span style={{width: "5px", height: v?.h, background: "#7FB536", borderRadius: "3px", transition: "height .12s"}} />
+                          </React.Fragment>)}
+                        </div>
+                      </>) : null}
+                      <button onClick={c?.listen} style={{background: c?.btnBg, color: "#fff", border: "none", padding: "11px 14px", borderRadius: "14px", fontSize: "13px", fontWeight: "800", cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px"}}>
+                        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M3 14v-2a9 9 0 0 1 18 0v2M3 14a2 2 0 0 1 2-2h1v7H5a2 2 0 0 1-2-2zM21 14a2 2 0 0 0-2-2h-1v7h1a2 2 0 0 0 2-2z" />
+                        </svg>
+                        {c?.listenLabel}
+                      </button>
+                    </div>
+                  </div>
+                </React.Fragment>)}
+              </div>
+            </>) : null}
+            <div style={{background: "#fff", border: "1px solid #e7e8e3", borderRadius: "22px", padding: "16px 18px", display: "flex", flexDirection: "column", gap: "12px"}}>
+              <div style={{fontWeight: "800", fontSize: "15px"}}>{"داخلی‌ها"}</div>
+              <div style={{display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(150px,1fr))", gap: "10px"}}>
+                {(vm.lv?.exts || []).map((e, __i8) => <React.Fragment key={__i8}>
+                  <div style={{background: e?.bg, border: `1px solid ${e?.bd}`, borderRadius: "16px", padding: "12px", display: "flex", alignItems: "center", gap: "10px", opacity: e?.op}}>
+                    <span style={{width: "10px", height: "10px", borderRadius: "50%", background: e?.dot, flexShrink: "0", animation: e?.anim}} />
+                    <div style={{minWidth: "0"}}>
+                      <div style={{fontWeight: "800", fontSize: "15px"}}>{e?.n}</div>
+                      <div style={{fontSize: "11px", color: "#6b6e72", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap"}}>{e?.name}{" · "}{e?.label}</div>
+                    </div>
+                  </div>
+                </React.Fragment>)}
+              </div>
             </div>
           </div>
         </>) : null}

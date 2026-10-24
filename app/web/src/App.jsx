@@ -49,11 +49,19 @@ class LiveApp extends React.Component {
     this.sock.on('config', c => { if (c.by !== ME.id) this.applyRemote({ [c.key]: c.data }); });
     this.sock.on('cb', e => this.onCallback(e));
     this.sock.on('notify', n => this.toast(n.text));
+    this.sock.on('livecalls', l => this.setState({ liveCalls: l }));
+    this.sock.on('liveaudio', b => this.playLivePcm(b));
+    this.sock.on('liveaudio:start', () => this.setState({ lsOn: true }));
+    this.sock.on('liveaudio:end', e => { if (e.reason) this.toast(e.reason); this.stopListen(true); });
+    // live timers on the live-calls page
+    this.liveTick = setInterval(() => { if (this.state.page === 'live') this.forceUpdate(); }, 1000);
     window.addEventListener('beforeunload', this.flush);
   }
 
   teardown() {
     clearInterval(this.tick);
+    clearInterval(this.liveTick);
+    this.stopListen(true);
     clearInterval(this.callT);
     this.audio && this.audio.pause();
     this.sock && this.sock.disconnect();
@@ -959,6 +967,118 @@ class LiveApp extends React.Component {
     } catch (e) { this.toast('ساخت فایل گزارش ناموفق بود: ' + e.message); }
   }
 
+  // ---- «تماس‌های زنده»: listen-only monitoring in the browser (8 kHz PCM over the panel's websocket)
+  startListen(c) {
+    if (this.state.lsId === c.id) { this.stopListen(); return; }
+    this.stopListen(true);
+    try {
+      const Ctx = window.AudioContext || window.webkitAudioContext;
+      this.lctx = new Ctx();
+      this.lgain = this.lctx.createGain();
+      this.lgain.gain.value = this.state.lsVol != null ? this.state.lsVol : 1;
+      this.lgain.connect(this.lctx.destination);
+      this.lnext = 0;
+    } catch (e) { this.toast('مرورگر شما پخش صدای زنده را پشتیبانی نمی‌کند'); return; }
+    this.lvHist = [];
+    this.setState({ lsId: c.id, lsOn: false, lsAt: Date.now(), lsWho: (c.name || (!c.phone || /unknown|anonymous|^[<>]/i.test(c.phone) ? 'شماره ناشناس' : c.phone)) + (c.with ? ' ↔ ' + c.with : '') });
+    this.sock.emit('listen', { id: c.id }, r => { if (!r || !r.ok) { this.toast((r && r.error) || 'شروع شنود ناموفق بود'); this.stopListen(true); } });
+  }
+
+  stopListen(silent) {
+    if (this.sock && this.state.lsId && !silent) this.sock.emit('unlisten', {});
+    if (this.sock && this.state.lsId && silent) this.sock.emit('unlisten', {});
+    if (this.lctx) { try { this.lctx.close(); } catch (e) { /* closed */ } }
+    this.lctx = null; this.lgain = null;
+    if (this.state.lsId) this.setState({ lsId: null, lsOn: false });
+  }
+
+  playLivePcm(b) {
+    const ctx = this.lctx;
+    if (!ctx || !b) return;
+    const ab = b instanceof ArrayBuffer ? b : b.buffer ? b.buffer.slice(b.byteOffset, b.byteOffset + b.byteLength) : null;
+    if (!ab) return;
+    const pcm = new Int16Array(ab.byteLength % 2 ? ab.slice(0, ab.byteLength - 1) : ab);
+    const buf = ctx.createBuffer(1, pcm.length, 8000);
+    const ch = buf.getChannelData(0);
+    let sq = 0;
+    for (let i = 0; i < pcm.length; i++) { ch[i] = pcm[i] / 32768; sq += ch[i] * ch[i]; }
+    // level meter: ~8 updates a second
+    this.lvLvl = Math.max(this.lvLvl || 0, Math.min(1, Math.sqrt(sq / Math.max(1, pcm.length)) * 4));
+    if (!this.lvAt || Date.now() - this.lvAt > 120) { this.lvAt = Date.now(); this.lvHist = [...(this.lvHist || []).slice(-23), this.lvLvl]; this.lvLvl = 0; if (this.state.page === 'live') this.setState({ lvTick: this.lvAt }); }
+    const src = ctx.createBufferSource();
+    src.buffer = buf;
+    src.connect(this.lgain);
+    // small jitter buffer; if we fall far behind (tab was hidden), jump back to live
+    const now = ctx.currentTime;
+    if (this.lnext < now + 0.04 || this.lnext > now + 0.8) this.lnext = now + 0.15;
+    src.start(this.lnext);
+    this.lnext += buf.duration;
+  }
+
+  liveVals(s) {
+    const fa = n => String(n).replace(/\d/g, d => '۰۱۲۳۴۵۶۷۸۹'[d]);
+    const clock = ms => { const t = Math.max(0, Math.floor(ms / 1000)); const h = Math.floor(t / 3600), m = Math.floor(t % 3600 / 60), x = t % 60; return fa((h ? h + ':' : '') + String(m).padStart(2, '0') + ':' + String(x).padStart(2, '0')); };
+    const now = Date.now(), d = new Date();
+    const ST = {
+      talk: { label: 'در حال مکالمه', fg: '#3d6a0c', soft: '#eef7e2', accent: '#7FB536', order: 0 },
+      ring: { label: 'در حال زنگ خوردن', fg: '#1d5a85', soft: '#e7f0f8', accent: '#3B7FB8', order: 1 },
+      queue: { label: 'در صف انتظار', fg: '#8a5a00', soft: '#fcf3e0', accent: '#e0a83a', order: 2 },
+      ivr: { label: 'در منوی تلفنی', fg: '#55585c', soft: '#f2f3ef', accent: '#9a9d97', order: 3 },
+      vm: { label: 'پیام صوتی', fg: '#6a4b9c', soft: '#f3eef9', accent: '#8d6fc0', order: 4 },
+      other: { label: 'در حال برقراری', fg: '#55585c', soft: '#f2f3ef', accent: '#c9cbc6', order: 5 },
+    };
+    const DIR = { in: '↙ ورودی', out: '↗ خروجی', internal: '↔ داخلی' };
+    const L = [...(s.liveCalls || [])].sort((a, b) => (ST[a.stateKey] || ST.other).order - (ST[b.stateKey] || ST.other).order || a.since - b.since);
+    const cnt = k => L.filter(c => c.stateKey === k).length;
+    const ini = n => { const w = String(n || '').trim().split(/\s+/).filter(x => x && !/^\d/.test(x)); return w.length ? w[0][0] + (w[1] ? w[1][0] : '') : ''; };
+    const anon = p => !p || /unknown|anonymous|^[<>]|^0+$/i.test(p);
+    const eq = [0, 1, 2, 3, 4].map(i => ({ delay: (i * 0.13).toFixed(2) + 's', dur: (0.7 + (i % 3) * 0.18).toFixed(2) + 's' }));
+    const hist = this.lvHist || [];
+    const cards = L.map(c => {
+      const st = ST[c.stateKey] || ST.other, on = s.lsId === c.id, talk = c.stateKey === 'talk';
+      const isAi = c.with === 'دستیار هوشمند';
+      return {
+        id: c.id, title: c.name || (anon(c.phone) ? 'شماره ناشناس' : c.phone), phone: c.name ? c.phone : '', hasPhone: !!c.name && !anon(c.phone), dir: DIR[c.dir] || '',
+        ini: ini(c.name) || (c.dir === 'in' ? '☎' : '↗'), state: c.state, ...st,
+        with: c.with || '', hasWith: !!c.with, withIcon: isAi ? '✦' : '☏', queue: c.queue, hasQueue: !!c.queue,
+        timer: talk && c.talkSince ? clock(now - c.talkSince) : clock(now - c.since), timerLabel: talk ? 'مدت مکالمه' : 'مدت انتظار',
+        total: clock(now - c.since), showTotal: talk && !!c.talkSince,
+        isTalk: talk, notTalk: !talk, isRing: c.stateKey === 'ring', eq,
+        listen: () => this.startListen(c), on, off: !on,
+        listenLabel: on ? (s.lsOn ? 'در حال شنیدن — قطع' : 'در حال اتصال…') : 'گوش بده',
+        cardBg: on ? '#232425' : '#fff', cardFg: on ? '#f2f3ef' : '#232425', subFg: on ? '#b8bab5' : '#6b6e72',
+        cardBd: on ? '#7FB536' : '#e7e8e3', shadow: on ? '0 14px 34px rgba(46,47,49,.28)' : '0 1px 2px rgba(0,0,0,.04)',
+        btnBg: on ? '#e0574a' : '#2E2F31', avBg: on ? 'rgba(127,181,54,.18)' : st.soft,
+        fg: on ? '#cfe8a8' : st.fg,
+        vu: on ? Array.from({ length: 18 }, (_, i) => { const v = hist[hist.length - 18 + i] || 0; return { h: Math.max(3, Math.round(v * 26)) + 'px' }; }) : [],
+      };
+    });
+    const ex = (s.exts || []).map(e => {
+      const busy = e.st === 'busy', on = e.st === 'online';
+      return { n: fa(e.n), name: e.name || '', label: busy ? 'در مکالمه' : on ? 'آزاد' : 'آفلاین', dot: busy ? '#e0a83a' : on ? '#7FB536' : '#c9cbc6',
+        bg: busy ? '#fff8ea' : '#fff', bd: busy ? '#f0d9a8' : on ? '#dcebc6' : '#ecedea', op: on || busy ? 1 : 0.55, anim: busy ? 'cc-pulse 1.8s infinite' : 'none' };
+    });
+    const busyN = ex.filter(e => e.label === 'در مکالمه').length, freeN = ex.filter(e => e.label === 'آزاد').length, offN = ex.length - busyN - freeN;
+    const pc = n => (ex.length ? (n / ex.length * 100).toFixed(1) + '%' : '0%');
+    const vol = s.lsVol != null ? s.lsVol : 1;
+    const lsCall = L.find(c => c.id === s.lsId);
+    return { lv: {
+      time: fa(String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0') + ':' + String(d.getSeconds()).padStart(2, '0')), date: jLong(d),
+      total: fa(L.length),
+      kpis: [
+        { label: 'در حال مکالمه', value: fa(cnt('talk')), accent: '#7FB536' }, { label: 'در صف انتظار', value: fa(cnt('queue')), accent: '#e0a83a' },
+        { label: 'در حال زنگ', value: fa(cnt('ring')), accent: '#3B7FB8' }, { label: 'در منوی تلفنی', value: fa(cnt('ivr')), accent: '#9a9d97' },
+        { label: 'با دستیار هوشمند', value: fa(L.filter(c => c.with === 'دستیار هوشمند').length), accent: '#c7e39b' },
+      ],
+      cap: [{ w: pc(busyN), bg: '#e0a83a' }, { w: pc(freeN), bg: '#7FB536' }, { w: pc(offN), bg: '#55585c' }],
+      capText: fa(busyN) + ' در مکالمه · ' + fa(freeN) + ' آزاد · ' + fa(offN) + ' آفلاین',
+      cards, empty: !cards.length, has: cards.length > 0, exts: ex,
+      listening: !!s.lsId, lsOn: !!s.lsOn, lsWho: s.lsWho || '', lsState: lsCall ? lsCall.state : '', lsTime: s.lsAt ? clock(now - s.lsAt) : '',
+      vu: Array.from({ length: 28 }, (_, i) => { const v = hist[hist.length - 28 + i] || 0; return { h: Math.max(3, Math.round(v * 34)) + 'px', bg: v > 0.7 ? '#e0a83a' : '#7FB536' }; }),
+      stop: () => this.stopListen(), vol: String(vol), setVol: e => { const v = +e.target.value; this.setState({ lsVol: v }); if (this.lgain) this.lgain.gain.value = v; },
+    } };
+  }
+
   // ---- «هوش مصنوعی» settings page
   async loadAi() {
     try {
@@ -1410,9 +1530,9 @@ export default class App extends LiveApp {
   const fol=c=>s.follow[c.id]||c.follow;
   const vms=C.filter(c=>c.st==='voicemail'&&this.deptOk(c,s));const AI=C.filter(c=>c.ai&&!c.ai.pending);
   const nv=(p,count)=>({go:()=>this.setState({page:p}),bg:s.page===p?'#8DC63F':'transparent',fg:s.page===p?'#1f2021':'#d9dad6',count,cbg:s.page===p?'rgba(31,32,33,.15)':'rgba(255,255,255,.08)'});
-  const nav={calls:nv('calls',C.length),inbound:nv('inbound',C.filter(c=>c.dir==='in').length),voice:nv('voice',vms.filter(c=>fol(c)==='new').length),reports:nv('reports',''),survey:nv('survey',C.filter(c=>c.survey).length),ai:nv('ai',AI.length),vext:nv('vext',s.exts.length),vtrunk:nv('vtrunk',s.trunks.length),vqueue:nv('vqueue',s.vqs.length),vivr:nv('vivr',s.ivrs.length),vsound:nv('vsound',s.snds.length),vroute:nv('vroute',s.routes.length),vout:nv('vout',(s.oroutes||[]).length),vapi:nv('vapi',''),settings:nv('settings',''),days:nv('days',''),aiconv:nv('aiconv',C.filter(c=>c.queue==='دستیار هوشمند').length),vbackup:nv('vbackup',(s.bk&&s.bk.items.filter(b=>b.status==='done').length)||''),vtime:nv('vtime',s.tconds.length),vring:nv('vring',s.rgroups.length),vfollow:nv('vfollow',Object.values(s.fmes).filter(f=>f.on).length),vblack:nv('vblack',s.blist.length)};
+  const nav={calls:nv('calls',C.length),inbound:nv('inbound',C.filter(c=>c.dir==='in').length),voice:nv('voice',vms.filter(c=>fol(c)==='new').length),reports:nv('reports',''),survey:nv('survey',C.filter(c=>c.survey).length),ai:nv('ai',AI.length),vext:nv('vext',s.exts.length),vtrunk:nv('vtrunk',s.trunks.length),vqueue:nv('vqueue',s.vqs.length),vivr:nv('vivr',s.ivrs.length),vsound:nv('vsound',s.snds.length),vroute:nv('vroute',s.routes.length),vout:nv('vout',(s.oroutes||[]).length),vapi:nv('vapi',''),settings:nv('settings',''),live:nv('live',(s.liveCalls||[]).length),days:nv('days',''),aiconv:nv('aiconv',C.filter(c=>c.queue==='دستیار هوشمند').length),vbackup:nv('vbackup',(s.bk&&s.bk.items.filter(b=>b.status==='done').length)||''),vtime:nv('vtime',s.tconds.length),vring:nv('vring',s.rgroups.length),vfollow:nv('vfollow',Object.values(s.fmes).filter(f=>f.on).length),vblack:nv('vblack',s.blist.length)};
   const isV=['vext','vtrunk','vqueue','vivr','vsound','vroute','vout','vtime','vring','vfollow','vblack','vbackup'].includes(s.page);nav.voipOpen=s.voipOpen||isV;nav.toggleVoip=()=>this.setState({voipOpen:!(s.voipOpen||isV)});nav.voipChev=nav.voipOpen?'rotate(180deg)':'none';nav.voipBg=isV?'rgba(141,198,63,.12)':'transparent';
-  const is={};['calls','inbound','voice','reports','survey','ai','vext','vtrunk','vqueue','vivr','vsound','vroute','vtime','vring','vfollow','vblack','vout','unreached','vapi','vbackup','settings','vai','vsurvey','vcrm','vagent','aiconv','days','file'].forEach(p=>is[p]=s.page===p);
+  const is={};['calls','inbound','voice','reports','survey','ai','vext','vtrunk','vqueue','vivr','vsound','vroute','vtime','vring','vfollow','vblack','vout','unreached','vapi','vbackup','settings','vai','vsurvey','vcrm','vagent','aiconv','days','live','file'].forEach(p=>is[p]=s.page===p);
   const qm=(c,q)=>!q||c.name.includes(q)||c.phoneRaw.includes(q.replace(/\s/g,''));
   const pill=(on)=>({bg:on?'#2E2F31':'#fff',fg:on?'#fff':'#3a3b3d',bd:on?'#2E2F31':'#e1e3dc'});
   const ops=OPS.map(o=>({id:o.id,label:o.name+' ('+o.ext+')'}));
@@ -1555,6 +1675,6 @@ export default class App extends LiveApp {
    seek:e=>{const b=e.currentTarget.getBoundingClientRect();this.setState({pos:Math.min(1,Math.max(0,(b.right-e.clientX)/b.width))*(this.audDur||pc.dur)});},
    pct:s.pos/(this.audDur||pc.dur)*100+'%',posText:fmt(s.pos),durText:fmt((this.audDur||pc.dur)),speedText:s.speed+'x',cycleSpeed:()=>this.setState({speed:SP[(SP.indexOf(s.speed)+1)%SP.length]}),download:()=>this.download(pc)}:{show:false};
 
-  return {...this.voip(s),...this.voip2(s),...this.voipOut(s),...this.apiVals(s),...this.backupVals(s),...this.settingsVals(s),...this.aiSettingsVals(s),...this.surveyVals(s),...this.crmVals(s),...this.agentVals(s),...this.aiConvVals(s),...this.daysVals(s),pf,call,toast,nav:{...nav,unreached:nv('unreached',urV.navCount)},is,ur:urV,cl,ib,vm,rp,sv,ai,player,showAi,dates:[],hours:HOURS,ops,queues:s.vqs.map(q=>q.name),statuses,cats,me:this.meVals(),todayLong:jLong(new Date())};
+  return {...this.voip(s),...this.voip2(s),...this.voipOut(s),...this.apiVals(s),...this.backupVals(s),...this.settingsVals(s),...this.aiSettingsVals(s),...this.surveyVals(s),...this.crmVals(s),...this.agentVals(s),...this.aiConvVals(s),...this.daysVals(s),...this.liveVals(s),pf,call,toast,nav:{...nav,unreached:nv('unreached',urV.navCount)},is,ur:urV,cl,ib,vm,rp,sv,ai,player,showAi,dates:[],hours:HOURS,ops,queues:s.vqs.map(q=>q.name),statuses,cats,me:this.meVals(),todayLong:jLong(new Date())};
  }
 }
