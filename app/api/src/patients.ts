@@ -53,7 +53,7 @@ const faNum = (n: number) => n.toLocaleString('fa-IR');
 export function surgeryNote(days: number | null, latin: boolean) {
   if (days == null) return '';
   if (latin) return days === 0 ? 'Op today' : `Op ${days}d ago`;
-  return days === 0 ? 'عمل امروز' : `عمل ${faNum(days)} روز پیش`;
+  return days === 0 ? 'عمل شده امروز' : `عمل شده ${faNum(days)} روز پیش`;
 }
 
 const FA_LATIN: Record<string, string> = {

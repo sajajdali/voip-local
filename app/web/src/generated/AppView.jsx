@@ -2140,7 +2140,7 @@ export default function AppView({ vm }) {
                 <label style={{display: "flex", flexDirection: "column", gap: "6px", fontSize: "12px", color: "#6b6e72"}}>
                   {"وضعیت جراحی روی صفحه گوشی"}
                   <select value={vm.crm2?.surgSel} onChange={vm.crm2?.set?.showSurgery} style={{border: "1px solid #e1e3dc", borderRadius: "10px", padding: "10px 12px", fontSize: "13px", outline: "none", background: "#fff", color: "#232425", fontFamily: "inherit", width: "100%"}}>
-                    <option value="1">{"نمایش بده (مثلاً: «علی رضایی - عمل ۲۵ روز پیش»)"}</option>
+                    <option value="1">{"نمایش بده (مثلاً: «علی رضایی - عمل شده ۲۵ روز پیش»)"}</option>
                     <option value="0">{"نمایش نده"}</option>
                   </select>
                 </label>
