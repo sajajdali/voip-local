@@ -126,7 +126,6 @@ export class CallsService {
       aiState: recPath ? 'queued' : 'none',
     };
     await this.db.call.upsert({ where: { id }, create: { id, ...data }, update: data });
-    this.patients.ensure(phone).catch(() => {});
     if (q.orig) {
       if (orig) orig.callId = id;
       await this.endOrig(q.orig, st === 'answered', true);
@@ -424,7 +423,7 @@ export class CallsController {
 /** Endpoints the Asterisk dialplan calls through CURL(); only from localhost with the shared secret. */
 @Controller('hooks')
 export class HooksController {
-  constructor(private calls: CallsService, private store: ConfigStore, private bus: Bus) {}
+  constructor(private calls: CallsService, private store: ConfigStore, private bus: Bus, private patients: PatientsService) {}
 
   private check(req: Request, s: string) {
     const ip = (req.socket.remoteAddress || '').replace('::ffff:', '');
@@ -437,6 +436,25 @@ export class HooksController {
     this.check(req, s);
     this.calls.ingest({ ...req.query as any, ...b }).catch(e => new Logger('Hooks').error(e.message));
     return 'ok';
+  }
+
+  /** Inbound call entered the dialplan: start the CRM lookup in the background and answer at once. */
+  @Public()
+  @Post('lookup')
+  lookup(@Req() req: Request, @Query('s') s: string, @Body() b: Record<string, string>) {
+    this.check(req, s);
+    const phone = normalizePhone(b.num || (req.query.num as string));
+    if (phone) this.patients.lookup(phone);
+    return 'ok';
+  }
+
+  /** Just before the phones ring: the caller's name for the phone display ('' = show the number). */
+  @Public()
+  @Post('cname')
+  async cname(@Req() req: Request, @Query('s') s: string, @Body() b: Record<string, string>) {
+    this.check(req, s);
+    const phone = normalizePhone(b.num || (req.query.num as string));
+    return phone ? this.patients.phoneName(phone) : '';
   }
 
   @Public()

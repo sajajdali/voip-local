@@ -190,6 +190,11 @@ function dialplan(cfg: VoipConfig, opts: { hookUrl: string; hookSecret: string }
   const X = (ctx: string, lines: string[]) => { L.push(`[${ctx}]`, ...lines, ''); };
   const trunk = firstTrunk(cfg);
   const hook = (path: string, data: string) => `Set(CC_CURL=\${CURL(${opts.hookUrl}/${path}?s=${opts.hookSecret},${data})})`;
+  // caller name from the local patient cache (the CRM lookup started when the call came in); set right before phones ring
+  const cname = [
+    ` same => n,Set(CC_CNAME=\${CURL(${opts.hookUrl}/cname?s=${opts.hookSecret},num=\${CC_NUM})})`,
+    ' same => n,ExecIf($["${CC_DIR}"="in" & "${CC_CNAME}"!=""]?Set(CALLERID(name)=${CC_CNAME}))',
+  ];
 
   X('globals-cc', []);
 
@@ -223,6 +228,10 @@ function dialplan(cfg: VoipConfig, opts: { hookUrl: string; hookSecret: string }
     ' same => n,' + hook('blhit', 'num=${CC_CID}'),
     ' same => n,Goto(cc-blocked,s,1)',
     ' same => n(route),NoOp(route matching)',
+    // caller name: start the CRM lookup in the background (blocked and anonymous callers never reach here)
+    ' same => n,GotoIf($["${CC_CID}"=""]?nolookup)',
+    ' same => n,' + hook('lookup', 'num=${CC_CID}'),
+    ' same => n(nolookup),NoOp()',
     ...routeLines,
     ' same => n,Hangup(21)',
   ]);
@@ -297,6 +306,7 @@ function dialplan(cfg: VoipConfig, opts: { hookUrl: string; hookSecret: string }
     X(`cc-queue-${sid(q.id)}`, [
       'exten => s,1,Answer()',
       ` same => n,Set(__CC_QUEUE=${safe(q.name)})`,
+      ...cname,
       ...(q.moh && cfg.snds.some(s => s.id === q.moh) ? [` same => n,Set(CHANNEL(musicclass)=snd-${sid(q.moh)})`] : []),
       ` same => n,Queue(cc-${sid(q.id)},tc,,,${+q.maxWait > 0 ? Math.max(10, +q.maxWait) : ''},,cc-agent-answer)`,
       ' same => n,GotoIf($["${CC_ANSEXT}"!=""]?cc-survey,s,1)',
@@ -312,6 +322,7 @@ function dialplan(cfg: VoipConfig, opts: { hookUrl: string; hookSecret: string }
     const U = `U(cc-agent-answer^${g.confirm ? 1 : 0})`;
     const lines = [
       `exten => s,1,Set(__CC_QUEUE=گروه زنگ ${safe(g.name)})`,
+      ...cname,
       ...(g.prefix ? [` same => n,Set(CALLERID(name)=${safe(g.prefix)}\${CALLERID(name)})`] : []),
       ...(g.rec && g.rec !== 'dontcare' ? [` same => n,Set(__CC_RECMODE=${sid(g.rec)})`] : []),
     ];
@@ -352,7 +363,7 @@ function dialplan(cfg: VoipConfig, opts: { hookUrl: string; hookSecret: string }
   for (const e of cfg.exts) {
     const n = digits(e.n);
     const fm = cfg.fmes[e.n];
-    extLines.push(`exten => ${n},1,ExecIf($["\${CC_QUEUE}"=""]?Set(__CC_QUEUE=داخلی ${n}))`);
+    extLines.push(`exten => ${n},1,ExecIf($["\${CC_QUEUE}"=""]?Set(__CC_QUEUE=داخلی ${n}))`, ...cname);
     if (fm && fm.on) extLines.push(` same => n,Goto(cc-fm-${n},s,1)`);
     else {
       extLines.push(` same => n,Dial(PJSIP/${n},15,trgU(cc-agent-answer^0))`,

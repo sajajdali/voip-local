@@ -111,7 +111,8 @@ class LiveApp extends React.Component {
     if (s.page === 'vapi' && prev.page !== 'vapi') this.loadApi();
     if (s.page === 'vbackup' && prev.page !== 'vbackup') this.loadBackups();
     if (s.page === 'vai' && prev.page !== 'vai') this.loadAi();
-    if (s.page === 'settings' && prev.page !== 'settings') { this.loadAi(); this.loadApi(); this.loadBackups(); }
+    if (s.page === 'vcrm' && prev.page !== 'vcrm') this.loadCrm();
+    if (s.page === 'settings' && prev.page !== 'settings') { this.loadAi(); this.loadApi(); this.loadBackups(); this.loadCrm(); }
     if (this.remote) return;
     VOIP_KEYS.forEach(k => {
       if (s[k] === prev[k]) return;
@@ -434,7 +435,7 @@ class LiveApp extends React.Component {
     const go = page => () => { this.setState({ page }); try { window.scrollTo(0, 0); } catch (e) { /* ignore */ } };
     const n = x => (x || []).length;
     const online = (s.exts || []).filter(e => e.st && e.st !== 'offline').length;
-    const ai = s.aiData && s.aiData.settings, wh = s.apiData && s.apiData.settings;
+    const ai = s.aiData && s.aiData.settings, wh = s.apiData && s.apiData.settings, crm = s.crmData && s.crmData.settings;
     const bks = s.bk ? s.bk.items.filter(b => b.status === 'done') : null;
     const ok = '#3d6a0c', off = '#8b8e89';
     const sv = s.survey || {}, svReady = (sv.qs || []).filter(q => q.snd && (s.snds || []).some(x => x.id === q.snd)).length;
@@ -447,6 +448,7 @@ class LiveApp extends React.Component {
       clock: 'M12 7v5l3 2M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z', bell: 'M6 16v-5a6 6 0 0 1 12 0v5l2 2H4zM10 21h4',
       follow: 'M17 1l4 4-4 4M3 11V9a4 4 0 0 1 4-4h14M7 23l-4-4 4-4M21 13v2a4 4 0 0 1-4 4H3', block: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM5.6 5.6l12.8 12.8',
       ai: 'M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z',
+      user: 'M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 21a8 8 0 0 1 16 0',
       star: 'M12 3l2.8 5.7 6.2.9-4.5 4.4 1 6.2L12 17.3 6.5 20.2l1-6.2L3 9.6l6.2-.9z', code: 'M8 9l-4 3 4 3M16 9l4 3-4 3M13.5 6l-3 12',
       db: 'M4 6c0-1.7 3.6-3 8-3s8 1.3 8 3-3.6 3-8 3-8-1.3-8-3zM4 6v12c0 1.7 3.6 3 8 3s8-1.3 8-3V6M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3',
     };
@@ -469,13 +471,14 @@ class LiveApp extends React.Component {
       ] },
       { title: 'یکپارچه‌سازی', sub: 'اتصال به سرویس‌های بیرونی', items: [
         card('vai', 'هوش مصنوعی', I.ai, 'تبدیل گفتار به متن و تحلیل خودکار پیام‌ها: مدل، آدرس و کلید', ai ? (ai.enabled ? 'فعال · ' + (ai.llmProvider === 'claude' ? 'Claude' : ai.llmProvider === 'openai' ? 'OpenAI-سازگار' : 'کلیدواژه‌ای') : 'غیرفعال') : '…', ai && ai.enabled ? ok : off, K),
+        card('vcrm', 'سامانه بیماران (نام تماس‌گیرنده)', I.user, 'نمایش نام بیمار روی گوشی و در پنل، از API سامانه بیماران کلینیک', crm ? (crm.enabled ? 'فعال · ' + (s.crmData.status.named || 0).toLocaleString('fa-IR') + ' نام' : 'غیرفعال') : '…', crm && crm.enabled ? ok : off, K),
         card('vapi', 'ارسال تماس‌ها (API)', I.code, 'ارسال اطلاعات هر تماس بعد از پایان به آدرس دلخواه', wh ? (wh.enabled ? 'فعال' : 'غیرفعال') : '…', wh && wh.enabled ? ok : off, K),
       ] },
       { title: 'نگهداری', sub: 'پشتیبان‌گیری و بازگردانی', items: [
         card('vbackup', 'بکاپ و بازیابی', I.db, 'بکاپ گرفتن از بخش‌های دلخواه، دانلود و بازیابی', bks ? bks.length + ' بکاپ' + (s.bk.schedule && s.bk.schedule.enabled ? ' · خودکار فعال' : '') : '…', null, G),
       ] },
     ];
-    const TITLES = { vext: 'داخلی‌ها', vtrunk: 'ترانک‌ها', vqueue: 'صف‌ها', vivr: 'منوهای IVR', vsound: 'صداها', vroute: 'مسیرهای ورودی', vout: 'مسیرهای خروجی', vtime: 'شرایط و گروه‌های زمانی', vring: 'گروه زنگ', vfollow: 'دنبال‌کردن تماس', vblack: 'لیست سیاه', vsurvey: 'نظرسنجی بعد از تماس', vai: 'هوش مصنوعی', vapi: 'ارسال تماس‌ها (API)', vbackup: 'بکاپ و بازیابی' };
+    const TITLES = { vext: 'داخلی‌ها', vtrunk: 'ترانک‌ها', vqueue: 'صف‌ها', vivr: 'منوهای IVR', vsound: 'صداها', vroute: 'مسیرهای ورودی', vout: 'مسیرهای خروجی', vtime: 'شرایط و گروه‌های زمانی', vring: 'گروه زنگ', vfollow: 'دنبال‌کردن تماس', vblack: 'لیست سیاه', vsurvey: 'نظرسنجی بعد از تماس', vai: 'هوش مصنوعی', vcrm: 'سامانه بیماران (نام تماس‌گیرنده)', vapi: 'ارسال تماس‌ها (API)', vbackup: 'بکاپ و بازیابی' };
     return { hub: { groups }, crumb: { show: !!TITLES[s.page], title: TITLES[s.page] || '', back: go('settings') } };
   }
 
@@ -538,6 +541,53 @@ class LiveApp extends React.Component {
       cmSnd: cm.snd, setCmSnd: e => putC({ snd: e.target.value }), cmMaxSec: cm.maxSec, setCmMaxSec: e => putC({ maxSec: Math.min(180, Math.max(10, parseInt(e.target.value, 10) || 60)) }),
       cmWarn: cm.on && !exists(cm.snd), cmCount: (this.calls.filter(c => c.survey && c.survey.hasRec).length).toLocaleString('fa-IR'),
       goSounds: () => this.setState({ page: 'vsound' }), goReport: () => this.setState({ page: 'survey' }),
+    } };
+  }
+
+  // ---- «سامانه بیماران» settings page: caller names from the clinic CRM
+  async loadCrm() {
+    try {
+      const d = await api('/crm');
+      this.setState(st => ({ crmData: d, crmForm: st.crmForm && st.page === 'vcrm' && st.crmLoaded ? st.crmForm : { ...d.settings, pass: '' }, crmLoaded: true }));
+    } catch (e) { this.toast('بارگذاری تنظیمات سامانه بیماران ناموفق بود: ' + e.message); }
+  }
+
+  crmVals(s) {
+    const d = s.crmData;
+    const f = s.crmForm || { enabled: false, url: '', param: 'mobile', user: '', pass: '', phoneFormat: '0', nameField: 'name', timeoutMs: 4000, phoneName: 'fa' };
+    const setF = o => this.setState({ crmForm: { ...f, ...o } });
+    const tg = on => ({ bg: on ? '#8DC63F' : '#d9dad6', j: on ? 'flex-end' : 'flex-start' });
+    const persist = async () => {
+      const r = await api('/crm', f, 'PUT');
+      this.setState(x => ({ crmData: { ...(x.crmData || { status: {} }), settings: r }, crmForm: { ...f, pass: '' } }));
+      return r;
+    };
+    const t = s.crmTest;
+    const result = [];
+    if (t) {
+      if (t.ok) result.push({ k: 'نام', v: t.name || '(برای این شماره نامی برنگشت)', c: t.name ? '#3d6a0c' : '#8a5a00' }, ...(t.name && f.phoneName === 'latin' ? [{ k: 'روی گوشی', v: t.latin, c: '#232425' }] : []), { k: 'زمان پاسخ', v: (t.ms / 1000).toFixed(2) + ' ثانیه', c: t.ms > f.timeoutMs * 0.7 ? '#b42318' : '#6b6e72' });
+      else result.push({ k: 'خطا', v: t.error, c: '#b42318' });
+    }
+    const st = d ? d.status : null;
+    return { crm2: {
+      f, onT: tg(f.enabled), onLabel: f.enabled ? 'فعال' : 'غیرفعال', tog: () => setF({ enabled: !f.enabled }),
+      set: Object.fromEntries(['url', 'param', 'user', 'pass', 'phoneFormat', 'nameField', 'timeoutMs', 'phoneName'].map(k => [k, e => setF({ [k]: k === 'timeoutMs' ? (parseInt(e.target.value, 10) || 0) : e.target.value })])),
+      passPh: d && d.settings.hasPass ? '•••••••• (ذخیره‌شده؛ برای تغییر، رمز جدید را وارد کنید)' : 'رمز عبور',
+      kpis: [
+        { label: 'نام‌های دریافت‌شده از سامانه', value: st ? (st.named || 0).toLocaleString('fa-IR') : '…', color: '#3d6a0c' },
+        { label: 'کل بیماران شناخته‌شده', value: st ? (st.total || 0).toLocaleString('fa-IR') : '…', color: '#232425' },
+        { label: 'وضعیت', value: d ? (d.settings.enabled ? 'فعال' : 'غیرفعال') : '…', color: d && d.settings.enabled ? '#3d6a0c' : '#8b8e89' },
+      ],
+      hasErr: !!(st && st.lastError), lastError: st ? st.lastError : '',
+      save: async () => { try { const r = await persist(); this.toast(r.enabled ? 'ذخیره شد؛ نام تماس‌گیرنده از تماس بعدی نمایش داده می‌شود' : 'ذخیره شد (نمایش نام خاموش است)'); this.loadCrm(); } catch (e) { this.toast('ذخیره ناموفق بود: ' + e.message); } },
+      testPhone: s.crmPhone || '', setTestPhone: e => this.setState({ crmPhone: e.target.value }),
+      testBusy: !!s.crmBusy, testLabel: s.crmBusy ? 'در حال استعلام…' : 'استعلام',
+      test: async () => {
+        this.setState({ crmBusy: true, crmTest: null });
+        try { await persist(); const r = await api('/crm/test', { phone: s.crmPhone || '' }); this.setState({ crmTest: r, crmBusy: false }); }
+        catch (e) { this.setState({ crmTest: { ok: false, error: e.message }, crmBusy: false }); }
+      },
+      hasResult: result.length > 0, result, raw: t && t.raw ? t.raw : '', hasRaw: !!(t && t.raw),
     } };
   }
 
@@ -994,7 +1044,7 @@ export default class App extends LiveApp {
   const nv=(p,count)=>({go:()=>this.setState({page:p}),bg:s.page===p?'#8DC63F':'transparent',fg:s.page===p?'#1f2021':'#d9dad6',count,cbg:s.page===p?'rgba(31,32,33,.15)':'rgba(255,255,255,.08)'});
   const nav={calls:nv('calls',C.length),inbound:nv('inbound',C.filter(c=>c.dir==='in').length),voice:nv('voice',vms.filter(c=>fol(c)==='new').length),reports:nv('reports',''),survey:nv('survey',C.filter(c=>c.survey).length),ai:nv('ai',AI.length),vext:nv('vext',s.exts.length),vtrunk:nv('vtrunk',s.trunks.length),vqueue:nv('vqueue',s.vqs.length),vivr:nv('vivr',s.ivrs.length),vsound:nv('vsound',s.snds.length),vroute:nv('vroute',s.routes.length),vout:nv('vout',(s.oroutes||[]).length),vapi:nv('vapi',''),settings:nv('settings',''),vbackup:nv('vbackup',(s.bk&&s.bk.items.filter(b=>b.status==='done').length)||''),vtime:nv('vtime',s.tconds.length),vring:nv('vring',s.rgroups.length),vfollow:nv('vfollow',Object.values(s.fmes).filter(f=>f.on).length),vblack:nv('vblack',s.blist.length)};
   const isV=['vext','vtrunk','vqueue','vivr','vsound','vroute','vout','vtime','vring','vfollow','vblack','vbackup'].includes(s.page);nav.voipOpen=s.voipOpen||isV;nav.toggleVoip=()=>this.setState({voipOpen:!(s.voipOpen||isV)});nav.voipChev=nav.voipOpen?'rotate(180deg)':'none';nav.voipBg=isV?'rgba(141,198,63,.12)':'transparent';
-  const is={};['calls','inbound','voice','reports','survey','ai','vext','vtrunk','vqueue','vivr','vsound','vroute','vtime','vring','vfollow','vblack','vout','unreached','vapi','vbackup','settings','vai','vsurvey','file'].forEach(p=>is[p]=s.page===p);
+  const is={};['calls','inbound','voice','reports','survey','ai','vext','vtrunk','vqueue','vivr','vsound','vroute','vtime','vring','vfollow','vblack','vout','unreached','vapi','vbackup','settings','vai','vsurvey','vcrm','file'].forEach(p=>is[p]=s.page===p);
   const qm=(c,q)=>!q||c.name.includes(q)||c.phoneRaw.includes(q.replace(/\s/g,''));
   const pill=(on)=>({bg:on?'#2E2F31':'#fff',fg:on?'#fff':'#3a3b3d',bd:on?'#2E2F31':'#e1e3dc'});
   const ops=OPS.map(o=>({id:o.id,label:o.name+' ('+o.ext+')'}));
@@ -1137,6 +1187,6 @@ export default class App extends LiveApp {
    seek:e=>{const b=e.currentTarget.getBoundingClientRect();this.setState({pos:Math.min(1,Math.max(0,(b.right-e.clientX)/b.width))*(this.audDur||pc.dur)});},
    pct:s.pos/(this.audDur||pc.dur)*100+'%',posText:fmt(s.pos),durText:fmt((this.audDur||pc.dur)),speedText:s.speed+'x',cycleSpeed:()=>this.setState({speed:SP[(SP.indexOf(s.speed)+1)%SP.length]}),download:()=>this.download(pc)}:{show:false};
 
-  return {...this.voip(s),...this.voip2(s),...this.voipOut(s),...this.apiVals(s),...this.backupVals(s),...this.settingsVals(s),...this.aiSettingsVals(s),...this.surveyVals(s),pf,call,toast,nav:{...nav,unreached:nv('unreached',urV.navCount)},is,ur:urV,cl,ib,vm,rp,sv,ai,player,showAi,dates:[],hours:HOURS,ops,queues:s.vqs.map(q=>q.name),statuses,cats,me:this.meVals(),todayLong:jLong(new Date())};
+  return {...this.voip(s),...this.voip2(s),...this.voipOut(s),...this.apiVals(s),...this.backupVals(s),...this.settingsVals(s),...this.aiSettingsVals(s),...this.surveyVals(s),...this.crmVals(s),pf,call,toast,nav:{...nav,unreached:nv('unreached',urV.navCount)},is,ur:urV,cl,ib,vm,rp,sv,ai,player,showAi,dates:[],hours:HOURS,ops,queues:s.vqs.map(q=>q.name),statuses,cats,me:this.meVals(),todayLong:jLong(new Date())};
  }
 }

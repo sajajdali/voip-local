@@ -2050,6 +2050,123 @@ export default function AppView({ vm }) {
             </div>
           </div>
         </>) : null}
+        {(vm.is?.vcrm) ? (<>
+          <div style={{display: "flex", flexDirection: "column", gap: "20px"}}>
+            <div>
+              <h1 style={{margin: "0", fontSize: "28px", fontWeight: "800"}}>{"سامانه بیماران"}</h1>
+              <div style={{fontSize: "14px", color: "#6b6e72", marginTop: "6px", maxWidth: "780px", lineHeight: "1.8"}}>
+                {"هر تماس ورودی، همان لحظه و در پس‌زمینه، یک بار از API سامانه بیماران استعلام می‌شود. نام بیمار روی صفحه گوشی اپراتور، در لیست تماس‌ها، Excel و ارسال API نمایش داده می‌شود. اگر سامانه دیر جواب بدهد یا در دسترس نباشد، تماس هیچ معطلی ندارد و فقط شماره نمایش داده می‌شود."}
+              </div>
+            </div>
+            <div style={{display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(180px,1fr))", gap: "14px"}}>
+              {(vm.crm2?.kpis || []).map((k, __i7) => <React.Fragment key={__i7}>
+                <div style={{background: "#fff", border: "1px solid #e7e8e3", borderRadius: "18px", padding: "16px 18px"}}>
+                  <div style={{fontSize: "12px", color: "#6b6e72"}}>{k?.label}</div>
+                  <div style={{fontSize: "24px", fontWeight: "800", marginTop: "4px", color: k?.color}}>{k?.value}</div>
+                </div>
+              </React.Fragment>)}
+            </div>
+            {(vm.crm2?.hasErr) ? (<>
+              <div style={{background: "#fdeceb", border: "1px solid #f5c2bd", color: "#b42318", borderRadius: "14px", padding: "12px 16px", fontSize: "13px", lineHeight: "1.8"}}>{"آخرین خطا: "}{vm.crm2?.lastError}</div>
+            </>) : null}
+            <div style={{background: "#fff", border: "1px solid #e7e8e3", borderRadius: "20px", padding: "20px", display: "flex", flexDirection: "column", gap: "14px"}}>
+              <div style={{display: "flex", alignItems: "center", gap: "12px"}}>
+                <div style={{flex: "1"}}>
+                  <div style={{fontWeight: "800", fontSize: "16px"}}>{"نمایش نام تماس‌گیرنده"}</div>
+                  <div style={{fontSize: "12px", color: "#6b6e72", marginTop: "4px"}}>{"فقط تماس‌های ورودی استعلام می‌شوند؛ هر تماس فقط یک بار"}</div>
+                </div>
+                <span style={{fontSize: "12px", color: "#6b6e72"}}>{vm.crm2?.onLabel}</span>
+                <button onClick={vm.crm2?.tog} style={{width: "42px", height: "24px", borderRadius: "99px", border: "none", background: vm.crm2?.onT?.bg, display: "flex", justifyContent: vm.crm2?.onT?.j, alignItems: "center", padding: "3px", cursor: "pointer", flexShrink: "0"}}>
+                  <span style={{width: "18px", height: "18px", borderRadius: "50%", background: "#fff", boxShadow: "0 1px 2px rgba(0,0,0,.25)"}} />
+                </button>
+              </div>
+            </div>
+            <div style={{display: "flex", flexWrap: "wrap", gap: "20px", alignItems: "flex-start"}}>
+              <div style={{background: "#fff", border: "1px solid #e7e8e3", borderRadius: "20px", padding: "20px", display: "flex", flexDirection: "column", gap: "14px", flex: "1 1 360px", minWidth: "0"}}>
+                <div style={{fontWeight: "800", fontSize: "16px"}}>{"اتصال"}</div>
+                <label style={{display: "flex", flexDirection: "column", gap: "6px", fontSize: "12px", color: "#6b6e72"}}>
+                  {"آدرس API"}
+                  <input type="text" value={vm.crm2?.f?.url} onChange={vm.crm2?.set?.url} placeholder="https://crm.example.com/api/v1/voip/surgery-status" style={{border: "1px solid #e1e3dc", borderRadius: "10px", padding: "10px 12px", fontSize: "13px", outline: "none", background: "#fff", color: "#232425", fontFamily: "inherit", width: "100%", direction: "ltr", textAlign: "left"}} />
+                </label>
+                <div style={{display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px"}}>
+                  <label style={{display: "flex", flexDirection: "column", gap: "6px", fontSize: "12px", color: "#6b6e72"}}>
+                    {"نام کاربری"}
+                    <input type="text" value={vm.crm2?.f?.user} onChange={vm.crm2?.set?.user} placeholder="username" style={{border: "1px solid #e1e3dc", borderRadius: "10px", padding: "10px 12px", fontSize: "13px", outline: "none", background: "#fff", color: "#232425", fontFamily: "inherit", width: "100%", direction: "ltr", textAlign: "left"}} />
+                  </label>
+                  <label style={{display: "flex", flexDirection: "column", gap: "6px", fontSize: "12px", color: "#6b6e72"}}>
+                    {"رمز عبور"}
+                    <input type="password" value={vm.crm2?.f?.pass} onChange={vm.crm2?.set?.pass} placeholder={vm.crm2?.passPh} style={{border: "1px solid #e1e3dc", borderRadius: "10px", padding: "10px 12px", fontSize: "13px", outline: "none", background: "#fff", color: "#232425", fontFamily: "inherit", width: "100%", direction: "ltr", textAlign: "left"}} />
+                  </label>
+                </div>
+                <div style={{fontSize: "12px", color: "#6b6e72", lineHeight: "1.8"}}>
+                  {"احراز هویت از نوع Basic Auth است. رمز در صفحه نمایش داده نمی‌شود و اگر خالی بماند، رمز قبلی حفظ می‌شود."}
+                </div>
+              </div>
+              <div style={{background: "#fff", border: "1px solid #e7e8e3", borderRadius: "20px", padding: "20px", display: "flex", flexDirection: "column", gap: "14px", flex: "1 1 300px", minWidth: "0"}}>
+                <div style={{fontWeight: "800", fontSize: "16px"}}>{"جزئیات"}</div>
+                <div style={{display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px"}}>
+                  <label style={{display: "flex", flexDirection: "column", gap: "6px", fontSize: "12px", color: "#6b6e72"}}>
+                    {"نام پارامتر شماره"}
+                    <input type="text" value={vm.crm2?.f?.param} onChange={vm.crm2?.set?.param} placeholder="mobile" style={{border: "1px solid #e1e3dc", borderRadius: "10px", padding: "10px 12px", fontSize: "13px", outline: "none", background: "#fff", color: "#232425", fontFamily: "inherit", width: "100%", direction: "ltr", textAlign: "left"}} />
+                  </label>
+                  <label style={{display: "flex", flexDirection: "column", gap: "6px", fontSize: "12px", color: "#6b6e72"}}>
+                    {"قالب شماره"}
+                    <select value={vm.crm2?.f?.phoneFormat} onChange={vm.crm2?.set?.phoneFormat} style={{border: "1px solid #e1e3dc", borderRadius: "10px", padding: "10px 12px", fontSize: "13px", outline: "none", background: "#fff", color: "#232425", fontFamily: "inherit", width: "100%"}}>
+                      <option value="0">{"09121234567"}</option>
+                      <option value="98">{"989121234567"}</option>
+                      <option value="+98">{"+989121234567"}</option>
+                      <option value="9">{"9121234567"}</option>
+                    </select>
+                  </label>
+                </div>
+                <div style={{display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px"}}>
+                  <label style={{display: "flex", flexDirection: "column", gap: "6px", fontSize: "12px", color: "#6b6e72"}}>
+                    {"فیلد نام در پاسخ JSON"}
+                    <input type="text" value={vm.crm2?.f?.nameField} onChange={vm.crm2?.set?.nameField} placeholder="name" style={{border: "1px solid #e1e3dc", borderRadius: "10px", padding: "10px 12px", fontSize: "13px", outline: "none", background: "#fff", color: "#232425", fontFamily: "inherit", width: "100%", direction: "ltr", textAlign: "left"}} />
+                  </label>
+                  <label style={{display: "flex", flexDirection: "column", gap: "6px", fontSize: "12px", color: "#6b6e72"}}>
+                    {"حداکثر انتظار (میلی‌ثانیه)"}
+                    <input type="number" value={vm.crm2?.f?.timeoutMs} onChange={vm.crm2?.set?.timeoutMs} placeholder="4000" style={{border: "1px solid #e1e3dc", borderRadius: "10px", padding: "10px 12px", fontSize: "13px", outline: "none", background: "#fff", color: "#232425", fontFamily: "inherit", width: "100%", direction: "ltr", textAlign: "left"}} />
+                  </label>
+                </div>
+                <label style={{display: "flex", flexDirection: "column", gap: "6px", fontSize: "12px", color: "#6b6e72"}}>
+                  {"نام روی صفحه گوشی"}
+                  <select value={vm.crm2?.f?.phoneName} onChange={vm.crm2?.set?.phoneName} style={{border: "1px solid #e1e3dc", borderRadius: "10px", padding: "10px 12px", fontSize: "13px", outline: "none", background: "#fff", color: "#232425", fontFamily: "inherit", width: "100%"}}>
+                    <option value="fa">{"فارسی"}</option>
+                    <option value="latin">{"لاتین (برای گوشی‌هایی که فارسی را درست نشان نمی‌دهند)"}</option>
+                    <option value="off">{"نمایش نده (فقط در پنل)"}</option>
+                  </select>
+                </label>
+              </div>
+            </div>
+            <div style={{background: "#fff", border: "1px solid #e7e8e3", borderRadius: "20px", padding: "20px", display: "flex", flexDirection: "column", gap: "14px"}}>
+              <div style={{display: "flex", gap: "10px", flexWrap: "wrap", alignItems: "center"}}>
+                <button onClick={vm.crm2?.save} style={{background: "#8DC63F", color: "#1f2a10", border: "none", padding: "11px 20px", borderRadius: "12px", fontSize: "13px", fontWeight: "800", cursor: "pointer", fontFamily: "inherit"}}>{"ذخیره تنظیمات"}</button>
+              </div>
+              <div style={{fontWeight: "800", fontSize: "15px", marginTop: "4px"}}>{"استعلام آزمایشی"}</div>
+              <div style={{fontSize: "12px", color: "#8a5a00", background: "#fbf1dc", borderRadius: "10px", padding: "8px 12px", lineHeight: "1.8"}}>
+                {"توجه: سامانه بیماران هر استعلام را مثل یک تماس در لاگ خودش ثبت می‌کند؛ پس فقط وقتی لازم است تست بزنید."}
+              </div>
+              <div style={{display: "flex", gap: "10px", flexWrap: "wrap"}}>
+                <input value={vm.crm2?.testPhone} onChange={vm.crm2?.setTestPhone} placeholder="09121234567" style={{border: "1px solid #e1e3dc", borderRadius: "10px", padding: "10px 12px", fontSize: "13px", outline: "none", background: "#fff", color: "#232425", fontFamily: "inherit", width: "100%", direction: "ltr", textAlign: "left", flex: "1 1 200px", width: "auto"}} />
+                <button onClick={vm.crm2?.test} style={{background: "#2E2F31", color: "#fff", border: "none", padding: "10px 18px", borderRadius: "12px", fontSize: "13px", fontWeight: "700", cursor: "pointer", fontFamily: "inherit"}}>{vm.crm2?.testLabel}</button>
+              </div>
+              {(vm.crm2?.hasResult) ? (<>
+                <div style={{border: "1px solid #e7e8e3", borderRadius: "14px", padding: "6px 14px"}}>
+                  {(vm.crm2?.result || []).map((r, __i9) => <React.Fragment key={__i9}>
+                    <div style={{display: "flex", gap: "12px", padding: "8px 0", borderBottom: "1px solid #f1f2ee", fontSize: "13px"}}>
+                      <div style={{width: "110px", color: "#6b6e72", flexShrink: "0"}}>{r?.k}</div>
+                      <div style={{flex: "1", fontWeight: "700", color: r?.c, lineHeight: "1.7"}}>{r?.v}</div>
+                    </div>
+                  </React.Fragment>)}
+                </div>
+              </>) : null}
+              {(vm.crm2?.hasRaw) ? (<>
+                <pre style={{margin: "0", background: "#2E2F31", color: "#e6e7e2", borderRadius: "12px", padding: "12px 14px", fontSize: "11px", direction: "ltr", textAlign: "left", maxHeight: "260px", overflow: "auto", whiteSpace: "pre-wrap"}}>{vm.crm2?.raw}</pre>
+              </>) : null}
+            </div>
+          </div>
+        </>) : null}
         {(vm.is?.vai) ? (<>
           <div style={{display: "flex", flexDirection: "column", gap: "20px"}}>
             <div>
