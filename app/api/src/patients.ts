@@ -8,11 +8,11 @@ import { PrismaService } from './prisma.service';
 export interface CrmSettings {
   enabled: boolean; url: string; param: string; user: string; pass: string;
   phoneFormat: '0' | '98' | '+98' | '9'; nameField: string; timeoutMs: number;
-  phoneName: 'fa' | 'latin' | 'off';
+  phoneName: 'fa' | 'latin' | 'off'; showSurgery: boolean;
 }
 const DEFAULTS: CrmSettings = {
   enabled: false, url: 'https://crm.drpouriaaflaki.com/api/v1/voip/surgery-status', param: 'mobile', user: '', pass: '',
-  phoneFormat: '0', nameField: 'name', timeoutMs: 4000, phoneName: 'fa',
+  phoneFormat: '0', nameField: 'name', timeoutMs: 4000, phoneName: 'fa', showSurgery: true,
 };
 
 /** 0912… in the panel; the CRM may want 98912…, +98912… or 912…. */
@@ -22,6 +22,39 @@ function formatPhone(p: string, f: CrmSettings['phoneFormat']) {
 }
 
 const pick = (o: any, field: string) => field.split('.').reduce((x, k) => (x == null ? x : x[k]), o);
+
+const isoToday = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Tehran' }).format(new Date());
+const ISO = /^\d{4}-\d{2}-\d{2}$/;
+
+/** Last completed surgery as YYYY-MM-DD, or null when the CRM has none on record (which is not proof of no surgery). */
+export function surgeryDate(d: any): string | null {
+  if (!d || typeof d !== 'object') return null;
+  const done = d.has_completed_surgery;
+  if (!(done === true || done === 1 || done === 'true' || done === '1')) return null;
+  const date = typeof d.last_surgery_date === 'string' ? d.last_surgery_date.trim().slice(0, 10) : '';
+  if (ISO.test(date) && !Number.isNaN(Date.parse(date)) && Date.parse(date) <= Date.parse(isoToday())) return date;
+  // no usable date: fall back to the day count (null, '' and non-numbers mean "unknown", never "today")
+  const raw = d.days_since_surgery;
+  if (raw === null || raw === undefined || raw === '' || typeof raw === 'boolean') return null;
+  const days = Number(raw);
+  if (!Number.isInteger(days) || days < 0 || days > 36500) return null;
+  return new Date(Date.parse(isoToday()) - days * 864e5).toISOString().slice(0, 10);
+}
+
+/** Whole days since a YYYY-MM-DD date in Tehran time (0 = today); counted at ring time, so the cache never goes stale. */
+export function daysSince(date: string | null | undefined) {
+  if (!date || !ISO.test(date)) return null;
+  const n = Math.round((Date.parse(isoToday()) - Date.parse(date)) / 864e5);
+  return Number.isFinite(n) && n >= 0 ? n : null;
+}
+
+const faNum = (n: number) => n.toLocaleString('fa-IR');
+/** Short surgery note for the phone screen. */
+export function surgeryNote(days: number | null, latin: boolean) {
+  if (days == null) return '';
+  if (latin) return days === 0 ? 'Op today' : `Op ${days}d ago`;
+  return days === 0 ? 'عمل امروز' : `عمل ${faNum(days)} روز پیش`;
+}
 
 const FA_LATIN: Record<string, string> = {
   'ا': 'a', 'آ': 'a', 'أ': 'a', 'ب': 'b', 'پ': 'p', 'ت': 't', 'ث': 's', 'ج': 'j', 'چ': 'ch', 'ح': 'h', 'خ': 'kh', 'د': 'd', 'ذ': 'z', 'ر': 'r', 'ز': 'z', 'ژ': 'zh',
@@ -70,6 +103,7 @@ export class PatientsService {
       nameField: String(b.nameField ?? cur.nameField).trim() || 'name',
       timeoutMs: Math.min(15000, Math.max(1000, +(b.timeoutMs ?? cur.timeoutMs) || 4000)),
       phoneName: ['fa', 'latin', 'off'].includes(b.phoneName) ? b.phoneName : cur.phoneName,
+      showSurgery: !!(b.showSurgery ?? cur.showSurgery),
     };
     if (b.clearPass) next.pass = '';
     if (next.enabled && !next.url) throw new BadRequestException('آدرس API را وارد کنید');
@@ -93,8 +127,9 @@ export class PatientsService {
     if (!r.ok) throw new Error(`پاسخ ${r.status} از سامانه بیماران${r.status === 401 ? ' (نام کاربری یا رمز اشتباه است)' : ''}`);
     let d: any;
     try { d = JSON.parse(text); } catch { throw new Error('پاسخ سامانه بیماران JSON نیست'); }
-    const name = String(pick(d, s.nameField) ?? '').replace(/\s+/g, ' ').trim();
-    return { name, raw: d, ms: Date.now() - t0 };
+    const v = pick(d, s.nameField);
+    const name = typeof v === 'string' || typeof v === 'number' ? String(v).replace(/\s+/g, ' ').trim() : '';
+    return { name, surgery: surgeryDate(d), raw: d, ms: Date.now() - t0 };
   }
 
   /** Inbound call started: ask the CRM in the background (never delays the call). */
@@ -108,12 +143,18 @@ export class PatientsService {
       this.recent.set(phone, now);
       if (this.recent.size > 5000) for (const [k, t] of this.recent) if (t < now - 60e3) this.recent.delete(k);
       try {
-        const { name } = await this.fetchCrm(phone, s);
+        const { name, surgery } = await this.fetchCrm(phone, s);
         this.fails = 0;
-        if (!name) return;
         const cur = await this.db.patient.findUnique({ where: { phone } });
-        if (cur && (cur.source === 'manual' || cur.name === name)) return;
-        await this.db.patient.upsert({ where: { phone }, create: { phone, name, source: 'crm' }, update: { name, source: 'crm' } });
+        if (!cur && !name) return;
+        // a name typed in the panel wins; the surgery date always follows the CRM
+        const nextName = cur && (cur.source === 'manual' || !name) ? cur.name : name;
+        if (cur && cur.name === nextName && cur.surgery === surgery) return;
+        await this.db.patient.upsert({
+          where: { phone },
+          create: { phone, name: nextName, surgery, source: 'crm' },
+          update: { name: nextName, surgery, ...(cur && cur.source === 'manual' ? {} : { source: 'crm' }) },
+        });
         this.bus.emit('calls', {});
       } catch (e) {
         this.lastError = (e as Error).name === 'TimeoutError' ? 'سامانه بیماران در زمان تعیین‌شده جواب نداد' : (e as Error).message;
@@ -130,8 +171,12 @@ export class PatientsService {
     if (!s.enabled || s.phoneName === 'off' || !phone) return '';
     const p = await this.db.patient.findUnique({ where: { phone } });
     if (!p) return '';
-    const n = s.phoneName === 'latin' ? toLatin(p.name) : p.name;
-    return n.replace(/[,"'|;\\\r\n]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 40);
+    const latin = s.phoneName === 'latin';
+    const clean = (x: string) => x.replace(/[,"'|;\\\r\n]/g, ' ').replace(/\s+/g, ' ').trim();
+    const note = s.showSurgery ? surgeryNote(daysSince(p.surgery), latin) : '';
+    // the surgery note must survive the phone's width limit, so the name is shortened first
+    const name = clean(latin ? toLatin(p.name) : p.name).slice(0, note ? 40 - note.length - 3 : 40);
+    return note ? `${name} - ${note}` : name;
   }
 }
 
@@ -139,6 +184,15 @@ export class PatientsService {
 @Controller('crm')
 export class CrmController {
   constructor(private patients: PatientsService, private db: PrismaService) {}
+
+  /** What the desk phone would show for this answer. */
+  private async preview(name: string, surgery: string | null, s: CrmSettings) {
+    if (s.phoneName === 'off' || !name) return '';
+    const latin = s.phoneName === 'latin';
+    const note = s.showSurgery ? surgeryNote(daysSince(surgery), latin) : '';
+    const n = (latin ? toLatin(name) : name).slice(0, note ? 40 - note.length - 3 : 40);
+    return note ? `${n} - ${note}` : n;
+  }
 
   @Get()
   async get() {
@@ -159,7 +213,8 @@ export class CrmController {
     if (!s.url) throw new BadRequestException('آدرس API وارد نشده است');
     try {
       const r = await this.patients.fetchCrm(phone, s);
-      return { ok: true, name: r.name, ms: r.ms, raw: JSON.stringify(r.raw, null, 2).slice(0, 3000), latin: r.name ? toLatin(r.name) : '' };
+      const note = surgeryNote(daysSince(r.surgery), false);
+      return { ok: true, name: r.name, surgery: r.surgery ? note : 'در این سامانه جراحی تکمیل‌شده‌ای ثبت نشده', phone: await this.preview(r.name, r.surgery, s), ms: r.ms, raw: JSON.stringify(r.raw, null, 2).slice(0, 3000), latin: r.name ? toLatin(r.name) : '' };
     } catch (e) {
       return { ok: false, error: (e as Error).name === 'TimeoutError' ? 'سامانه بیماران در زمان تعیین‌شده جواب نداد' : (e as Error).message };
     }

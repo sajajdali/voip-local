@@ -13,13 +13,20 @@ import { Bus } from './bus';
 import { ConfigStore } from './config';
 import { env } from './env';
 import { hhmm, jalaliDate, jalaliToDate, jAddDays, todayJ } from './jalali';
-import { PatientsService } from './patients';
+import { PatientsService, daysSince } from './patients';
 import { PrismaService } from './prisma.service';
 import { WebhookService, publicSurvey } from './webhook';
 
 const run = promisify(execFile);
 const digits = (s: any) => String(s ?? '').replace(/\D/g, '');
 /** Operator delivers mobiles as 9…, 98… or 0098…; store them in the standard 0… form. */
+/** Panel text for the last surgery: Jalali date and how long ago. */
+function surgeryText(iso: string | null | undefined) {
+  const days = daysSince(iso);
+  if (days == null) return iso && !/^\d{4}-/.test(iso) ? iso : '—';
+  return jalaliDate(new Date(iso + 'T12:00:00Z')) + ' (' + (days === 0 ? 'امروز' : days.toLocaleString('fa-IR') + ' روز پیش') + ')';
+}
+
 export function normalizePhone(raw: string) {
   const d = String(raw || '').replace(/\D/g, '');
   if (/^0098\d{10}$/.test(d)) return '0' + d.slice(4);
@@ -83,7 +90,7 @@ export class CallsService {
       const short = (c.st === 'answered' || c.st === 'transferred') && c.dur < env.shortCallSec;
       return {
         id: c.id, date: c.date, time: c.time, name: p ? p.name : 'شماره ناشناس', phone: fmtPhone(c.phone), phoneRaw: c.phone,
-        nid: p && p.nid ? p.nid : '—', surgery: p && p.surgery ? p.surgery : '—', known: !!p, dir: c.dir, st: short ? 'missed' : c.st, short, op, queue: c.queue,
+        nid: p && p.nid ? p.nid : '—', surgery: surgeryText(p?.surgery), known: !!p, dir: c.dir, st: short ? 'missed' : c.st, short, op, queue: c.queue,
         dur: c.dur, wait: c.wait, hasRec: !!c.recPath, ai: c.ai, survey: publicSurvey(c.survey), follow: c.st === 'voicemail' ? F.get(c.id) || 'new' : null,
         wave: c.wave, callback: c.callback, summary: c.summary || '',
       };

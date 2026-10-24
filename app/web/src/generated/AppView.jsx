@@ -2137,6 +2137,16 @@ export default function AppView({ vm }) {
                     <option value="off">{"نمایش نده (فقط در پنل)"}</option>
                   </select>
                 </label>
+                <label style={{display: "flex", flexDirection: "column", gap: "6px", fontSize: "12px", color: "#6b6e72"}}>
+                  {"وضعیت جراحی روی صفحه گوشی"}
+                  <select value={vm.crm2?.surgSel} onChange={vm.crm2?.set?.showSurgery} style={{border: "1px solid #e1e3dc", borderRadius: "10px", padding: "10px 12px", fontSize: "13px", outline: "none", background: "#fff", color: "#232425", fontFamily: "inherit", width: "100%"}}>
+                    <option value="1">{"نمایش بده (مثلاً: «علی رضایی - عمل ۲۵ روز پیش»)"}</option>
+                    <option value="0">{"نمایش نده"}</option>
+                  </select>
+                </label>
+                <div style={{fontSize: "11px", color: "#8b8e89", lineHeight: "1.7"}}>
+                  {"از فیلدهای has_completed_surgery و last_surgery_date (یا days_since_surgery) خوانده می‌شود. اگر جراحی ثبت نشده باشد یا اطلاعات خالی باشد، فقط نام نمایش داده می‌شود. تعداد روز هر روز خودکار به‌روز است."}
+                </div>
               </div>
             </div>
             <div style={{background: "#fff", border: "1px solid #e7e8e3", borderRadius: "20px", padding: "20px", display: "flex", flexDirection: "column", gap: "14px"}}>

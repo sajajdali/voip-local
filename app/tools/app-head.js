@@ -554,7 +554,7 @@ class LiveApp extends React.Component {
 
   crmVals(s) {
     const d = s.crmData;
-    const f = s.crmForm || { enabled: false, url: '', param: 'mobile', user: '', pass: '', phoneFormat: '0', nameField: 'name', timeoutMs: 4000, phoneName: 'fa' };
+    const f = s.crmForm || { enabled: false, url: '', param: 'mobile', user: '', pass: '', phoneFormat: '0', nameField: 'name', timeoutMs: 4000, phoneName: 'fa', showSurgery: true };
     const setF = o => this.setState({ crmForm: { ...f, ...o } });
     const tg = on => ({ bg: on ? '#8DC63F' : '#d9dad6', j: on ? 'flex-end' : 'flex-start' });
     const persist = async () => {
@@ -565,13 +565,14 @@ class LiveApp extends React.Component {
     const t = s.crmTest;
     const result = [];
     if (t) {
-      if (t.ok) result.push({ k: 'نام', v: t.name || '(برای این شماره نامی برنگشت)', c: t.name ? '#3d6a0c' : '#8a5a00' }, ...(t.name && f.phoneName === 'latin' ? [{ k: 'روی گوشی', v: t.latin, c: '#232425' }] : []), { k: 'زمان پاسخ', v: (t.ms / 1000).toFixed(2) + ' ثانیه', c: t.ms > f.timeoutMs * 0.7 ? '#b42318' : '#6b6e72' });
+      if (t.ok) result.push({ k: 'نام', v: t.name || '(برای این شماره نامی برنگشت)', c: t.name ? '#3d6a0c' : '#8a5a00' }, { k: 'جراحی', v: t.surgery || '—', c: '#1d5a85' }, ...(t.phone ? [{ k: 'روی صفحه گوشی', v: t.phone, c: '#232425' }] : []), { k: 'زمان پاسخ', v: (t.ms / 1000).toFixed(2) + ' ثانیه', c: t.ms > f.timeoutMs * 0.7 ? '#b42318' : '#6b6e72' });
       else result.push({ k: 'خطا', v: t.error, c: '#b42318' });
     }
     const st = d ? d.status : null;
     return { crm2: {
       f, onT: tg(f.enabled), onLabel: f.enabled ? 'فعال' : 'غیرفعال', tog: () => setF({ enabled: !f.enabled }),
-      set: Object.fromEntries(['url', 'param', 'user', 'pass', 'phoneFormat', 'nameField', 'timeoutMs', 'phoneName'].map(k => [k, e => setF({ [k]: k === 'timeoutMs' ? (parseInt(e.target.value, 10) || 0) : e.target.value })])),
+      set: Object.fromEntries(['url', 'param', 'user', 'pass', 'phoneFormat', 'nameField', 'timeoutMs', 'phoneName', 'showSurgery'].map(k => [k, e => setF({ [k]: k === 'timeoutMs' ? (parseInt(e.target.value, 10) || 0) : k === 'showSurgery' ? e.target.value === '1' : e.target.value })])),
+      surgSel: f.showSurgery === false ? '0' : '1',
       passPh: d && d.settings.hasPass ? '•••••••• (ذخیره‌شده؛ برای تغییر، رمز جدید را وارد کنید)' : 'رمز عبور',
       kpis: [
         { label: 'نام‌های دریافت‌شده از سامانه', value: st ? (st.named || 0).toLocaleString('fa-IR') : '…', color: '#3d6a0c' },
