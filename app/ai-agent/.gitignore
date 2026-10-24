@@ -1,0 +1,10 @@
+__pycache__/
+*.py[cod]
+*.db
+*.sqlite*
+*.wav
+.env
+*.env
+!*.env.example
+secrets/
+

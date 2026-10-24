@@ -72,6 +72,7 @@ export class PatientsService {
   private log = new Logger('Patients');
   private cache: CrmSettings | null = null;
   private recent = new Map<string, number>();
+  private inflight = new Map<string, Promise<void>>();
   private fails = 0;
   private pausedUntil = 0;
   lastError = '';
@@ -110,6 +111,7 @@ export class PatientsService {
     await this.db.configEntry.upsert({ where: { key: 'crm' }, create: { key: 'crm', data: next as any, updatedBy: me.id }, update: { data: next as any, updatedBy: me.id } });
     this.cache = next;
     this.fails = 0; this.pausedUntil = 0; this.lastError = '';
+    this.bus.emit('crm-saved');
     const { pass, ...safe } = next;
     await this.db.auditLog.create({ data: { userId: me.id, userName: me.name, action: 'crm.save', target: 'crm', detail: { ...safe, passChanged: !!b.pass } as any } });
     return this.publicView(next);
@@ -134,7 +136,7 @@ export class PatientsService {
 
   /** Inbound call started: ask the CRM in the background (never delays the call). */
   lookup(phone: string) {
-    (async () => {
+    const job = (async () => {
       const s = await this.settings();
       if (!s.enabled || !s.url || !/^09\d{9}$/.test(phone)) return;
       const now = Date.now();
@@ -162,7 +164,14 @@ export class PatientsService {
         if (++this.fails >= 3) { this.pausedUntil = Date.now() + 5 * 60e3; this.fails = 0; }
         this.log.warn('CRM lookup failed: ' + this.lastError);
       }
-    })().catch(() => {});
+    })().catch(() => {}).finally(() => this.inflight.delete(phone));
+    this.inflight.set(phone, job);
+  }
+
+  /** Wait (bounded) for a lookup that is still running for this caller. */
+  async waitLookup(phone: string, ms: number) {
+    const job = this.inflight.get(phone);
+    if (job) await Promise.race([job, new Promise(r => setTimeout(r, ms))]);
   }
 
   /** Name for the desk phone display, from the local cache only (instant). */

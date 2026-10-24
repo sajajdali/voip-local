@@ -142,6 +142,11 @@ sub("commentText:c.survey.comment||'بدون توضیح'", "...this.svComment(c)
 # --- patient system (CRM) settings page
 sub("'settings','vai','vsurvey','file'].forEach", "'settings','vai','vsurvey','vcrm','file'].forEach")
 sub("...this.surveyVals(s),", "...this.surveyVals(s),...this.crmVals(s),")
+# --- AI receptionist as a destination everywhere (IVR keys, routes, time conditions…)
+sub("{id:'vm',label:'صندوق پیام صوتی'},{id:'busy',label:'بوق اشغال'}", "{id:'ai',label:'دستیار هوشمند (AI)'},{id:'vm',label:'صندوق پیام صوتی'},{id:'busy',label:'بوق اشغال'}")
+# --- AI receptionist settings page
+sub("'settings','vai','vsurvey','vcrm','file'].forEach", "'settings','vai','vsurvey','vcrm','vagent','file'].forEach")
+sub("...this.crmVals(s),", "...this.crmVals(s),...this.agentVals(s),")
 head = (root / 'tools/app-head.js').read_text(encoding='utf-8')
 src = src.replace("export default class App extends React.Component {", "export default class App extends LiveApp {")
 (root / 'web/src/App.jsx').write_text(head + '\n' + src.strip() + '\n', encoding='utf-8')

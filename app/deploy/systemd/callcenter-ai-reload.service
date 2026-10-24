@@ -1,0 +1,6 @@
+[Unit]
+Description=Restart the AI receptionist after a settings change
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/systemctl restart callcenter-ai.service

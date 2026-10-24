@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
 import { AiController, AiService } from './ai';
+import { AiAgentController, AiAgentService } from './aiagent';
 import { AsteriskService } from './asterisk/asterisk.service';
 import { AuthController, AuthGuard } from './auth';
 import { Bus } from './bus';
@@ -15,7 +16,7 @@ import { WebhookController, WebhookService } from './webhook';
 import { BackupController, BackupService } from './backups';
 
 @Module({
-  controllers: [AuthController, CallsController, HooksController, ConfigController, MediaController, ReportsController, WebhookController, BackupController, AiController, CrmController],
-  providers: [PrismaService, Bus, AsteriskService, ConfigStore, CallsService, PatientsService, AiService, WebhookService, BackupService, LiveGateway, { provide: APP_GUARD, useClass: AuthGuard }],
+  controllers: [AuthController, CallsController, HooksController, ConfigController, MediaController, ReportsController, WebhookController, BackupController, AiController, CrmController, AiAgentController],
+  providers: [PrismaService, Bus, AsteriskService, ConfigStore, CallsService, PatientsService, AiService, AiAgentService, WebhookService, BackupService, LiveGateway, { provide: APP_GUARD, useClass: AuthGuard }],
 })
 export class AppModule {}

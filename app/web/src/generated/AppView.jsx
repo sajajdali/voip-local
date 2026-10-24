@@ -2177,6 +2177,162 @@ export default function AppView({ vm }) {
             </div>
           </div>
         </>) : null}
+        {(vm.is?.vagent) ? (<>
+          <div style={{display: "flex", flexDirection: "column", gap: "20px"}}>
+            <div>
+              <h1 style={{margin: "0", fontSize: "28px", fontWeight: "800"}}>{"دستیار هوشمند تلفنی"}</h1>
+              <div style={{fontSize: "14px", color: "#6b6e72", marginTop: "6px", maxWidth: "780px", lineHeight: "1.8"}}>
+                {"منشی صوتی که به‌صورت زنده با بیمار فارسی صحبت می‌کند: بیمار را با نام صدا می‌زند، به سؤال‌های عمومی جراحی بینی جواب می‌دهد، جراحی را با کد ملی از سامانه بیماران تأیید می‌کند، لینک نوبت‌دهی را پیامک می‌کند، در شرایط اورژانسی به پشتیبانی پیامک می‌دهد و در صورت درخواست، تماس را به پزشک وصل می‌کند. صدا و متن مکالمه ذخیره نمی‌شود."}
+              </div>
+            </div>
+            <div style={{display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(180px,1fr))", gap: "14px"}}>
+              {(vm.ag2?.kpis || []).map((k, __i7) => <React.Fragment key={__i7}>
+                <div style={{background: "#fff", border: "1px solid #e7e8e3", borderRadius: "18px", padding: "16px 18px"}}>
+                  <div style={{fontSize: "12px", color: "#6b6e72"}}>{k?.label}</div>
+                  <div style={{fontSize: "24px", fontWeight: "800", marginTop: "4px", color: k?.color}}>{k?.value}</div>
+                </div>
+              </React.Fragment>)}
+            </div>
+            {(vm.ag2?.stopped) ? (<>
+              <div style={{background: "#fdeceb", border: "1px solid #f5c2bd", color: "#b42318", borderRadius: "14px", padding: "12px 16px", fontSize: "13px", lineHeight: "1.8"}}>
+                {"دستیار روشن است ولی سرویس آن اجرا نمی‌شود؛ کلید API و مدل را بررسی کنید. تا آن موقع تماس‌گیرنده پیام «سامانه در دسترس نیست» را می‌شنود."}
+              </div>
+            </>) : null}
+            <div style={{background: "#fff", border: "1px solid #e7e8e3", borderRadius: "20px", padding: "20px", display: "flex", flexDirection: "column", gap: "14px"}}>
+              <div style={{display: "flex", alignItems: "center", gap: "12px"}}>
+                <div style={{flex: "1"}}>
+                  <div style={{fontWeight: "800", fontSize: "16px"}}>{"دستیار هوشمند"}</div>
+                  <div style={{fontSize: "12px", color: "#6b6e72", marginTop: "4px", lineHeight: "1.7"}}>
+                    {"برای وصل کردن تماس‌ها، در منوهای IVR، مسیرهای ورودی یا شرایط زمانی مقصد «دستیار هوشمند (AI)» را انتخاب کنید."}
+                  </div>
+                </div>
+                <span style={{fontSize: "12px", color: "#6b6e72"}}>{vm.ag2?.onLabel}</span>
+                <button onClick={vm.ag2?.tog} style={{width: "42px", height: "24px", borderRadius: "99px", border: "none", background: vm.ag2?.onT?.bg, display: "flex", justifyContent: vm.ag2?.onT?.j, alignItems: "center", padding: "3px", cursor: "pointer", flexShrink: "0"}}>
+                  <span style={{width: "18px", height: "18px", borderRadius: "50%", background: "#fff", boxShadow: "0 1px 2px rgba(0,0,0,.25)"}} />
+                </button>
+              </div>
+              <div style={{display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(220px,1fr))", gap: "12px"}}>
+                <label style={{display: "flex", flexDirection: "column", gap: "6px", fontSize: "12px", color: "#6b6e72"}}>
+                  {"کد دسترسی از داخلی‌ها"}
+                  <input type="text" value={vm.ag2?.f?.code} onChange={vm.ag2?.set?.code} placeholder="33" style={{border: "1px solid #e1e3dc", borderRadius: "10px", padding: "10px 12px", fontSize: "13px", outline: "none", background: "#fff", color: "#232425", fontFamily: "inherit", width: "100%", direction: "ltr", textAlign: "left"}} />
+                </label>
+                <label style={{display: "flex", flexDirection: "column", gap: "6px", fontSize: "12px", color: "#6b6e72"}}>
+                  {"وقتی دستیار خاموش است، تماس‌ها به"}
+                  <select value={vm.ag2?.f?.fallback} onChange={vm.ag2?.set?.fallback} style={{border: "1px solid #e1e3dc", borderRadius: "10px", padding: "10px 12px", fontSize: "13px", outline: "none", background: "#fff", color: "#232425", fontFamily: "inherit", width: "100%"}}>
+                    {(vm.ag2?.dests || []).map((o, __i10) => <React.Fragment key={__i10}>
+                      <option value={o?.id}>{o?.label}</option>
+                    </React.Fragment>)}
+                  </select>
+                </label>
+              </div>
+              <div style={{display: "flex", gap: "10px", flexWrap: "wrap"}}>
+                <button onClick={vm.ag2?.goIvr} style={{background: "#fff", border: "1px solid #e1e3dc", color: "#3a3b3d", padding: "8px 14px", borderRadius: "10px", fontSize: "12px", fontWeight: "700", cursor: "pointer", fontFamily: "inherit"}}>{"تعریف کلید در منوی IVR"}</button>
+              </div>
+            </div>
+            <div style={{display: "flex", flexWrap: "wrap", gap: "20px", alignItems: "flex-start"}}>
+              <div style={{background: "#fff", border: "1px solid #e7e8e3", borderRadius: "20px", padding: "20px", display: "flex", flexDirection: "column", gap: "14px", flex: "1 1 360px", minWidth: "0"}}>
+                <div style={{fontWeight: "800", fontSize: "16px"}}>{"مدل صوتی"}</div>
+                <label style={{display: "flex", flexDirection: "column", gap: "6px", fontSize: "12px", color: "#6b6e72"}}>
+                  {"سرویس"}
+                  <select value={vm.ag2?.f?.provider} onChange={vm.ag2?.set?.provider} style={{border: "1px solid #e1e3dc", borderRadius: "10px", padding: "10px 12px", fontSize: "13px", outline: "none", background: "#fff", color: "#232425", fontFamily: "inherit", width: "100%"}}>
+                    <option value="openai">{"OpenAI Realtime (پیشنهادی)"}</option>
+                    <option value="gemini">{"Google Gemini Live"}</option>
+                  </select>
+                </label>
+                <label style={{display: "flex", flexDirection: "column", gap: "6px", fontSize: "12px", color: "#6b6e72"}}>
+                  {"کلید API"}
+                  <input type="password" value={vm.ag2?.keyVal} onChange={vm.ag2?.setKey} placeholder={vm.ag2?.keyPh} style={{border: "1px solid #e1e3dc", borderRadius: "10px", padding: "10px 12px", fontSize: "13px", outline: "none", background: "#fff", color: "#232425", fontFamily: "inherit", width: "100%", direction: "ltr", textAlign: "left"}} />
+                </label>
+                <div style={{display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px"}}>
+                  <label style={{display: "flex", flexDirection: "column", gap: "6px", fontSize: "12px", color: "#6b6e72"}}>
+                    {"مدل"}
+                    <input type="text" value={vm.ag2?.model} onChange={vm.ag2?.setModel} placeholder="gpt-realtime-2.1" style={{border: "1px solid #e1e3dc", borderRadius: "10px", padding: "10px 12px", fontSize: "13px", outline: "none", background: "#fff", color: "#232425", fontFamily: "inherit", width: "100%", direction: "ltr", textAlign: "left"}} />
+                  </label>
+                  <label style={{display: "flex", flexDirection: "column", gap: "6px", fontSize: "12px", color: "#6b6e72"}}>
+                    {"صدا"}
+                    <input type="text" value={vm.ag2?.voice} onChange={vm.ag2?.setVoice} placeholder="marin" style={{border: "1px solid #e1e3dc", borderRadius: "10px", padding: "10px 12px", fontSize: "13px", outline: "none", background: "#fff", color: "#232425", fontFamily: "inherit", width: "100%", direction: "ltr", textAlign: "left"}} />
+                  </label>
+                </div>
+                <div style={{fontSize: "11px", color: "#8b8e89", lineHeight: "1.7"}}>
+                  {"کلید در صفحه نمایش داده نمی‌شود؛ اگر خالی بماند کلید قبلی حفظ می‌شود. سرویس Gemini فقط در مناطق پشتیبانی‌شده گوگل کار می‌کند."}
+                </div>
+              </div>
+              <div style={{background: "#fff", border: "1px solid #e7e8e3", borderRadius: "20px", padding: "20px", display: "flex", flexDirection: "column", gap: "14px", flex: "1 1 300px", minWidth: "0"}}>
+                <div style={{fontWeight: "800", fontSize: "16px"}}>{"انتقال به پزشک"}</div>
+                <div style={{fontSize: "11px", color: "#8b8e89", lineHeight: "1.7", marginTop: "-6px"}}>
+                  {"وقتی بیمار صریحاً بخواهد با پزشک صحبت کند، اول داخلی زیر زنگ می‌خورد و اگر جواب نداد، موبایل."}
+                </div>
+                <label style={{display: "flex", flexDirection: "column", gap: "6px", fontSize: "12px", color: "#6b6e72"}}>
+                  {"داخلی پزشک"}
+                  <select value={vm.ag2?.f?.transferExt} onChange={vm.ag2?.set?.transferExt} style={{border: "1px solid #e1e3dc", borderRadius: "10px", padding: "10px 12px", fontSize: "13px", outline: "none", background: "#fff", color: "#232425", fontFamily: "inherit", width: "100%"}}>
+                    <option value="">{"— بدون داخلی —"}</option>
+                    {(vm.ag2?.exts || []).map((o, __i10) => <React.Fragment key={__i10}>
+                      <option value={o?.id}>{o?.label}</option>
+                    </React.Fragment>)}
+                  </select>
+                </label>
+                <div style={{display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px"}}>
+                  <label style={{display: "flex", flexDirection: "column", gap: "6px", fontSize: "12px", color: "#6b6e72"}}>
+                    {"مدت زنگ داخلی (ثانیه)"}
+                    <input type="number" value={vm.ag2?.f?.transferRing} onChange={vm.ag2?.set?.transferRing} placeholder="10" style={{border: "1px solid #e1e3dc", borderRadius: "10px", padding: "10px 12px", fontSize: "13px", outline: "none", background: "#fff", color: "#232425", fontFamily: "inherit", width: "100%", direction: "ltr", textAlign: "left"}} />
+                  </label>
+                  <label style={{display: "flex", flexDirection: "column", gap: "6px", fontSize: "12px", color: "#6b6e72"}}>
+                    {"موبایل پزشک"}
+                    <input type="text" value={vm.ag2?.f?.transferMobile} onChange={vm.ag2?.set?.transferMobile} placeholder="09…" style={{border: "1px solid #e1e3dc", borderRadius: "10px", padding: "10px 12px", fontSize: "13px", outline: "none", background: "#fff", color: "#232425", fontFamily: "inherit", width: "100%", direction: "ltr", textAlign: "left"}} />
+                  </label>
+                </div>
+              </div>
+            </div>
+            <div style={{display: "flex", flexWrap: "wrap", gap: "20px", alignItems: "flex-start"}}>
+              <div style={{background: "#fff", border: "1px solid #e7e8e3", borderRadius: "20px", padding: "20px", display: "flex", flexDirection: "column", gap: "14px", flex: "1 1 300px", minWidth: "0"}}>
+                <div style={{fontWeight: "800", fontSize: "16px"}}>{"محدودیت‌ها"}</div>
+                <div style={{display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(140px,1fr))", gap: "10px"}}>
+                  <label style={{display: "flex", flexDirection: "column", gap: "6px", fontSize: "12px", color: "#6b6e72"}}>
+                    {"تماس همزمان"}
+                    <input type="number" value={vm.ag2?.f?.maxCalls} onChange={vm.ag2?.set?.maxCalls} placeholder="4" style={{border: "1px solid #e1e3dc", borderRadius: "10px", padding: "10px 12px", fontSize: "13px", outline: "none", background: "#fff", color: "#232425", fontFamily: "inherit", width: "100%", direction: "ltr", textAlign: "left"}} />
+                  </label>
+                  <label style={{display: "flex", flexDirection: "column", gap: "6px", fontSize: "12px", color: "#6b6e72"}}>
+                    {"حداکثر مدت (ثانیه)"}
+                    <input type="number" value={vm.ag2?.f?.maxSeconds} onChange={vm.ag2?.set?.maxSeconds} placeholder="900" style={{border: "1px solid #e1e3dc", borderRadius: "10px", padding: "10px 12px", fontSize: "13px", outline: "none", background: "#fff", color: "#232425", fontFamily: "inherit", width: "100%", direction: "ltr", textAlign: "left"}} />
+                  </label>
+                  <label style={{display: "flex", flexDirection: "column", gap: "6px", fontSize: "12px", color: "#6b6e72"}}>
+                    {"اخطار پایان (ثانیه)"}
+                    <input type="number" value={vm.ag2?.f?.closingSeconds} onChange={vm.ag2?.set?.closingSeconds} placeholder="15" style={{border: "1px solid #e1e3dc", borderRadius: "10px", padding: "10px 12px", fontSize: "13px", outline: "none", background: "#fff", color: "#232425", fontFamily: "inherit", width: "100%", direction: "ltr", textAlign: "left"}} />
+                  </label>
+                </div>
+                <div style={{fontSize: "11px", color: "#8b8e89", lineHeight: "1.7"}}>
+                  {"هزینه سرویس بر اساس دقیقه مکالمه است؛ تماس‌های بیشتر از حد همزمان، پیام «در دسترس نیست» را می‌شنوند."}
+                </div>
+              </div>
+              <div style={{background: "#fff", border: "1px solid #e7e8e3", borderRadius: "20px", padding: "20px", display: "flex", flexDirection: "column", gap: "14px", flex: "1 1 360px", minWidth: "0"}}>
+                <div style={{fontWeight: "800", fontSize: "16px"}}>{"سامانه بیماران"}</div>
+                <label style={{display: "flex", flexDirection: "column", gap: "6px", fontSize: "12px", color: "#6b6e72"}}>
+                  {"API استعلام با کد ملی"}
+                  <input type="text" value={vm.ag2?.f?.crmNationalUrl} onChange={vm.ag2?.set?.crmNationalUrl} placeholder="" style={{border: "1px solid #e1e3dc", borderRadius: "10px", padding: "10px 12px", fontSize: "13px", outline: "none", background: "#fff", color: "#232425", fontFamily: "inherit", width: "100%", direction: "ltr", textAlign: "left"}} />
+                </label>
+                <label style={{display: "flex", flexDirection: "column", gap: "6px", fontSize: "12px", color: "#6b6e72"}}>
+                  {"API پیامک لینک نوبت‌دهی"}
+                  <input type="text" value={vm.ag2?.f?.crmAppLinkUrl} onChange={vm.ag2?.set?.crmAppLinkUrl} placeholder="" style={{border: "1px solid #e1e3dc", borderRadius: "10px", padding: "10px 12px", fontSize: "13px", outline: "none", background: "#fff", color: "#232425", fontFamily: "inherit", width: "100%", direction: "ltr", textAlign: "left"}} />
+                </label>
+                <label style={{display: "flex", flexDirection: "column", gap: "6px", fontSize: "12px", color: "#6b6e72"}}>
+                  {"API پیامک اورژانس"}
+                  <input type="text" value={vm.ag2?.f?.crmEmergencyUrl} onChange={vm.ag2?.set?.crmEmergencyUrl} placeholder="" style={{border: "1px solid #e1e3dc", borderRadius: "10px", padding: "10px 12px", fontSize: "13px", outline: "none", background: "#fff", color: "#232425", fontFamily: "inherit", width: "100%", direction: "ltr", textAlign: "left"}} />
+                </label>
+                <div style={{fontSize: "11px", color: "#8b8e89", lineHeight: "1.7"}}>
+                  {"نام کاربری و رمز همان تنظیمات «سامانه بیماران» است. نام و وضعیت جراحی تماس‌گیرنده از همان استعلام اول تماس خوانده می‌شود و درخواست تکراری به سامانه نمی‌رود."}
+                </div>
+              </div>
+            </div>
+            <div style={{background: "#fff", border: "1px solid #e7e8e3", borderRadius: "20px", padding: "20px", display: "flex", flexDirection: "column", gap: "14px"}}>
+              <div style={{display: "flex", gap: "12px", alignItems: "center", flexWrap: "wrap"}}>
+                <button onClick={vm.ag2?.save} style={{background: "#8DC63F", color: "#1f2a10", border: "none", padding: "11px 20px", borderRadius: "12px", fontSize: "13px", fontWeight: "800", cursor: "pointer", fontFamily: "inherit"}}>{"ذخیره تنظیمات"}</button>
+                <div style={{fontSize: "12px", color: "#6b6e72", lineHeight: "1.7", flex: "1", minWidth: "220px"}}>
+                  {"با ذخیره، سرویس دستیار دوباره راه‌اندازی می‌شود و تماس‌های در جریان با دستیار قطع می‌شوند."}
+                </div>
+              </div>
+            </div>
+          </div>
+        </>) : null}
         {(vm.is?.vai) ? (<>
           <div style={{display: "flex", flexDirection: "column", gap: "20px"}}>
             <div>

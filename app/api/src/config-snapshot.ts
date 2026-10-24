@@ -21,6 +21,7 @@ async function main() {
       if (r.key === 'webhook') d = { ...d, token: '' };
       if (r.key === 'ai') d = { ...d, sttKey: '', llmKey: '' };
       if (r.key === 'crm') d = { ...d, pass: '' };
+      if (r.key === 'aiagent') d = { ...d, openaiKey: '', geminiKey: '' };
       if (r.key === 'blist') d = d.map((b: any) => ({ ...b, hits: 0, today: 0, last: '—', lastDay: undefined }));
       out[r.key] = d;
     }

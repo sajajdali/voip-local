@@ -1,0 +1,9 @@
+[Unit]
+Description=Restart the AI receptionist when the panel changes its settings
+
+[Path]
+PathChanged=/etc/callcenter/ai/agent.env
+PathChanged=/etc/callcenter/ai/crm.env
+
+[Install]
+WantedBy=multi-user.target

@@ -6,7 +6,7 @@ import { jalaliToGregorianCompact } from '../jalali';
 export interface VoipConfig {
   exts: any[]; trunks: any[]; vqs: any[]; ivrs: any[]; snds: any[]; routes: any[];
   tgroups: any[]; tconds: any[]; holidays: any[]; rgroups: any[]; fmes: Record<string, any>;
-  blist: any[]; bset: any; oroutes?: any[]; survey?: any;
+  blist: any[]; bset: any; oroutes?: any[]; survey?: any; aiagent?: any;
 }
 
 export interface Generated {
@@ -63,6 +63,8 @@ export function destTarget(dest: string, cfg: VoipConfig): string {
     case 'vm': return 'cc-vm,s,1';
     case 'busy': return 'cc-busy,s,1';
     case 'ann': return cfg.snds.some(x => x.id === id) ? `cc-ann,${sid(id)},1` : 'cc-hang,s,1';
+    // AI receptionist; while it is switched off, calls take its fallback destination
+    case 'ai': return cfg.aiagent?.enabled ? 'cc-ai,s,1' : cfg.aiagent?.fallback && cfg.aiagent.fallback !== 'ai' ? destTarget(cfg.aiagent.fallback, cfg) : 'cc-vm,s,1';
     default: return 'cc-hang,s,1';
   }
 }
@@ -445,6 +447,32 @@ function dialplan(cfg: VoipConfig, opts: { hookUrl: string; hookSecret: string }
   X('cc-ivr-direct', cfg.exts.length ? cfg.exts.map(e => `exten => ${digits(e.n)},1,Goto(cc-ext,${digits(e.n)},1)`) : ['exten => _X.,1,Hangup()']);
   X('cc-hang', ['exten => s,1,Hangup()']);
 
+  // --- AI receptionist: audio goes to the local bridge over AudioSocket; it may ask for a transfer by
+  // leaving a marker file named after the call UUID
+  const ai = cfg.aiagent || {};
+  const aiTransfer = '/var/lib/callcenter-ai/transfers/${AI_CALL_UUID}';
+  const aiLines = [
+    'exten => s,1,Set(__CC_QUEUE=دستیار هوشمند)',
+    ' same => n,Answer()',
+    ' same => n,Set(__AI_CALL_UUID=${UUID()})',
+    ` same => n,Set(CC_CURL=\${CURL(${opts.hookUrl}/aimeta?s=${opts.hookSecret},uuid=\${AI_CALL_UUID}&num=\${CC_NUM})})`,
+    ' same => n,Dial(Local/ai@cc-ai-session/n,,g)',
+    // a conversation of 3 s or more counts as answered (by the AI, not an operator)
+    ' same => n,ExecIf($[0${ANSWEREDTIME} >= 3]?Set(CC_ANSTS=$[${EPOCH} - ${ANSWEREDTIME}]))',
+    ` same => n,GotoIf(\${STAT(e,${aiTransfer})}?transfer)`,
+    ' same => n,GotoIf($[0${ANSWEREDTIME} >= 3]?end)',
+    // the bridge was not reachable at all
+    ' same => n,Playback(custom/ai-unavailable-fa)',
+    ' same => n(end),Hangup()',
+    ` same => n(transfer),TrySystem(/usr/bin/unlink ${aiTransfer})`,
+  ];
+  const tExt = digits(ai.transferExt || ''), tMob = digits(ai.transferMobile || '');
+  if (tExt && cfg.exts.some(e => e.n === tExt)) aiLines.push(` same => n,Dial(PJSIP/${tExt},${Math.max(5, +ai.transferRing || 10)},tU(cc-agent-answer^0))`, ' same => n,GotoIf($["${DIALSTATUS}"="ANSWER"]?end)');
+  if (tMob) aiLines.push(` same => n,Dial(${dialString(tMob, cfg)},45,t)`);
+  aiLines.push(' same => n,Hangup()');
+  X('cc-ai', aiLines);
+  X('cc-ai-session', ['exten => ai,1,Answer()', ` same => n,AudioSocket(\${AI_CALL_UUID},127.0.0.1:9019)`, ' same => n,Hangup()']);
+
   // --- post-call survey: the operator hung up, the caller stays on the line and rates 1..5 per question
   X('cc-survey', surveyLines(cfg));
   // *77 from a desk phone: hear the survey exactly as callers do (nothing is recorded)
@@ -479,6 +507,7 @@ function dialplan(cfg: VoipConfig, opts: { hookUrl: string; hookSecret: string }
     ...cfg.vqs.filter(q => digits(q.num)).map(q => `exten => ${digits(q.num)},1,Goto(cc-queue-${sid(q.id)},s,1)`),
     ...cfg.rgroups.filter(g => digits(g.num)).map(g => `exten => ${digits(g.num)},1,Goto(cc-rg-${sid(g.id)},s,1)`),
     'exten => *77,1,Goto(cc-survey-test,s,1)',
+    ...(cfg.aiagent?.enabled && cfg.aiagent.code ? [`exten => ${cfg.aiagent.code},1,Goto(cc-ai,s,1)`] : []),
     // *88<DID>: test an inbound route from a desk phone (caller ID = this extension)
     'exten => _*88.,1,Set(CALLERID(num)=${CALLERID(num)})',
     ' same => n,Set(__CC_DID=${EXTEN:3})',

@@ -1,0 +1,36 @@
+[Unit]
+Description=Call center AI receptionist (Asterisk AudioSocket to realtime voice model)
+After=network-online.target asterisk.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=callcenter-ai
+Group=callcenter-ai
+SupplementaryGroups=asterisk
+WorkingDirectory=/opt/callcenter/ai-agent
+EnvironmentFile=-/etc/callcenter/ai/agent.env
+# no API key yet (or the receptionist is unused): stay stopped instead of failing in a loop
+ExecCondition=/usr/bin/python3 /opt/callcenter/ai-agent/bridge.py --check
+ExecStart=/usr/bin/python3 /opt/callcenter/ai-agent/bridge.py
+Restart=on-failure
+RestartSec=5
+UMask=0007
+NoNewPrivileges=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectSystem=strict
+ReadWritePaths=/var/lib/callcenter-ai
+ProtectHome=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+RestrictSUIDSGID=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+CapabilityBoundingSet=
+SystemCallArchitectures=native
+
+[Install]
+WantedBy=multi-user.target

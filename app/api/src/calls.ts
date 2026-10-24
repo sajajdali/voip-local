@@ -7,6 +7,7 @@ import * as path from 'path';
 import { promisify } from 'util';
 import * as ExcelJS from 'exceljs';
 import { AiService } from './ai';
+import { AiAgentService } from './aiagent';
 import { AsteriskService } from './asterisk/asterisk.service';
 import { CurrentUser, Me, Public } from './auth';
 import { Bus } from './bus';
@@ -430,7 +431,7 @@ export class CallsController {
 /** Endpoints the Asterisk dialplan calls through CURL(); only from localhost with the shared secret. */
 @Controller('hooks')
 export class HooksController {
-  constructor(private calls: CallsService, private store: ConfigStore, private bus: Bus, private patients: PatientsService) {}
+  constructor(private calls: CallsService, private store: ConfigStore, private bus: Bus, private patients: PatientsService, private aiAgent: AiAgentService) {}
 
   private check(req: Request, s: string) {
     const ip = (req.socket.remoteAddress || '').replace('::ffff:', '');
@@ -452,6 +453,15 @@ export class HooksController {
     this.check(req, s);
     const phone = normalizePhone(b.num || (req.query.num as string));
     if (phone) this.patients.lookup(phone);
+    return 'ok';
+  }
+
+  /** A call is about to reach the AI receptionist: write the caller details it greets with. */
+  @Public()
+  @Post('aimeta')
+  async aimeta(@Req() req: Request, @Query('s') s: string, @Body() b: Record<string, string>) {
+    this.check(req, s);
+    await this.aiAgent.writeCallerMeta(String(b.uuid || req.query.uuid || ''), normalizePhone(b.num || (req.query.num as string))).catch(e => new Logger('Hooks').warn(e.message));
     return 'ok';
   }
 

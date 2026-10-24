@@ -41,7 +41,12 @@
    ```bash
    sudo cp /etc/callcenter/netplan-01-callcenter.yaml.from-backup /etc/netplan/01-callcenter.yaml && sudo chmod 600 /etc/netplan/01-callcenter.yaml && sudo netplan apply
    ```
-7. **چک نهایی**: `sudo bash /opt/callcenter/deploy/cutover.sh check` — ترانک، گوشی‌ها، سرویس‌ها و پنل.
+7. **دستیار هوشمند تلفنی** (اگر استفاده می‌شود):
+   ```bash
+   sudo bash /opt/callcenter/deploy/ai-agent-setup.sh
+   ```
+   کلید OpenAI در بکاپ دیتابیس هست و بعد از بازگردانی، سرویس خودش راه می‌افتد. اگر بکاپ نبود، کلید را در «همه تنظیمات ← دستیار هوشمند تلفنی» وارد کنید.
+8. **چک نهایی**: `sudo bash /opt/callcenter/deploy/cutover.sh check` — ترانک، گوشی‌ها، سرویس‌ها و پنل.
 
 چون رمزهای SIP همان قبلی برمی‌گردند، گوشی‌ها بدون تنظیم دوباره وصل می‌شوند.
 
