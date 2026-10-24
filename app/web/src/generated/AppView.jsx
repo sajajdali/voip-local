@@ -50,14 +50,17 @@ export default function AppView({ vm }) {
             <span style={{flex: "1"}}>{"پیگیری‌نشده‌ها"}</span>
             <span style={{fontSize: "11px", padding: "2px 8px", borderRadius: "99px", background: "#e0574a", color: "#fff"}}>{vm.nav?.unreached?.count}</span>
           </div>
-          <div onClick={vm.nav?.reports?.go} style={{display: "flex", alignItems: "center", gap: "12px", padding: "11px 14px", borderRadius: "12px", cursor: "pointer", background: vm.nav?.reports?.bg, color: vm.nav?.reports?.fg, fontSize: "14px", fontWeight: "600"}}>
+          <div onClick={vm.nav?.toggleRep} style={{display: "flex", alignItems: "center", gap: "12px", padding: "11px 14px", borderRadius: "12px", cursor: "pointer", background: vm.nav?.repBg, color: "#d9dad6", fontSize: "14px", fontWeight: "600"}}>
             <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M4 20V10M10 20V4M16 20v-7M21 20H3" /></svg>
-            <span style={{flex: "1"}}>{"گزارش‌ساز"}</span>
+            <span style={{flex: "1"}}>{"گزارش‌ها"}</span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" style={{transform: vm.nav?.repChev, transition: "transform .2s"}}><path d="M6 9l6 6 6-6" /></svg>
           </div>
-          <div onClick={vm.nav?.days?.go} style={{display: "flex", alignItems: "center", gap: "12px", padding: "11px 14px", borderRadius: "12px", cursor: "pointer", background: vm.nav?.days?.bg, color: vm.nav?.days?.fg, fontSize: "14px", fontWeight: "600"}}>
-            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M4 6h16v14H4zM4 10h16M9 3v4M15 3v4M8 14h2M14 14h2M8 17h2" /></svg>
-            <span style={{flex: "1"}}>{"گزارش روزها"}</span>
-          </div>
+          {(vm.nav?.repOpen) ? (<>
+            <div style={{display: "flex", flexDirection: "column", gap: "2px", marginRight: "24px", paddingRight: "10px", borderRight: "1px solid rgba(255,255,255,.12)"}}>
+              <div onClick={vm.nav?.reports?.go} style={{display: "flex", alignItems: "center", gap: "10px", padding: "9px 12px", borderRadius: "10px", cursor: "pointer", fontSize: "13px", fontWeight: "600", background: vm.nav?.reports?.bg, color: vm.nav?.reports?.fg}}><span style={{flex: "1"}}>{"گزارش‌ساز"}</span></div>
+              <div onClick={vm.nav?.days?.go} style={{display: "flex", alignItems: "center", gap: "10px", padding: "9px 12px", borderRadius: "10px", cursor: "pointer", fontSize: "13px", fontWeight: "600", background: vm.nav?.days?.bg, color: vm.nav?.days?.fg}}><span style={{flex: "1"}}>{"گزارش روزها (زوج و فرد)"}</span></div>
+            </div>
+          </>) : null}
           <div onClick={vm.nav?.survey?.go} style={{display: "flex", alignItems: "center", gap: "12px", padding: "11px 14px", borderRadius: "12px", cursor: "pointer", background: vm.nav?.survey?.bg, color: vm.nav?.survey?.fg, fontSize: "14px", fontWeight: "600"}}>
             <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round">
               <path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z" />

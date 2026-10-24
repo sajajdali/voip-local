@@ -159,6 +159,8 @@ sub("...this.aiConvVals(s),", "...this.aiConvVals(s),...this.daysVals(s),")
 sub("vapi:nv('vapi',''),settings:nv('settings',''),", "vapi:nv('vapi',''),settings:nv('settings',''),live:nv('live',(s.liveCalls||[]).length),")
 sub("'settings','vai','vsurvey','vcrm','vagent','aiconv','days','file'].forEach", "'settings','vai','vsurvey','vcrm','vagent','aiconv','days','live','file'].forEach")
 sub("...this.daysVals(s),", "...this.daysVals(s),...this.liveVals(s),")
+# --- sidebar: both reports under one «گزارش‌ها» menu
+sub("nav.voipBg=isV?'rgba(141,198,63,.12)':'transparent';", "nav.voipBg=isV?'rgba(141,198,63,.12)':'transparent';const isR=['reports','days'].includes(s.page);nav.repOpen=s.repOpen||isR;nav.toggleRep=()=>this.setState({repOpen:!(s.repOpen||isR)});nav.repChev=nav.repOpen?'rotate(180deg)':'none';nav.repBg=isR?'rgba(141,198,63,.12)':'transparent';")
 head = (root / 'tools/app-head.js').read_text(encoding='utf-8')
 src = src.replace("export default class App extends React.Component {", "export default class App extends LiveApp {")
 (root / 'web/src/App.jsx').write_text(head + '\n' + src.strip() + '\n', encoding='utf-8')
