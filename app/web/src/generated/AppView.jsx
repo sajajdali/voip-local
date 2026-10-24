@@ -2356,7 +2356,7 @@ export default function AppView({ vm }) {
               </div>
               <div style={{display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(220px,1fr))", gap: "12px"}}>
                 <label style={{display: "flex", flexDirection: "column", gap: "6px", fontSize: "12px", color: "#6b6e72"}}>
-                  {"کد دسترسی از داخلی‌ها"}
+                  {"کد دسترسی (داخلی‌ها و تماس‌گیرنده‌ها)"}
                   <input type="text" value={vm.ag2?.f?.code} onChange={vm.ag2?.set?.code} placeholder="33" style={{border: "1px solid #e1e3dc", borderRadius: "10px", padding: "10px 12px", fontSize: "13px", outline: "none", background: "#fff", color: "#232425", fontFamily: "inherit", width: "100%", direction: "ltr", textAlign: "left"}} />
                 </label>
                 <label style={{display: "flex", flexDirection: "column", gap: "6px", fontSize: "12px", color: "#6b6e72"}}>
@@ -2367,6 +2367,17 @@ export default function AppView({ vm }) {
                     </React.Fragment>)}
                   </select>
                 </label>
+              </div>
+              <div style={{display: "flex", alignItems: "center", gap: "12px", border: "1px solid #e7e8e3", borderRadius: "14px", padding: "12px 14px"}}>
+                <div style={{flex: "1"}}>
+                  <div style={{fontSize: "13px", fontWeight: "700"}}>{"تماس‌گیرنده‌ها هم بتوانند کد را بگیرند"}</div>
+                  <div style={{fontSize: "11px", color: "#8b8e89", marginTop: "2px", lineHeight: "1.7"}}>
+                    {"بیمار در حال شنیدن منوی IVR با گرفتن همین کد به دستیار وصل می‌شود. اگر کد با یکی از کلیدهای منو یکی باشد، در آن منو اضافه نمی‌شود."}
+                  </div>
+                </div>
+                <button onClick={vm.ag2?.togIvr} style={{width: "42px", height: "24px", borderRadius: "99px", border: "none", background: vm.ag2?.ivrT?.bg, display: "flex", justifyContent: vm.ag2?.ivrT?.j, alignItems: "center", padding: "3px", cursor: "pointer", flexShrink: "0"}}>
+                  <span style={{width: "18px", height: "18px", borderRadius: "50%", background: "#fff", boxShadow: "0 1px 2px rgba(0,0,0,.25)"}} />
+                </button>
               </div>
               <div style={{display: "flex", gap: "10px", flexWrap: "wrap"}}>
                 <button onClick={vm.ag2?.goIvr} style={{background: "#fff", border: "1px solid #e1e3dc", color: "#3a3b3d", padding: "8px 14px", borderRadius: "10px", fontSize: "12px", fontWeight: "700", cursor: "pointer", fontFamily: "inherit"}}>{"تعریف کلید در منوی IVR"}</button>

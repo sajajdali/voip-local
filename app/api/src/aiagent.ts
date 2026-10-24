@@ -22,7 +22,7 @@ export interface AiAgentSettings {
   maxCalls: number; maxSeconds: number; closingSeconds: number;
   transferExt: string; transferRing: number; transferMobile: string; fallback: string;
   crmNationalUrl: string; crmAppLinkUrl: string; crmEmergencyUrl: string;
-  record: boolean; keepTranscript: boolean; transcribeModel: string;
+  record: boolean; keepTranscript: boolean; transcribeModel: string; codeInIvr: boolean;
 }
 const CRM_BASE = 'https://crm.drpouriaaflaki.com/api/v1/voip/surgery-status';
 export const AI_AGENT_DEFAULTS: AiAgentSettings = {
@@ -32,7 +32,7 @@ export const AI_AGENT_DEFAULTS: AiAgentSettings = {
   maxCalls: 4, maxSeconds: 900, closingSeconds: 15,
   transferExt: '', transferRing: 10, transferMobile: '', fallback: 'vm',
   crmNationalUrl: CRM_BASE + '/by-national-code', crmAppLinkUrl: CRM_BASE + '/application-link', crmEmergencyUrl: CRM_BASE + '/emergency-sms',
-  record: true, keepTranscript: true, transcribeModel: 'gpt-4o-transcribe',
+  record: true, keepTranscript: true, transcribeModel: 'gpt-4o-transcribe', codeInIvr: true,
 };
 
 const SECRET_KEYS = ['openaiKey', 'geminiKey'] as const;
@@ -78,7 +78,7 @@ export class AiAgentService implements OnModuleInit {
       transferExt: str('transferExt').replace(/\D/g, ''), transferRing: int('transferRing', 5, 60),
       transferMobile: str('transferMobile').replace(/\D/g, ''), fallback: str('fallback') || 'vm',
       crmNationalUrl: url('crmNationalUrl'), crmAppLinkUrl: url('crmAppLinkUrl'), crmEmergencyUrl: url('crmEmergencyUrl'),
-      record: !!(b.record ?? cur.record), keepTranscript: !!(b.keepTranscript ?? cur.keepTranscript),
+      record: !!(b.record ?? cur.record), keepTranscript: !!(b.keepTranscript ?? cur.keepTranscript), codeInIvr: !!(b.codeInIvr ?? cur.codeInIvr),
       transcribeModel: str('transcribeModel') || AI_AGENT_DEFAULTS.transcribeModel,
     };
     if (b.clearOpenaiKey) next.openaiKey = '';

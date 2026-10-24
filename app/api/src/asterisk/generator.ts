@@ -299,6 +299,9 @@ function dialplan(cfg: VoipConfig, opts: { hookUrl: string; hookSecret: string }
     }
     lines.push(`exten => t,1,GotoIf($[\${CC_IVRTRY}<=${rep}]?s,start)`, ` same => n,Goto(${destTarget(iv.tdest || 'vm', cfg)})`,
       `exten => i,1,GotoIf($[\${CC_IVRTRY}<=${rep}]?s,start)`, ` same => n,Goto(${destTarget(iv.idest || 'vm', cfg)})`);
+    // callers can also dial the AI receptionist's code while the menu plays (unless it clashes with a menu key)
+    const aiCode = cfg.aiagent?.enabled && cfg.aiagent.codeInIvr !== false ? String(cfg.aiagent.code || '') : '';
+    if (aiCode && !(iv.opts || []).some((o: any) => o.k === aiCode)) lines.push(`exten => ${aiCode},1,Goto(cc-ai,s,1)`);
     if (iv.ddial) lines.push('include => cc-ivr-direct');
     X(`cc-ivr-${sid(iv.id)}`, lines);
   }

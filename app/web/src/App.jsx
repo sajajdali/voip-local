@@ -635,6 +635,7 @@ class LiveApp extends React.Component {
       ],
       stopped: !!(d && d.settings.enabled && st && !st.running),
       save, goIvr: () => this.setState({ page: 'vivr' }),
+      ivrT: { bg: f.codeInIvr !== false ? '#8DC63F' : '#d9dad6', j: f.codeInIvr !== false ? 'flex-end' : 'flex-start' }, togIvr: () => setF({ codeInIvr: f.codeInIvr === false }),
       recT: { bg: f.record !== false ? '#8DC63F' : '#d9dad6', j: f.record !== false ? 'flex-end' : 'flex-start' }, togRec: () => setF({ record: f.record === false }),
       txT: { bg: f.keepTranscript !== false ? '#8DC63F' : '#d9dad6', j: f.keepTranscript !== false ? 'flex-end' : 'flex-start' }, togTx: () => setF({ keepTranscript: f.keepTranscript === false }),
     } };
