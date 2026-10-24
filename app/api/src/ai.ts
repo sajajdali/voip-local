@@ -220,6 +220,21 @@ export class AiService {
     };
   }
 
+  /** Low-score survey voice comment → text in survey.comment (when speech-to-text is configured). */
+  transcribeSurvey(id: string) {
+    (async () => {
+      const s = await this.settings();
+      if (!s.enabled || s.sttProvider === 'none') return;
+      const c = await this.db.call.findUnique({ where: { id } });
+      const sv: any = c?.survey;
+      if (!sv?.rec) return;
+      const { text } = await this.transcribe(sv.rec, s);
+      if (!text) return;
+      await this.db.call.update({ where: { id }, data: { survey: { ...sv, comment: text } } });
+      this.bus.emit('calls', { id });
+    })().catch(e => this.log.warn(`survey ${id}: ${e.message}`));
+  }
+
   // ---------------- queue
   async eligible(c: { st: string; recPath: string | null; dur: number }, s: AiSettings) {
     if (!s.enabled || !c.recPath || c.recPath === 'demo') return false;

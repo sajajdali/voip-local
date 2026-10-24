@@ -5,6 +5,13 @@ import { CurrentUser, Me, Roles } from './auth';
 import { env } from './env';
 import { PrismaService } from './prisma.service';
 
+/** The survey without the server path of its voice comment. */
+export function publicSurvey(sv: any) {
+  if (!sv) return null;
+  const { rec, ...rest } = sv;
+  return { ...rest, hasRec: !!rec };
+}
+
 export interface WebhookSettings { enabled: boolean; url: string; headerName: string; token: string; timeoutSec: number }
 const DEFAULTS: WebhookSettings = { enabled: false, url: '', headerName: 'Authorization', token: '', timeoutSec: 10 };
 const RETRY_DELAYS = [10e3, 60e3, 300e3]; // after the first failure: 10 s, 1 min, 5 min
@@ -81,7 +88,7 @@ export class WebhookService {
       talkSeconds: short ? 0 : c.dur,
       connectedSeconds: c.dur,
       hasRecording: !!c.recPath,
-      survey: c.survey || null,
+      survey: publicSurvey(c.survey),
       summary: c.summary || null,
     };
   }

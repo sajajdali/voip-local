@@ -43,7 +43,7 @@ sudo -u postgres psql -tAc "SELECT 1 FROM pg_roles WHERE rolname='callcenter'" |
 sudo -u postgres psql -tAc "SELECT 1 FROM pg_database WHERE datname='callcenter'" | grep -q 1 || sudo -u postgres psql -c "CREATE DATABASE callcenter OWNER callcenter ENCODING 'UTF8' TEMPLATE template0"
 
 # ---- Asterisk base configuration (generated files go to /etc/asterisk/cc)
-mkdir -p /etc/asterisk/cc /var/lib/asterisk/sounds/custom /var/lib/asterisk/moh-cc /var/spool/asterisk/monitor/cc /var/spool/asterisk/monitor/cc-vm
+mkdir -p /etc/asterisk/cc /var/lib/asterisk/sounds/custom /var/lib/asterisk/moh-cc /var/spool/asterisk/monitor/cc /var/spool/asterisk/monitor/cc-vm /var/spool/asterisk/monitor/cc-svc
 rm -f /etc/asterisk/extensions.ael /etc/asterisk/extensions.lua /etc/asterisk/users.conf
 for f in $APP/asterisk/conf/*.conf; do
   sed -e "s#@AMI_SECRET@#$AMI_SECRET#" -e "s#@DB_PASSWORD@#$DBP#" "$f" > /etc/asterisk/$(basename "$f")

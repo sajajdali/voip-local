@@ -137,6 +137,8 @@ sub("'settings','vai','file'].forEach", "'settings','vai','vsurvey','file'].forE
 sub("...this.aiSettingsVals(s),", "...this.aiSettingsVals(s),...this.surveyVals(s),")
 sub("qs:QS.map((q,i)=>{const a=svl.length?svl.reduce((x,c)=>x+c.survey.answers[i],0)/svl.length:0;", "qs:this.svLabels(s).map((q,i)=>{const al=svl.filter(c=>c.survey.answers[i]!=null);const a=al.length?al.reduce((x,c)=>x+c.survey.answers[i],0)/al.length:0;")
 sub("qText:QS.map((q,i)=>q+': '+c.survey.answers[i]).join(' · ')", "qText:this.svLabels(s).map((q,i)=>c.survey.answers[i]!=null?q+': '+c.survey.answers[i]:'').filter(Boolean).join(' · ')")
+# --- survey voice comment (low score): text or a play button
+sub("commentText:c.survey.comment||'بدون توضیح'", "...this.svComment(c)", count=0)
 head = (root / 'tools/app-head.js').read_text(encoding='utf-8')
 src = src.replace("export default class App extends React.Component {", "export default class App extends LiveApp {")
 (root / 'web/src/App.jsx').write_text(head + '\n' + src.strip() + '\n', encoding='utf-8')

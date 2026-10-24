@@ -15,7 +15,7 @@ import { env } from './env';
 import { hhmm, jalaliDate, jalaliToDate, jAddDays, todayJ } from './jalali';
 import { PatientsService } from './patients';
 import { PrismaService } from './prisma.service';
-import { WebhookService } from './webhook';
+import { WebhookService, publicSurvey } from './webhook';
 
 const run = promisify(execFile);
 const digits = (s: any) => String(s ?? '').replace(/\D/g, '');
@@ -84,7 +84,7 @@ export class CallsService {
       return {
         id: c.id, date: c.date, time: c.time, name: p ? p.name : 'شماره ناشناس', phone: fmtPhone(c.phone), phoneRaw: c.phone,
         nid: p && p.nid ? p.nid : '—', surgery: p && p.surgery ? p.surgery : '—', known: !!p, dir: c.dir, st: short ? 'missed' : c.st, short, op, queue: c.queue,
-        dur: c.dur, wait: c.wait, hasRec: !!c.recPath, ai: c.ai, survey: c.survey, follow: c.st === 'voicemail' ? F.get(c.id) || 'new' : null,
+        dur: c.dur, wait: c.wait, hasRec: !!c.recPath, ai: c.ai, survey: publicSurvey(c.survey), follow: c.st === 'voicemail' ? F.get(c.id) || 'new' : null,
         wave: c.wave, callback: c.callback, summary: c.summary || '',
       };
     });
@@ -114,7 +114,9 @@ export class CallsService {
     else { st = 'missed'; dur = 0; wait = Math.max(0, end - start); }
     const sv = (q.sv || '').replace(/\D/g, '').split('').map(Number).filter(n => n >= 1 && n <= 5);
     // answers stop at the first unanswered question; a partial survey still counts
-    const survey = sv.length ? { answers: sv.slice(0, 5), score: Math.round((sv.reduce((a, b) => a + b, 0) / sv.length) * 10) / 10, comment: '' } : null;
+    let svRec: string | null = sv.length && q.svrec ? path.join(env.monitorDir, q.svrec.replace(/\.\.+/g, '')) : null;
+    if (svRec && (!fs.existsSync(svRec) || fs.statSync(svRec).size < 4000)) svRec = null;
+    const survey = sv.length ? { answers: sv.slice(0, 5), score: Math.round((sv.reduce((a, b) => a + b, 0) / sv.length) * 10) / 10, comment: '', ...(svRec ? { rec: svRec } : {}) } : null;
     const orig = q.orig ? this.origs.get(q.orig) : undefined;
     const at = new Date(start * 1000);
     const opExt = dir === 'in' ? digits(q.ansext) || null : digits(q.opext || q.ansext) || null;
@@ -131,6 +133,10 @@ export class CallsService {
     }
     this.bus.emit('calls', { id });
     if (recPath) this.ai.enqueue(id);
+    if (svRec) {
+      this.bus.emit('notify', { role: 'admin', text: 'نظرسنجی با امتیاز پایین و پیام صوتی از ' + phone });
+      this.ai.transcribeSurvey(id);
+    }
     this.hooks.enqueue(id);
   }
 
@@ -391,6 +397,15 @@ export class CallsController {
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.setHeader('Content-Disposition', `attachment; filename="calls.xlsx"; filename*=UTF-8''${encodeURIComponent(title)}.xlsx`);
     res.send(Buffer.from(buf as ArrayBuffer));
+  }
+
+  @Get('recordings/:id/survey')
+  async surveyComment(@Param('id') id: string, @Res() res: Response) {
+    const c = await this.db.call.findUnique({ where: { id } });
+    const file = (c?.survey as any)?.rec;
+    if (!file || !path.resolve(file).startsWith(path.resolve(env.monitorDir)) || !fs.existsSync(file)) throw new NotFoundException('پیام صوتی نظرسنجی پیدا نشد');
+    res.setHeader('Cache-Control', 'private, max-age=3600');
+    res.sendFile(path.resolve(file));
   }
 
   @Get('recordings/:id')

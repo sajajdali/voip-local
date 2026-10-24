@@ -485,14 +485,25 @@ class LiveApp extends React.Component {
     return qs.length ? qs : ['برخورد اپراتور', 'پاسخ به سؤال', 'زمان انتظار'];
   }
 
+  svComment(c) {
+    const sv = c.survey || {}, playing = this.state.sndPlay === 'svc-' + c.id;
+    return {
+      commentText: sv.comment || (sv.hasRec ? 'پیام صوتی بیمار (برای نمایش متن، تبدیل گفتار در تنظیمات هوش مصنوعی را فعال کنید)' : 'بدون توضیح'),
+      hasVc: !!sv.hasRec, vcLabel: playing ? '■ توقف' : '▶ پیام صوتی',
+      playVc: () => this.playSound({ id: 'svc-' + c.id, url: api.url('/recordings/' + encodeURIComponent(c.id) + '/survey') }),
+    };
+  }
+
   surveyVals(s) {
-    const sv = { on: false, minTalk: 10, timeout: 5, retry: 1, intro: '', thanks: '', invalid: '', qs: [], ...(s.survey || {}) };
+    const sv = { on: false, minTalk: 10, timeout: 6, retry: 1, intro: '', thanks: '', invalid: '', qs: [], ...(s.survey || {}) };
+    const cm = { on: true, max: 2, snd: '', maxSec: 60, ...(sv.comment || {}) };
+    const putC = o => put({ comment: { ...cm, ...o } });
     const put = o => this.setState({ survey: { ...sv, ...o } });
     const snds = (s.snds || []).filter(x => x.file);
     const exists = id => !!id && snds.some(x => x.id === id);
-    const SCRIPT = ['از برخورد کارشناس ما چقدر راضی بودید؟', 'پاسخ کارشناس چقدر به سؤال شما کمک کرد؟', 'از مدت زمان انتظار چقدر راضی بودید؟', 'چقدر احتمال دارد کلینیک را به دیگران پیشنهاد کنید؟', 'به طور کلی از این تماس چقدر راضی بودید؟'];
+    const SCRIPT = ['لطفاً نظر خود را درباره این مکالمه با فشردن عدد ۱ تا ۵ وارد کنید؛ عدد ۵ بیشترین امتیاز و عدد ۱ کمترین امتیاز است.', 'از مدت زمان انتظار چقدر راضی بودید؟ لطفاً عددی بین ۱ تا ۵ وارد کنید.', 'پاسخ کارشناس چقدر به سؤال شما کمک کرد؟ لطفاً عددی بین ۱ تا ۵ وارد کنید.', 'چقدر احتمال دارد کلینیک را به دیگران پیشنهاد کنید؟ لطفاً عددی بین ۱ تا ۵ وارد کنید.', 'به طور کلی از خدمات کلینیک چقدر راضی هستید؟ لطفاً عددی بین ۱ تا ۵ وارد کنید.'];
     const qs = sv.qs.map((q, i) => ({
-      n: (i + 1).toLocaleString('fa-IR'), label: q.label, snd: q.snd || '', script: SCRIPT[i] ? '«' + SCRIPT[i] + ' لطفاً عددی بین ۱ تا ۵ وارد کنید.»' : '',
+      n: (i + 1).toLocaleString('fa-IR'), label: q.label, snd: q.snd || '', script: SCRIPT[i] ? '«' + SCRIPT[i] + '»' : '',
       setLabel: e => put({ qs: sv.qs.map((x, j) => j === i ? { ...x, label: e.target.value } : x) }),
       setSnd: e => put({ qs: sv.qs.map((x, j) => j === i ? { ...x, snd: e.target.value } : x) }),
       del: () => put({ qs: sv.qs.filter((x, j) => j !== i) }),
@@ -509,7 +520,7 @@ class LiveApp extends React.Component {
     let status, statusBg, statusFg;
     if (!sv.on) { status = 'نظرسنجی خاموش است؛ تماس‌ها مثل قبل بعد از قطع اپراتور تمام می‌شوند.'; statusBg = '#f2f3ef'; statusFg = '#55585c'; }
     else if (!ready) { status = 'نظرسنجی روشن است ولی برای هیچ سؤالی صدا انتخاب نشده؛ تا صدا انتخاب نشود نظرسنجی پخش نمی‌شود.'; statusBg = '#fdeceb'; statusFg = '#b42318'; }
-    else { status = 'فعال: بعد از قطع تماس توسط اپراتور، ' + ready.toLocaleString('fa-IR') + ' سؤال برای تماس‌گیرنده پخش می‌شود' + (ready < qs.length ? ' (سؤال‌های بدون صدا رد می‌شوند)' : '') + '.'; statusBg = '#eaf4dc'; statusFg = '#3d6a0c'; }
+    else { status = 'فعال: بعد از قطع تماس توسط اپراتور، ' + ready.toLocaleString('fa-IR') + ' سؤال برای تماس‌گیرنده پخش می‌شود' + (ready < qs.length ? ' (سؤال‌های بدون صدا رد می‌شوند)' : '') + (cm.on && exists(cm.snd) ? '؛ با امتیاز ' + cm.max.toLocaleString('fa-IR') + ' یا کمتر، بیمار می‌تواند پیام صوتی بگذارد' : '') + '.'; statusBg = '#eaf4dc'; statusFg = '#3d6a0c'; }
     return { sv2: {
       onT: tg(sv.on), onLabel: sv.on ? 'فعال' : 'غیرفعال', tog: () => put({ on: !sv.on }),
       status, statusBg, statusFg,
@@ -522,7 +533,10 @@ class LiveApp extends React.Component {
       snds: snds.map(x => ({ id: x.id, name: x.name })),
       intro: sv.intro, setIntro: e => put({ intro: e.target.value }), thanks: sv.thanks, setThanks: e => put({ thanks: e.target.value }), invalid: sv.invalid, setInvalid: e => put({ invalid: e.target.value }),
       qs, hasQs: qs.length > 0, canAdd: qs.length < 5,
-      add: () => put({ qs: [...sv.qs, { label: ['برخورد اپراتور', 'پاسخ به سؤال', 'زمان انتظار', 'پیشنهاد به دیگران', 'رضایت کلی'][sv.qs.length] || 'سؤال جدید', snd: '' }] }),
+      add: () => put({ qs: [...sv.qs, { label: ['رضایت از مکالمه', 'زمان انتظار', 'پاسخ به سؤال', 'پیشنهاد به دیگران', 'رضایت کلی'][sv.qs.length] || 'سؤال جدید', snd: '' }] }),
+      cmT: tg(cm.on), cmOn: cm.on, togCm: () => putC({ on: !cm.on }), cmMax: String(cm.max), setCmMax: e => putC({ max: +e.target.value }),
+      cmSnd: cm.snd, setCmSnd: e => putC({ snd: e.target.value }), cmMaxSec: cm.maxSec, setCmMaxSec: e => putC({ maxSec: Math.min(180, Math.max(10, parseInt(e.target.value, 10) || 60)) }),
+      cmWarn: cm.on && !exists(cm.snd), cmCount: (this.calls.filter(c => c.survey && c.survey.hasRec).length).toLocaleString('fa-IR'),
       goSounds: () => this.setState({ page: 'vsound' }), goReport: () => this.setState({ page: 'survey' }),
     } };
   }
@@ -646,7 +660,7 @@ class LiveApp extends React.Component {
     if (this.sndA) { this.sndA.pause(); this.sndA = null; }
     if (this.state.sndPlay === x.id) { this.setState({ sndPlay: null }); return; }
     if (this.state.pid && !this.state.paused) { this.audio.pause(); this.setState({ paused: true }); }
-    this.sndA = new Audio(api.url('/sounds/' + encodeURIComponent(x.id) + '/file'));
+    this.sndA = new Audio(x.url || api.url('/sounds/' + encodeURIComponent(x.id) + '/file'));
     this.sndA.onended = () => this.setState({ sndPlay: null });
     this.sndA.play().catch(() => this.toast('پخش فایل صوتی ممکن نشد'));
     this.setState({ sndPlay: x.id });
@@ -1063,7 +1077,7 @@ export default class App extends LiveApp {
    rows:fl.map(R),hasVm:fvm.length>0,vmCount:fvm.length,
    vms:fvm.map(c=>({...R(c),fol:FOLLOW[fol(c)],snippet:c.ai.tx,open:()=>this.setState({page:'voice',vSel:c.id,vTab:'all',vQ:'',vDate:'all'})})),
    hasNotes:fNotes.length>0,notes:fNotes,hasSv:fsv.length>0,
-   svs:fsv.map(c=>{const sc=Math.round(c.survey.score);return {...c,starsOn:'★'.repeat(sc),starsOff:'★'.repeat(5-sc),commentText:c.survey.comment||'بدون توضیح'}})}:{has:false};
+   svs:fsv.map(c=>{const sc=Math.round(c.survey.score);return {...c,starsOn:'★'.repeat(sc),starsOff:'★'.repeat(5-sc),...this.svComment(c)}})}:{has:false};
   const cs=s.call;
   const call=cs?{show:true,name:cs.name,phone:cs.phone,ini:ini(cs.name),isDial:cs.stage==='dial',isLive:cs.stage==='live',rec:cs.rec,recErr:cs.recErr,hasRecErr:!!cs.recErr,elText:fmt(cs.el),
    stageLabel:cs.stage==='dial'?'در حال برقراری تماس…':'تماس برقرار است',ext:ME.ext||'—',tel:'tel:'+cs.phoneRaw,note:cs.note||'',
@@ -1101,7 +1115,7 @@ export default class App extends LiveApp {
    dist:dist.map((n,i)=>({label:'★'.repeat(5-i),n,w:n/maxD*100+'%'})),
    qs:this.svLabels(s).map((q,i)=>{const al=svl.filter(c=>c.survey.answers[i]!=null);const a=al.length?al.reduce((x,c)=>x+c.survey.answers[i],0)/al.length:0;return {label:q,avg:a.toFixed(1),w:a/5*100+'%'}}),
    opRows:OPS.map(o=>{const l=svAll.filter(c=>c.op.id===o.id);return {name:o.name,n:l.length,a:avg(l)}}).sort((a,b)=>b.a-a.a).map((o,i)=>({...o,rank:i+1,avg:o.a.toFixed(1)})),
-   list:svl.slice(0,15).map(c=>{const sc=Math.round(c.survey.score);return {...R(c),starsOn:'★'.repeat(sc),starsOff:'★'.repeat(5-sc),scoreText:c.survey.score.toFixed(1)+' از 5',commentText:c.survey.comment||'بدون توضیح',qText:this.svLabels(s).map((q,i)=>c.survey.answers[i]!=null?q+': '+c.survey.answers[i]:'').filter(Boolean).join(' · ')}})};
+   list:svl.slice(0,15).map(c=>{const sc=Math.round(c.survey.score);return {...R(c),starsOn:'★'.repeat(sc),starsOff:'★'.repeat(5-sc),scoreText:c.survey.score.toFixed(1)+' از 5',...this.svComment(c),qText:this.svLabels(s).map((q,i)=>c.survey.answers[i]!=null?q+': '+c.survey.answers[i]:'').filter(Boolean).join(' · ')}})};
 
   // ai
   const fa=AI.filter(c=>(s.aiCat==='all'||c.ai.cat.id===s.aiCat)&&(s.aiSent==='all'||c.ai.sent===s.aiSent));

@@ -1281,6 +1281,9 @@ export default function AppView({ vm }) {
                   <div style={{fontSize: "13px", color: "#3a3b3d", lineHeight: "1.8"}}>
                     {row?.commentText}
                     <div style={{fontSize: "11px", color: "#6b6e72", marginTop: "2px"}}>{row?.qText}</div>
+                    {(row?.hasVc) ? (<>
+                      <button onClick={row?.playVc} style={{marginTop: "6px", background: "#fdeceb", color: "#b42318", border: "none", padding: "4px 10px", borderRadius: "999px", fontSize: "11px", fontWeight: "700", cursor: "pointer", fontFamily: "inherit"}}>{row?.vcLabel}</button>
+                    </>) : null}
                   </div>
                   <div style={{textAlign: "left", whiteSpace: "nowrap"}}>
                     <span style={{color: "#e0a83a", fontSize: "15px"}}>{row?.starsOn}</span>
@@ -1932,6 +1935,51 @@ export default function AppView({ vm }) {
                 <button onClick={vm.sv2?.add} style={{alignSelf: "flex-start", background: "#2E2F31", color: "#fff", border: "none", padding: "10px 16px", borderRadius: "12px", fontSize: "13px", fontWeight: "700", cursor: "pointer", fontFamily: "inherit"}}>{"+ افزودن سؤال"}</button>
               </>) : null}
             </div>
+            <div style={{background: "#fff", border: "1px solid #e7e8e3", borderRadius: "20px", padding: "20px", display: "flex", flexDirection: "column", gap: "14px"}}>
+              <div style={{display: "flex", alignItems: "center", gap: "12px"}}>
+                <div style={{flex: "1"}}>
+                  <div style={{fontWeight: "800", fontSize: "16px"}}>{"پیام صوتی برای امتیاز پایین"}</div>
+                  <div style={{fontSize: "12px", color: "#6b6e72", marginTop: "4px", lineHeight: "1.7"}}>
+                    {"اگر بیمار امتیاز پایین بدهد، از او خواسته می‌شود دلیل نارضایتی را بگوید. پیام کنار همان تماس ذخیره می‌شود، به مدیر اعلان داده می‌شود و اگر تبدیل گفتار فعال باشد متنش هم نوشته می‌شود. تا امروز "}{vm.sv2?.cmCount}{" پیام."}
+                  </div>
+                </div>
+                <button onClick={vm.sv2?.togCm} style={{width: "42px", height: "24px", borderRadius: "99px", border: "none", background: vm.sv2?.cmT?.bg, display: "flex", justifyContent: vm.sv2?.cmT?.j, alignItems: "center", padding: "3px", cursor: "pointer", flexShrink: "0"}}>
+                  <span style={{width: "18px", height: "18px", borderRadius: "50%", background: "#fff", boxShadow: "0 1px 2px rgba(0,0,0,.25)"}} />
+                </button>
+              </div>
+              {(vm.sv2?.cmOn) ? (<>
+                <div style={{display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(200px,1fr))", gap: "12px"}}>
+                  <label style={{display: "flex", flexDirection: "column", gap: "6px", fontSize: "12px", color: "#6b6e72"}}>
+                    {"امتیازهایی که پیام می‌گیرند"}
+                    <select value={vm.sv2?.cmMax} onChange={vm.sv2?.setCmMax} style={{border: "1px solid #e1e3dc", borderRadius: "10px", padding: "10px 12px", fontSize: "13px", outline: "none", background: "#fff", color: "#232425", fontFamily: "inherit", width: "100%"}}>
+                      <option value="1">{"فقط ۱"}</option>
+                      <option value="2">{"۱ و ۲"}</option>
+                      <option value="3">{"۱ تا ۳"}</option>
+                      <option value="4">{"۱ تا ۴"}</option>
+                    </select>
+                  </label>
+                  <label style={{display: "flex", flexDirection: "column", gap: "6px", fontSize: "12px", color: "#6b6e72"}}>
+                    {"فایل صوتی درخواست پیام"}
+                    <select value={vm.sv2?.cmSnd} onChange={vm.sv2?.setCmSnd} style={{border: "1px solid #e1e3dc", borderRadius: "10px", padding: "10px 12px", fontSize: "13px", outline: "none", background: "#fff", color: "#232425", fontFamily: "inherit", width: "100%"}}>
+                      <option value="">{"— انتخاب کنید —"}</option>
+                      {(vm.sv2?.snds || []).map((o, __i11) => <React.Fragment key={__i11}>
+                        <option value={o?.id}>{o?.name}</option>
+                      </React.Fragment>)}
+                    </select>
+                  </label>
+                  <label style={{display: "flex", flexDirection: "column", gap: "6px", fontSize: "12px", color: "#6b6e72"}}>
+                    {"حداکثر طول پیام (ثانیه)"}
+                    <input type="number" value={vm.sv2?.cmMaxSec} onChange={vm.sv2?.setCmMaxSec} style={{border: "1px solid #e1e3dc", borderRadius: "10px", padding: "10px 12px", fontSize: "13px", outline: "none", background: "#fff", color: "#232425", fontFamily: "inherit", width: "100%"}} />
+                  </label>
+                </div>
+                <div style={{fontSize: "11px", color: "#8b8e89", lineHeight: "1.7"}}>
+                  {"متن پیشنهادی برای ضبط: «متأسفیم که از این تماس راضی نبودید. لطفاً بعد از شنیدن بوق، دلیل نارضایتی خود را بگویید و در پایان کلید مربع را فشار دهید.»"}
+                </div>
+                {(vm.sv2?.cmWarn) ? (<>
+                  <div style={{fontSize: "12px", color: "#b42318"}}>{"تا فایل صوتی درخواست پیام انتخاب نشود، پیام صوتی گرفته نمی‌شود."}</div>
+                </>) : null}
+              </>) : null}
+            </div>
             <div style={{display: "flex", flexWrap: "wrap", gap: "20px", alignItems: "flex-start"}}>
               <div style={{background: "#fff", border: "1px solid #e7e8e3", borderRadius: "20px", padding: "20px", display: "flex", flexDirection: "column", gap: "14px", flex: "1 1 340px", minWidth: "0"}}>
                 <div style={{fontWeight: "800", fontSize: "16px"}}>{"پیام‌ها"}</div>
@@ -1945,7 +1993,7 @@ export default function AppView({ vm }) {
                   </select>
                 </label>
                 <div style={{fontSize: "11px", color: "#8b8e89", lineHeight: "1.7", marginTop: "-6px"}}>
-                  {"پیشنهاد: «از تماس شما سپاسگزاریم. لطفاً برای بهبود خدمات، به چند سؤال کوتاه با عدد ۱ تا ۵ پاسخ دهید؛ ۵ یعنی کاملاً راضی.»"}
+                  {"پیشنهاد: «از تماس شما با کلینیک دکتر افلاکی سپاسگزاریم.» (متن امتیازدهی خودش در فایل سؤال است)"}
                 </div>
                 <label style={{display: "flex", flexDirection: "column", gap: "6px", fontSize: "12px", color: "#6b6e72"}}>
                   {"پیام تشکر (اختیاری)"}

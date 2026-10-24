@@ -152,6 +152,7 @@ function surveyLines(cfg: VoipConfig): string[] {
   const qs = (sv.qs || []).filter((q: any) => has(q.snd)).slice(0, SURVEY_MAX_Q);
   if (!sv.on || !qs.length) return ['exten => s,1,Hangup()'];
   const to = Math.min(15, Math.max(2, +sv.timeout || 5)), retry = Math.min(3, Math.max(0, +sv.retry || 0));
+  const cm = sv.comment || {}, low = Math.min(4, Math.max(1, +cm.max || 2));
   const L = [
     'exten => s,1,GotoIf($["${CC_DIR}"!="in" | "${CC_ANSTS}"=""]?end)',
     ` same => n,GotoIf($[\${EPOCH} - \${CC_ANSTS} < ${Math.max(0, +sv.minTalk || 0)}]?end)`,
@@ -162,17 +163,24 @@ function surveyLines(cfg: VoipConfig): string[] {
     L.push(
       ` same => n(q${i + 1}),Set(CC_T=0)`,
       ` same => n(q${i + 1}r),Read(${v},custom/${sid(q.snd)},1,,1,${to})`,
-      ` same => n,GotoIf(\${REGEX("^[1-5]$" \${${v}})}?q${i + 2})`,
+      ` same => n,GotoIf(\${REGEX("^[1-5]$" \${${v}})}?a${i + 1})`,
       ` same => n,Set(${v}=)`,
       ' same => n,Set(CC_T=$[${CC_T}+1])',
       ` same => n,GotoIf($[\${CC_T} > ${retry}]?fin)`,
       ...(has(sv.invalid) ? [` same => n,Playback(custom/${sid(sv.invalid)})`] : []),
       ` same => n,Goto(q${i + 1}r)`,
+      ` same => n(a${i + 1}),ExecIf($[\${${v}} <= ${low}]?Set(CC_SVLOW=1))`,
     );
   });
   L.push(` same => n(q${qs.length + 1}),NoOp(survey done)`,
-    ' same => n(fin),GotoIf($["${CC_SV1}"=""]?end)',
-    ...(has(sv.thanks) ? [` same => n,Playback(custom/${sid(sv.thanks)})`] : [' same => n,Playback(beep)']),
+    ' same => n(fin),GotoIf($["${CC_SV1}"=""]?end)');
+  // a low score: ask why and record the caller's answer (ended by # or silence)
+  if (cm.on && has(cm.snd)) L.push(
+    ' same => n,GotoIf($["${CC_SVLOW}"!="1"]?thx)',
+    ` same => n,Playback(custom/${sid(cm.snd)})`,
+    ' same => n,Set(CC_SVREC=cc-svc/${STRFTIME(${EPOCH},,%Y%m%d)}-${FILTER(0-9.,${UNIQUEID})}.wav)',
+    ` same => n,Record(\${ASTSPOOLDIR}/monitor/\${CC_SVREC},6,${Math.min(180, Math.max(10, +cm.maxSec || 60))},k)`);
+  L.push(...(has(sv.thanks) ? [` same => n(thx),Playback(custom/${sid(sv.thanks)})`] : [' same => n(thx),Playback(beep)']),
     ' same => n(end),Hangup()');
   return L;
 }
@@ -434,7 +442,7 @@ function dialplan(cfg: VoipConfig, opts: { hookUrl: string; hookSecret: string }
   // --- hangup handler on the caller (master) channel: reports the finished call to the panel
   X('cc-hangup', [
     'exten => s,1,GotoIf($["${CC_DIR}"=""]?done)',
-    ' same => n,' + hook('call', 'uid=${URIENCODE(${UNIQUEID})}&start=${CC_START}&end=${EPOCH}&cid=${URIENCODE(${CALLERID(num)})}&num=${URIENCODE(${CC_NUM})}&did=${CC_DID}&dir=${CC_DIR}&queue=${URIENCODE(${CC_QUEUE})}&ansext=${CC_ANSEXT}&ansts=${CC_ANSTS}&xfer=${CC_XFER}&vm=${CC_VM}&vmbox=${CC_VMBOX}&rec=${URIENCODE(${CC_REC})}&orig=${CC_ORIG}&opext=${CC_OPEXT}&sv=${CC_SV1}${CC_SV2}${CC_SV3}${CC_SV4}${CC_SV5}&blocked=${CC_BLOCKED}'),
+    ' same => n,' + hook('call', 'uid=${URIENCODE(${UNIQUEID})}&start=${CC_START}&end=${EPOCH}&cid=${URIENCODE(${CALLERID(num)})}&num=${URIENCODE(${CC_NUM})}&did=${CC_DID}&dir=${CC_DIR}&queue=${URIENCODE(${CC_QUEUE})}&ansext=${CC_ANSEXT}&ansts=${CC_ANSTS}&xfer=${CC_XFER}&vm=${CC_VM}&vmbox=${CC_VMBOX}&rec=${URIENCODE(${CC_REC})}&orig=${CC_ORIG}&opext=${CC_OPEXT}&sv=${CC_SV1}${CC_SV2}${CC_SV3}${CC_SV4}${CC_SV5}&svrec=${URIENCODE(${CC_SVREC})}&blocked=${CC_BLOCKED}'),
     ' same => n(done),Return()',
   ]);
 

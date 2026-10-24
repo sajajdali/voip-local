@@ -10,14 +10,11 @@ import { PrismaService } from './prisma.service';
 export const ARRAY_KEYS = ['exts', 'trunks', 'vqs', 'ivrs', 'snds', 'routes', 'oroutes', 'tgroups', 'tconds', 'holidays', 'rgroups', 'blist'] as const;
 export const OBJECT_KEYS = ['fmes', 'bset', 'survey'] as const;
 
-/** Post-call survey: off until prompts are recorded; the three questions match the survey report. */
+/** Post-call survey: off until prompts are recorded. One 1..5 rating; a low score may leave a voice comment. */
 export const DEFAULT_SURVEY = {
-  on: false, minTalk: 10, timeout: 5, retry: 1, intro: '', thanks: '', invalid: '',
-  qs: [
-    { label: 'برخورد اپراتور', snd: '' },
-    { label: 'پاسخ به سؤال', snd: '' },
-    { label: 'زمان انتظار', snd: '' },
-  ],
+  on: false, minTalk: 10, timeout: 6, retry: 1, intro: '', thanks: '', invalid: '',
+  qs: [{ label: 'رضایت از مکالمه', snd: '' }],
+  comment: { on: true, max: 2, snd: '', maxSec: 60 },
 };
 export const KEYS = [...ARRAY_KEYS, ...OBJECT_KEYS] as string[];
 const LIVE: Record<string, string[]> = { exts: ['st'], vqs: ['waiting', 'sla'], trunks: ['reg', 'used'] };
