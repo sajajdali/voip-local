@@ -3,8 +3,8 @@ __pycache__/
 *.db
 *.sqlite*
 *.wav
+!/sounds/ai-unavailable-fa.wav
 .env
 *.env
 !*.env.example
 secrets/
-
