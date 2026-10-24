@@ -3,7 +3,7 @@
 import React from 'react';
 import AppView from './generated/AppView.jsx';
 import { api, auth, socket } from './api.js';
-import { TODAY, MONTH_START, jAdd, jWeekday, jLong, WD_NAMES, jStr, pad as jpad } from './jalali.js';
+import { TODAY, MONTH_START, jAdd, jWeekday, jLong, WD_NAMES, jStr, jToDate, pad as jpad } from './jalali.js';
 
 // rolling window: 'yyyy/mm/dd HH:MM' of now minus 24 hours (comparable with call date + time)
 const since24 = () => { const d = new Date(Date.now() - 24 * 3600e3); return jStr(d) + ' ' + jpad(d.getHours()) + ':' + jpad(d.getMinutes()); };
@@ -224,6 +224,15 @@ class LiveApp extends React.Component {
     for (const c of att) (by[c.phoneRaw] = by[c.phoneRaw] || []).push(c);
     const when = c => c.date + ' ' + c.time;
     const stage = c => c.short ? 'مکالمه زیر ۵ ثانیه' : c.st === 'voicemail' ? 'پیام صوتی گذاشت' : /Night|شب/.test(c.queue) ? 'منوی شب' : /^IVR/.test(c.queue) ? 'منوی روز' : 'در صف';
+    // last unanswered callback: «آخرین: داخلی ۱۰۰ (نام) · شنبه ۱۴۰۵/۰۸/۰۲ ساعت ۱۰:۲۵»
+    const lastCb = cbs => {
+      if (!cbs.length) return '';
+      const y = [...cbs].sort((a, b) => when(a).localeCompare(when(b)))[cbs.length - 1];
+      const who = y.op ? 'داخلی ' + y.op.ext + (y.op.name && !/^داخلی /.test(y.op.name) && y.op.name.replace(/\D/g, '') !== String(y.op.ext) ? ' (' + y.op.name + ')' : '') : 'داخلی —';
+      let day = '';
+      try { day = WD_NAMES[jWeekday(jToDate(y.date))] + ' '; } catch (e) { /* unknown date format */ }
+      return 'آخرین: ' + who + ' · ' + day + y.date + ' ساعت ' + y.time;
+    };
     const groups = Object.entries(by).map(([p, l]) => {
       l.sort((a, b) => when(a).localeCompare(when(b)));
       const f0 = l[0], last = l[l.length - 1];
@@ -241,6 +250,7 @@ class LiveApp extends React.Component {
         name: g.last.known ? g.last.name : 'شماره ناشناس', ini: g.last.ini, phone: g.last.phone, attempts: g.l.length,
         firstDate: g.f0.date, firstTime: g.f0.time, lastDate: g.last.date, lastTime: g.last.time, lastStage: stage(g.last),
         cbText: g.cbs.length ? g.cbs.length + ' بار تماس گرفته شد، جواب نداد' : 'هنوز تماسی گرفته نشده', cbFg: g.cbs.length ? '#8a5a00' : '#b42318',
+        cbLast: lastCb(g.cbs), hasCbLast: g.cbs.length > 0,
         openFile: () => this.openFile(g.last), call: () => this.startCall({ name: g.last.known ? g.last.name : g.last.phone, phone: g.last.phone, phoneRaw: g.p, vmId: null }),
       })),
     };

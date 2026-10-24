@@ -318,11 +318,13 @@ export class CallsController {
       if (ok && (!lastOk[x.phoneRaw] || lastOk[x.phoneRaw] < when(x))) lastOk[x.phoneRaw] = when(x);
     }
     const callbacks = (c: any) => all.filter(y => y.dir === 'out' && y.phoneRaw === c.phoneRaw && when(y) > when(c)).sort((a, z) => when(a).localeCompare(when(z)));
+    // «داخلی ۱۰۰ (نام اپراتور) — شنبه ۱۴۰۵/۰۸/۰۲ ساعت ۱۰:۲۵»
+    const byWhom = (y: any) => `داخلی ${y.op ? y.op.ext : '—'}${y.op && y.op.name && !/^داخلی /.test(y.op.name) && y.op.name.replace(/\D/g, '') !== String(y.op.ext) ? ' (' + y.op.name + ')' : ''} — ${weekday(y.date)} ${y.date} ساعت ${y.time}`;
     const cbText = (c: any) => {
       const l = callbacks(c);
       if (!l.length) return 'خیر — تماسی گرفته نشده';
       const ok = l.find(y => y.st === 'answered');
-      return ok ? `بله — ${l.length} بار، صحبت شد ${mmss(ok.dur)} (داخلی ${ok.op ? ok.op.ext : '—'}، ${ok.date} ساعت ${ok.time})` : `بله — ${l.length} بار، جواب نداد`;
+      return ok ? `بله — ${l.length} بار، صحبت شد ${mmss(ok.dur)} (داخلی ${ok.op ? ok.op.ext : '—'}، ${ok.date} ساعت ${ok.time})` : `بله — ${l.length} بار، جواب نداد (آخرین بار: ${byWhom(l[l.length - 1])})`;
     };
     // total talk time of the callbacks that actually reached the caller
     const cbTalk = (c: any) => { const t = callbacks(c).filter(y => y.st === 'answered').reduce((n, y) => n + y.dur, 0); return t ? mmss(t) : '—'; };
@@ -356,6 +358,7 @@ export class CallsController {
       { h: 'بیشترین انتظار (ثانیه)', w: 13, v: g => Math.max(...g.l.map((x: any) => x.wait)), center: true },
       { h: 'داخلی‌های زنگ‌خورده', w: 18, v: g => [...new Set(g.l.flatMap((x: any) => [...(rings.get(x.id.replace(/^C/, '')) || [])]))].sort().join('، ') || '—', center: true },
       { h: 'تماس برگشتی کلینیک', w: 26, v: g => { const n = all.filter(y => y.dir === 'out' && y.phoneRaw === g.p && when(y) > when(g.l[0])).length; return n ? `${n} بار تماس گرفته شد، جواب نداد` : 'هنوز تماسی گرفته نشده'; } },
+      { h: 'آخرین تماس برگشتی بی‌پاسخ (چه کسی، کی)', w: 40, v: g => { const l = all.filter(y => y.dir === 'out' && y.phoneRaw === g.p && when(y) > when(g.l[0])).sort((a, z) => when(a).localeCompare(when(z))); return l.length ? byWhom(l[l.length - 1]) : '—'; } },
       { h: 'وضعیت', w: 16, v: () => 'هنوز بدون ارتباط', center: true },
     ] : [
       { h: 'ردیف', w: 7, v: (_, i) => i + 1, center: true },

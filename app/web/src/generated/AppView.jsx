@@ -498,7 +498,12 @@ export default function AppView({ vm }) {
                             <div>{u?.lastDate}</div>
                             <div style={{fontSize: "12px", color: "#6b6e72"}}>{u?.lastTime}{" · "}{u?.lastStage}</div>
                           </td>
-                          <td style={{padding: "11px 16px", borderTop: "1px solid #eeefeb", fontSize: "13px", color: u?.cbFg, fontWeight: "600"}}>{u?.cbText}</td>
+                          <td style={{padding: "11px 16px", borderTop: "1px solid #eeefeb", fontSize: "13px", color: u?.cbFg, fontWeight: "600"}}>
+                            {u?.cbText}
+                            {(u?.hasCbLast) ? (<>
+                              <div style={{fontSize: "11px", color: "#6b6e72", fontWeight: "500", marginTop: "3px"}}>{u?.cbLast}</div>
+                            </>) : null}
+                          </td>
                           <td style={{padding: "11px 16px", borderTop: "1px solid #eeefeb", fontSize: "13px", textAlign: "center"}}>
                             <button onClick={u?.call} style={{display: "inline-flex", alignItems: "center", gap: "6px", border: "none", background: "#8DC63F", color: "#1f2021", padding: "7px 14px", borderRadius: "10px", fontSize: "12px", fontWeight: "800", cursor: "pointer", fontFamily: "inherit"}}>
                               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round">
