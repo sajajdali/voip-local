@@ -9,7 +9,7 @@ import * as ExcelJS from 'exceljs';
 import { AiService } from './ai';
 import { AiAgentService } from './aiagent';
 import { AsteriskService } from './asterisk/asterisk.service';
-import { CurrentUser, Me, Public } from './auth';
+import { CurrentUser, Me, Public, Roles } from './auth';
 import { Bus } from './bus';
 import { ConfigStore } from './config';
 import { env } from './env';
@@ -21,6 +21,13 @@ import { WebhookService, publicSurvey } from './webhook';
 const run = promisify(execFile);
 const digits = (s: any) => String(s ?? '').replace(/\D/g, '');
 /** Operator delivers mobiles as 9…, 98… or 0098…; store them in the standard 0… form. */
+/** List view of an AI conversation: what happened, without the full transcript. */
+function convBrief(c: any) {
+  if (!c) return null;
+  const lines = Array.isArray(c.lines) ? c.lines : [];
+  return { endReason: c.endReason || '', turns: lines.filter((l: any) => l.role !== 'event').length, events: lines.filter((l: any) => l.role === 'event').map((l: any) => ({ name: l.name, status: l.status })) };
+}
+
 /** Panel text for the last surgery: Jalali date and how long ago. */
 function surgeryText(iso: string | null | undefined) {
   const days = daysSince(iso);
@@ -64,7 +71,7 @@ export class CallsService {
   private log = new Logger('Calls');
   origs = new Map<string, Orig>();
 
-  constructor(private db: PrismaService, private bus: Bus, private patients: PatientsService, private store: ConfigStore, private ai: AiService, private ast: AsteriskService, private hooks: WebhookService) {
+  constructor(private db: PrismaService, private bus: Bus, private patients: PatientsService, private store: ConfigStore, private ai: AiService, private ast: AsteriskService, private hooks: WebhookService, private aiAgent: AiAgentService) {
     ast.on('ami', (m: any) => {
       // Operator did not pick up the originate: no channel reached the dialplan, so log it here.
       if (m.Event === 'OriginateResponse' && m.Response === 'Failure') {
@@ -92,7 +99,7 @@ export class CallsService {
       return {
         id: c.id, date: c.date, time: c.time, name: p ? p.name : 'شماره ناشناس', phone: fmtPhone(c.phone), phoneRaw: c.phone,
         nid: p && p.nid ? p.nid : '—', surgery: surgeryText(p?.surgery), known: !!p, dir: c.dir, st: short ? 'missed' : c.st, short, op, queue: c.queue,
-        dur: c.dur, wait: c.wait, hasRec: !!c.recPath, ai: c.ai, survey: publicSurvey(c.survey), follow: c.st === 'voicemail' ? F.get(c.id) || 'new' : null,
+        dur: c.dur, wait: c.wait, hasRec: !!c.recPath, ai: c.ai, survey: publicSurvey(c.survey), aiConv: convBrief(c.aiConv), aiState: c.aiState, follow: c.st === 'voicemail' ? F.get(c.id) || 'new' : null,
         wave: c.wave, callback: c.callback, summary: c.summary || '',
       };
     });
@@ -131,7 +138,7 @@ export class CallsService {
     const data = {
       startedAt: at, date: jalaliDate(at), time: hhmm(at), phone, dir, st, queue: q.queue || (dir === 'out' ? 'تماس خروجی' : '—'), opExt,
       dur, wait, did: digits(q.did) || null, recPath, survey: survey as any, callback: !!q.orig, summary: orig?.note || null, wave: info.wave as any,
-      aiState: recPath ? 'queued' : 'none',
+      aiState: recPath || q.aiuuid ? 'queued' : 'none',
     };
     await this.db.call.upsert({ where: { id }, create: { id, ...data }, update: data });
     if (q.orig) {
@@ -139,7 +146,8 @@ export class CallsService {
       await this.endOrig(q.orig, st === 'answered', true);
     }
     this.bus.emit('calls', { id });
-    if (recPath) this.ai.enqueue(id);
+    if (q.aiuuid) this.aiAgent.importConversation(id, q.aiuuid);
+    else if (recPath) this.ai.enqueue(id);
     if (svRec) {
       this.bus.emit('notify', { role: 'admin', text: 'نظرسنجی با امتیاز پایین و پیام صوتی از ' + phone });
       this.ai.transcribeSurvey(id);
@@ -404,6 +412,15 @@ export class CallsController {
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.setHeader('Content-Disposition', `attachment; filename="calls.xlsx"; filename*=UTF-8''${encodeURIComponent(title)}.xlsx`);
     res.send(Buffer.from(buf as ArrayBuffer));
+  }
+
+  /** Full AI receptionist conversation (transcript and actions) for the review page. */
+  @Roles('admin')
+  @Get('calls/:id/conversation')
+  async conversation(@Param('id') id: string) {
+    const c = await this.db.call.findUnique({ where: { id }, select: { aiConv: true, ai: true, aiState: true, aiError: true } });
+    if (!c || !c.aiConv) throw new NotFoundException('گفتگویی برای این تماس ثبت نشده است');
+    return c;
   }
 
   @Get('recordings/:id/survey')

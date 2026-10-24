@@ -267,6 +267,9 @@ class Config:
     appointments_db: str = "/var/lib/asterisk-ai/appointments.db"
     transfer_dir: str = "/var/lib/asterisk-ai/transfers"
     caller_metadata_dir: str = "/var/lib/asterisk-ai/callers"
+    # empty = keep nothing (the original privacy default); set by the call-center panel when calls are reviewed
+    transcript_dir: str = ""
+    transcribe_model: str = "gpt-4o-transcribe"
 
     @classmethod
     def from_env(cls) -> "Config":
@@ -311,6 +314,8 @@ class Config:
                 "ASTERISK_AI_CALLER_METADATA_DIR",
                 "/var/lib/asterisk-ai/callers",
             ),
+            transcript_dir=os.environ.get("ASTERISK_AI_TRANSCRIPT_DIR", "").strip(),
+            transcribe_model=os.environ.get("ASTERISK_AI_TRANSCRIBE_MODEL", "gpt-4o-transcribe").strip() or "gpt-4o-transcribe",
         )
 
 
@@ -519,6 +524,21 @@ def load_fallback_pcm(path: str) -> bytes:
         return b""
 
 
+_FA_DIGITS = str.maketrans("۰۱۲۳۴۵۶۷۸۹٠١٢٣٤٥٦٧٨٩", "01234567890123456789")
+
+
+def mask_national_codes(text: str) -> str:
+    """Hide 10-digit national codes (digits may be separated by spaces or dashes) in kept transcripts."""
+    normalized = text.translate(_FA_DIGITS)
+
+    def hide(match: re.Match) -> str:
+        digits = re.sub(r"\D", "", match.group(0))
+        # a mobile number (09 + 9 digits) is the caller's own and stays readable
+        return match.group(0) if len(digits) == 11 and digits.startswith("09") else "[کد ملی]"
+
+    return re.sub(r"\d(?:[\s-]?\d){9,}", hide, normalized)
+
+
 def sanitize_caller_name(value: object) -> str:
     if not isinstance(value, str):
         return ""
@@ -705,6 +725,11 @@ def session_update(config: Config, instructions: str = INSTRUCTIONS) -> dict:
             "audio": {
                 "input": {
                     "format": {"type": "audio/pcma"},
+                    **(
+                        {"transcription": {"model": config.transcribe_model, "language": "fa"}}
+                        if config.transcript_dir
+                        else {}
+                    ),
                     "turn_detection": {
                         "type": "server_vad",
                         "create_response": True,
@@ -755,6 +780,11 @@ def gemini_setup(config: Config, instructions: str = INSTRUCTIONS) -> dict:
             },
             "systemInstruction": {"parts": [{"text": instructions}]},
             "tools": [{"functionDeclarations": function_declarations()}],
+            **(
+                {"inputAudioTranscription": {}, "outputAudioTranscription": {}}
+                if config.transcript_dir
+                else {}
+            ),
             "realtimeInputConfig": {
                 "automaticActivityDetection": {
                     "disabled": False,
@@ -820,6 +850,9 @@ class CallSession:
         self.openai_response_active = False
         self.pending_openai_response: dict | None = None
         self.appointments = AppointmentStore(config.appointments_db)
+        self.transcript: list[dict] = []
+        self.gemini_turn = {"caller": "", "assistant": ""}
+        self.end_reason = ""
 
     def send_ast(self, kind: int, payload: bytes = b"") -> None:
         with self.send_lock:
@@ -927,6 +960,10 @@ class CallSession:
                                 LOG.warning("call=%s output_queue_overflow", self.call_id)
                 elif event_type == "input_audio_buffer.speech_started":
                     self.clear_output()
+                elif event_type == "conversation.item.input_audio_transcription.completed":
+                    self.note("caller", event.get("transcript", ""))
+                elif event_type in ("response.output_audio_transcript.done", "response.audio_transcript.done"):
+                    self.note("assistant", event.get("transcript", ""))
                 elif event_type == "response.output_item.done":
                     item = event.get("item", {})
                     if item.get("type") == "function_call":
@@ -968,6 +1005,19 @@ class CallSession:
 
     def handle_gemini_event(self, event: dict) -> None:
         content = event.get("serverContent", {})
+        for key, role in (("inputTranscription", "caller"), ("outputTranscription", "assistant")):
+            text = (content.get(key) or {}).get("text", "")
+            if text:
+                other = "assistant" if role == "caller" else "caller"
+                if self.gemini_turn[other]:
+                    self.note(other, self.gemini_turn[other])
+                    self.gemini_turn[other] = ""
+                self.gemini_turn[role] += text
+        if content.get("turnComplete"):
+            for role in ("caller", "assistant"):
+                if self.gemini_turn[role]:
+                    self.note(role, self.gemini_turn[role])
+                    self.gemini_turn[role] = ""
         if content.get("interrupted"):
             self.clear_output()
             self.gemini_audio_remainder = b""
@@ -993,6 +1043,47 @@ class CallSession:
             LOG.warning("call=%s provider_go_away", self.call_id)
 
     def execute_tool(self, name: str, arguments: dict) -> dict:
+        result = self.run_tool(name, arguments)
+        if self.config.transcript_dir:
+            status = result.get("status", "") if isinstance(result, dict) else ""
+            self.transcript.append({"t": round(time.monotonic() - self.started, 1), "role": "event", "name": name, "status": str(status)[:40]})
+        return result
+
+    def note(self, role: str, text: str) -> None:
+        """One spoken line for the call review; national codes are masked before anything is kept."""
+        if not self.config.transcript_dir:
+            return
+        text = mask_national_codes(" ".join(str(text or "").split()))
+        if text:
+            self.transcript.append({"t": round(time.monotonic() - self.started, 1), "role": role, "text": text[:2000]})
+
+    def write_transcript(self, duration: int) -> None:
+        if not self.config.transcript_dir:
+            return
+        try:
+            uuid.UUID(self.call_id)
+        except ValueError:
+            return  # not a call (health probe or a broken AudioSocket start)
+        try:
+            for role in ("caller", "assistant"):
+                if self.gemini_turn.get(role):
+                    self.note(role, self.gemini_turn[role])
+            payload = {
+                "call_id": self.call_id,
+                "provider": self.config.provider,
+                "model": self.config.model,
+                "duration": duration,
+                "end_reason": self.end_reason,
+                "transcript": self.transcript,
+            }
+            path = Path(self.config.transcript_dir) / f"{self.call_id}.json"
+            tmp = path.with_suffix(".tmp")
+            tmp.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
+            tmp.replace(path)
+        except (OSError, ValueError) as exc:
+            LOG.warning("call=%s transcript_not_written error=%s", self.call_id, type(exc).__name__)
+
+    def run_tool(self, name: str, arguments: dict) -> dict:
         try:
             if name == "send_application_link":
                 result = {"status": "error", "reason": "appointment_flow_disabled"}
@@ -1319,6 +1410,15 @@ class CallSession:
             except OSError:
                 pass
             duration = int(time.monotonic() - self.started)
+            if not self.end_reason:
+                self.end_reason = (
+                    "transfer" if self.transfer_deadline is not None
+                    else "api_failed" if self.api_failed
+                    else "caller_hangup" if self.caller_hungup
+                    else "time_limit" if duration >= self.config.max_seconds
+                    else "assistant_ended"
+                )
+            self.write_transcript(duration)
             LOG.info("call=%s ended duration_seconds=%d", self.call_id, duration)
 
 

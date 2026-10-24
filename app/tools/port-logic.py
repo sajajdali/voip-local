@@ -147,6 +147,10 @@ sub("{id:'vm',label:'صندوق پیام صوتی'},{id:'busy',label:'بوق ا�
 # --- AI receptionist settings page
 sub("'settings','vai','vsurvey','vcrm','file'].forEach", "'settings','vai','vsurvey','vcrm','vagent','file'].forEach")
 sub("...this.crmVals(s),", "...this.crmVals(s),...this.agentVals(s),")
+# --- AI receptionist conversations: review page for the manager
+sub("vapi:nv('vapi',''),settings:nv('settings',''),", "vapi:nv('vapi',''),settings:nv('settings',''),aiconv:nv('aiconv',C.filter(c=>c.queue==='دستیار هوشمند').length),")
+sub("'settings','vai','vsurvey','vcrm','vagent','file'].forEach", "'settings','vai','vsurvey','vcrm','vagent','aiconv','file'].forEach")
+sub("...this.agentVals(s),", "...this.agentVals(s),...this.aiConvVals(s),")
 head = (root / 'tools/app-head.js').read_text(encoding='utf-8')
 src = src.replace("export default class App extends React.Component {", "export default class App extends LiveApp {")
 (root / 'web/src/App.jsx').write_text(head + '\n' + src.strip() + '\n', encoding='utf-8')

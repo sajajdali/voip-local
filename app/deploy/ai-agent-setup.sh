@@ -9,7 +9,7 @@ id callcenter-ai >/dev/null 2>&1 || useradd --system --home-dir /var/lib/callcen
 usermod -aG asterisk callcenter-ai
 
 # state shared by Asterisk (asterisk user), the API (asterisk user) and the bridge (callcenter-ai, group asterisk)
-install -d -o callcenter-ai -g asterisk -m 2770 /var/lib/callcenter-ai /var/lib/callcenter-ai/callers /var/lib/callcenter-ai/transfers
+install -d -o callcenter-ai -g asterisk -m 2770 /var/lib/callcenter-ai /var/lib/callcenter-ai/callers /var/lib/callcenter-ai/transfers /var/lib/callcenter-ai/transcripts
 # the API writes the bridge's environment files here
 install -d -o asterisk -g asterisk -m 0750 /etc/callcenter/ai
 

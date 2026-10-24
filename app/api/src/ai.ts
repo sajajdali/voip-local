@@ -220,6 +220,41 @@ export class AiService {
     };
   }
 
+  /** The analysis model to use; falls back to the AI receptionist's OpenAI key when analysis has no key of its own. */
+  private async effectiveLlm(): Promise<AiSettings> {
+    const s = await this.settings();
+    const hasOwn = s.llmProvider === 'keywords' || !!s.llmKey || (s.llmProvider === 'claude' && !!s.llmUrl);
+    if (hasOwn) return s;
+    const r = await this.db.configEntry.findUnique({ where: { key: 'aiagent' } });
+    const key = String((r?.data as any)?.openaiKey || '');
+    if (!key) return { ...s, llmProvider: 'keywords' };
+    return { ...s, llmProvider: 'openai', llmUrl: 'https://api.openai.com/v1', llmKey: key, llmModel: s.llmProvider === 'openai' && s.llmModel ? s.llmModel : 'gpt-6-astra' };
+  }
+
+  /** Manager's summary of a patient's conversation with the AI receptionist. */
+  async summarizeConversation(id: string, lines: any[]) {
+    const ACT: Record<string, string> = {
+      verify_surgery_by_national_code: 'استعلام جراحی با کد ملی', confirm_postoperative_identity: 'تأیید هویت بیمار',
+      send_application_link: 'ارسال پیامک لینک نوبت‌دهی', send_emergency_sms: 'ارسال پیامک اورژانس', transfer_to_doctor: 'انتقال به پزشک',
+    };
+    const text = lines.map(l => l.role === 'event' ? `[اقدام دستیار: ${ACT[l.name] || l.name} → ${l.status}]` : `${l.role === 'caller' ? 'بیمار' : 'دستیار'}: ${l.text}`).join('\n');
+    if (!lines.some(l => l.role === 'caller')) {
+      await this.db.call.update({ where: { id }, data: { aiState: 'none' } });
+      return;
+    }
+    try {
+      const s = await this.effectiveLlm();
+      const prompt = 'نوع تماس: گفتگوی بیمار با دستیار هوشمند تلفنی کلینیک (نه پیام صوتی). خلاصه را برای مدیر بنویس: بیمار چه می‌خواست، دستیار چه کرد، نتیجه چه شد. در action بنویس چه پیگیری‌ای از طرف کلینیک لازم است (یا «نیاز به پیگیری ندارد»).\n\n' + text;
+      const a = await this.analyzeText(prompt, s);
+      const ai = this.toAi(a, text, null);
+      await this.db.call.update({ where: { id }, data: { ai: ai as any, aiState: 'done', aiError: null } });
+      if (ai.urg === 'high') this.bus.emit('notify', { role: '*', text: 'گفتگوی فوری با دستیار هوشمند: ' + (ai.sum[0] || '') });
+    } catch (e: any) {
+      await this.db.call.update({ where: { id }, data: { aiState: 'failed', aiError: String(e.message).slice(0, 300) } });
+    }
+    this.bus.emit('calls', { id });
+  }
+
   /** Low-score survey voice comment → text in survey.comment (when speech-to-text is configured). */
   transcribeSurvey(id: string) {
     (async () => {

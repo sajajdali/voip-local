@@ -635,6 +635,85 @@ class LiveApp extends React.Component {
       ],
       stopped: !!(d && d.settings.enabled && st && !st.running),
       save, goIvr: () => this.setState({ page: 'vivr' }),
+      recT: { bg: f.record !== false ? '#8DC63F' : '#d9dad6', j: f.record !== false ? 'flex-end' : 'flex-start' }, togRec: () => setF({ record: f.record === false }),
+      txT: { bg: f.keepTranscript !== false ? '#8DC63F' : '#d9dad6', j: f.keepTranscript !== false ? 'flex-end' : 'flex-start' }, togTx: () => setF({ keepTranscript: f.keepTranscript === false }),
+    } };
+  }
+
+  // ---- «گفتگوهای دستیار»: every AI receptionist call with recording, transcript, actions and summary
+  async loadConv(id) {
+    if (!id || (this.state.convCache || {})[id] === 'loading') return;
+    this.setState(st => ({ convCache: { ...(st.convCache || {}), [id]: 'loading' } }));
+    try {
+      const d = await api('/calls/' + encodeURIComponent(id) + '/conversation');
+      this.setState(st => ({ convCache: { ...(st.convCache || {}), [id]: d } }));
+    } catch (e) { this.setState(st => ({ convCache: { ...(st.convCache || {}), [id]: { error: e.message } } })); }
+  }
+
+  aiConvVals(s) {
+    const ACT = { verify_surgery_by_national_code: 'استعلام جراحی با کد ملی', confirm_postoperative_identity: 'تأیید هویت بیمار', send_application_link: 'پیامک لینک نوبت‌دهی', send_emergency_sms: 'پیامک اورژانس', transfer_to_doctor: 'انتقال به پزشک' };
+    const STS = { verified: 'تأیید شد', confirmed: 'تأیید شد', sent: 'ارسال شد', ok: 'انجام شد', transferring: 'انجام شد', already_sent: 'قبلاً ارسال شده', not_found: 'پیدا نشد', not_verified: 'تأیید نشد', mismatch: 'مطابقت نداشت', invalid: 'نامعتبر', error: 'خطا' };
+    const END = { caller_hangup: 'بیمار تماس را تمام کرد', assistant_ended: 'دستیار گفتگو را تمام کرد', transfer: 'به پزشک وصل شد', time_limit: 'زمان مجاز تمام شد', api_failed: 'خطای سرویس هوش مصنوعی' };
+    const good = st => ['verified', 'confirmed', 'sent', 'ok', 'transferring', 'already_sent'].includes(st);
+    const badge = (label, tone) => ({ label, bg: tone === 'red' ? '#fdeceb' : tone === 'green' ? '#eaf4dc' : tone === 'blue' ? '#e5eff7' : '#f2f3ef', fg: tone === 'red' ? '#b42318' : tone === 'green' ? '#3d6a0c' : tone === 'blue' ? '#1d5a85' : '#55585c' });
+    const mmss = t => { t = Math.max(0, Math.round(+t || 0)); return String(Math.floor(t / 60)).padStart(2, '0') + ':' + String(t % 60).padStart(2, '0'); };
+    const all = this.calls.filter(c => c.queue === 'دستیار هوشمند');
+    const q = (s.convQ || '').trim(), f = s.convF || 'all';
+    const has = (c, n) => c.aiConv && c.aiConv.events.some(e => e.name === n && good(e.status));
+    const list = all.filter(c => (!q || (c.name + ' ' + c.phone + ' ' + (c.phoneRaw || '')).includes(q)) && (
+      f === 'all' || (f === 'transfer' && has(c, 'transfer_to_doctor')) || (f === 'sms' && has(c, 'send_application_link')) ||
+      (f === 'emergency' && c.aiConv && c.aiConv.events.some(e => e.name === 'send_emergency_sms')) || (f === 'urgent' && c.ai && c.ai.urg === 'high')));
+    const selId = s.convSel && list.some(c => c.id === s.convSel) ? s.convSel : (list[0] || {}).id;
+    const sel = list.find(c => c.id === selId) || null;
+    if (sel && !(s.convCache || {})[sel.id]) setTimeout(() => this.loadConv(sel.id), 0);
+    const det = sel ? (s.convCache || {})[sel.id] : null;
+    const badgesOf = c => {
+      const b = [];
+      if (!c.aiConv) b.push(badge(c.aiState === 'queued' ? 'در حال آماده‌سازی متن' : 'بدون متن', 'grey'));
+      else {
+        if (has(c, 'transfer_to_doctor') || c.aiConv.endReason === 'transfer') b.push(badge('انتقال به پزشک', 'blue'));
+        if (has(c, 'send_application_link')) b.push(badge('پیامک نوبت', 'green'));
+        if (c.aiConv.events.some(e => e.name === 'send_emergency_sms')) b.push(badge('اورژانس', 'red'));
+        if (has(c, 'verify_surgery_by_national_code')) b.push(badge('جراحی تأیید شد', 'green'));
+      }
+      if (c.ai && c.ai.urg === 'high') b.push(badge('فوری', 'red'));
+      return b;
+    };
+    const rows = list.slice(0, 200).map(c => ({
+      id: c.id, name: c.name, phone: c.phone, when: c.date + ' · ' + c.time, dur: c.durText,
+      sum: c.ai && !c.ai.pending ? (c.ai.sum || [])[0] || '' : c.aiState === 'queued' ? 'در حال خلاصه‌سازی…' : c.aiState === 'failed' ? 'خلاصه ساخته نشد' : '',
+      badges: badgesOf(c), pick: () => this.setState({ convSel: c.id }),
+      bg: c.id === selId ? '#f4f9ec' : '#fff', bd: c.id === selId ? '#8DC63F' : '#e7e8e3',
+    }));
+    let lines = [], summary = [], action = '', meta = [], loading = false, err = '';
+    if (sel) {
+      if (det === 'loading' || !det) loading = true;
+      else if (det.error) err = det.error;
+      else {
+        const conv = det.aiConv || {};
+        lines = (conv.lines || []).map(l => l.role === 'event'
+          ? { isEvent: true, isLine: false, text: (ACT[l.name] || l.name) + ': ' + (STS[l.status] || l.status || '—'), t: mmss(l.t), fg: good(l.status) ? '#3d6a0c' : '#8a5a00' }
+          : { isEvent: false, isLine: true, who: l.role === 'caller' ? sel.name : 'دستیار', text: l.text, t: mmss(l.t), side: l.role === 'caller' ? 'flex-start' : 'flex-end', bg: l.role === 'caller' ? '#fff' : '#2E2F31', fg: l.role === 'caller' ? '#232425' : '#f2f3ef', bd: l.role === 'caller' ? '#e1e3dc' : '#2E2F31' });
+        const ai = det.ai;
+        summary = ai ? (ai.sum || []).map(x => ({ x })) : [];
+        action = ai ? ai.action || '' : '';
+        if (!ai) err = det.aiState === 'failed' ? 'خلاصه ساخته نشد: ' + (det.aiError || '') : det.aiState === 'queued' ? 'خلاصه در حال آماده‌سازی است…' : '';
+        meta = [
+          { k: 'پایان گفتگو', v: END[conv.endReason] || conv.endReason || '—' },
+          { k: 'مدت گفتگو با دستیار', v: conv.duration ? mmss(conv.duration) : '—' },
+          ...(ai ? [{ k: 'موضوع', v: (CATS.find(x => x.id === ai.cat) || { name: ai.cat }).name }, { k: 'اولویت', v: { high: 'فوری', mid: 'متوسط', low: 'عادی' }[ai.urg] || '—' }, { k: 'احساس بیمار', v: { pos: 'راضی', neu: 'خنثی', neg: 'ناراضی' }[ai.sent] || '—' }] : []),
+          { k: 'مدل', v: (conv.provider || '') + ' ' + (conv.model || '') },
+        ];
+      }
+    }
+    const playing = sel && s.pid === sel.id && !s.paused;
+    return { cv: {
+      q: s.convQ || '', setQ: e => this.setState({ convQ: e.target.value }), f, setF: e => this.setState({ convF: e.target.value }),
+      total: all.length.toLocaleString('fa-IR'), count: list.length.toLocaleString('fa-IR'),
+      rows, empty: !rows.length, hasSel: !!sel,
+      sel: sel ? { name: sel.name, phone: sel.phone, when: sel.date + ' · ' + sel.time, dur: sel.durText, badges: badgesOf(sel), hasRec: !!sel.hasVoice, noRec: !sel.hasVoice, playLabel: playing ? '❚❚ توقف' : '▶ پخش ضبط مکالمه', play: () => this.playCall(sel.id), download: () => this.download(sel), openFile: () => this.openFile && this.openFile(sel) } : {},
+      loading, err, hasErr: !!err, lines, hasLines: lines.length > 0, noLines: !loading && !err && !lines.length,
+      summary, hasSummary: summary.length > 0, action, hasAction: !!action, meta,
     } };
   }
 
@@ -1089,9 +1168,9 @@ export default class App extends LiveApp {
   const fol=c=>s.follow[c.id]||c.follow;
   const vms=C.filter(c=>c.st==='voicemail'&&this.deptOk(c,s));const AI=C.filter(c=>c.ai&&!c.ai.pending);
   const nv=(p,count)=>({go:()=>this.setState({page:p}),bg:s.page===p?'#8DC63F':'transparent',fg:s.page===p?'#1f2021':'#d9dad6',count,cbg:s.page===p?'rgba(31,32,33,.15)':'rgba(255,255,255,.08)'});
-  const nav={calls:nv('calls',C.length),inbound:nv('inbound',C.filter(c=>c.dir==='in').length),voice:nv('voice',vms.filter(c=>fol(c)==='new').length),reports:nv('reports',''),survey:nv('survey',C.filter(c=>c.survey).length),ai:nv('ai',AI.length),vext:nv('vext',s.exts.length),vtrunk:nv('vtrunk',s.trunks.length),vqueue:nv('vqueue',s.vqs.length),vivr:nv('vivr',s.ivrs.length),vsound:nv('vsound',s.snds.length),vroute:nv('vroute',s.routes.length),vout:nv('vout',(s.oroutes||[]).length),vapi:nv('vapi',''),settings:nv('settings',''),vbackup:nv('vbackup',(s.bk&&s.bk.items.filter(b=>b.status==='done').length)||''),vtime:nv('vtime',s.tconds.length),vring:nv('vring',s.rgroups.length),vfollow:nv('vfollow',Object.values(s.fmes).filter(f=>f.on).length),vblack:nv('vblack',s.blist.length)};
+  const nav={calls:nv('calls',C.length),inbound:nv('inbound',C.filter(c=>c.dir==='in').length),voice:nv('voice',vms.filter(c=>fol(c)==='new').length),reports:nv('reports',''),survey:nv('survey',C.filter(c=>c.survey).length),ai:nv('ai',AI.length),vext:nv('vext',s.exts.length),vtrunk:nv('vtrunk',s.trunks.length),vqueue:nv('vqueue',s.vqs.length),vivr:nv('vivr',s.ivrs.length),vsound:nv('vsound',s.snds.length),vroute:nv('vroute',s.routes.length),vout:nv('vout',(s.oroutes||[]).length),vapi:nv('vapi',''),settings:nv('settings',''),aiconv:nv('aiconv',C.filter(c=>c.queue==='دستیار هوشمند').length),vbackup:nv('vbackup',(s.bk&&s.bk.items.filter(b=>b.status==='done').length)||''),vtime:nv('vtime',s.tconds.length),vring:nv('vring',s.rgroups.length),vfollow:nv('vfollow',Object.values(s.fmes).filter(f=>f.on).length),vblack:nv('vblack',s.blist.length)};
   const isV=['vext','vtrunk','vqueue','vivr','vsound','vroute','vout','vtime','vring','vfollow','vblack','vbackup'].includes(s.page);nav.voipOpen=s.voipOpen||isV;nav.toggleVoip=()=>this.setState({voipOpen:!(s.voipOpen||isV)});nav.voipChev=nav.voipOpen?'rotate(180deg)':'none';nav.voipBg=isV?'rgba(141,198,63,.12)':'transparent';
-  const is={};['calls','inbound','voice','reports','survey','ai','vext','vtrunk','vqueue','vivr','vsound','vroute','vtime','vring','vfollow','vblack','vout','unreached','vapi','vbackup','settings','vai','vsurvey','vcrm','vagent','file'].forEach(p=>is[p]=s.page===p);
+  const is={};['calls','inbound','voice','reports','survey','ai','vext','vtrunk','vqueue','vivr','vsound','vroute','vtime','vring','vfollow','vblack','vout','unreached','vapi','vbackup','settings','vai','vsurvey','vcrm','vagent','aiconv','file'].forEach(p=>is[p]=s.page===p);
   const qm=(c,q)=>!q||c.name.includes(q)||c.phoneRaw.includes(q.replace(/\s/g,''));
   const pill=(on)=>({bg:on?'#2E2F31':'#fff',fg:on?'#fff':'#3a3b3d',bd:on?'#2E2F31':'#e1e3dc'});
   const ops=OPS.map(o=>({id:o.id,label:o.name+' ('+o.ext+')'}));
@@ -1234,6 +1313,6 @@ export default class App extends LiveApp {
    seek:e=>{const b=e.currentTarget.getBoundingClientRect();this.setState({pos:Math.min(1,Math.max(0,(b.right-e.clientX)/b.width))*(this.audDur||pc.dur)});},
    pct:s.pos/(this.audDur||pc.dur)*100+'%',posText:fmt(s.pos),durText:fmt((this.audDur||pc.dur)),speedText:s.speed+'x',cycleSpeed:()=>this.setState({speed:SP[(SP.indexOf(s.speed)+1)%SP.length]}),download:()=>this.download(pc)}:{show:false};
 
-  return {...this.voip(s),...this.voip2(s),...this.voipOut(s),...this.apiVals(s),...this.backupVals(s),...this.settingsVals(s),...this.aiSettingsVals(s),...this.surveyVals(s),...this.crmVals(s),...this.agentVals(s),pf,call,toast,nav:{...nav,unreached:nv('unreached',urV.navCount)},is,ur:urV,cl,ib,vm,rp,sv,ai,player,showAi,dates:[],hours:HOURS,ops,queues:s.vqs.map(q=>q.name),statuses,cats,me:this.meVals(),todayLong:jLong(new Date())};
+  return {...this.voip(s),...this.voip2(s),...this.voipOut(s),...this.apiVals(s),...this.backupVals(s),...this.settingsVals(s),...this.aiSettingsVals(s),...this.surveyVals(s),...this.crmVals(s),...this.agentVals(s),...this.aiConvVals(s),pf,call,toast,nav:{...nav,unreached:nv('unreached',urV.navCount)},is,ur:urV,cl,ib,vm,rp,sv,ai,player,showAi,dates:[],hours:HOURS,ops,queues:s.vqs.map(q=>q.name),statuses,cats,me:this.meVals(),todayLong:jLong(new Date())};
  }
 }

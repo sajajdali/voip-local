@@ -5,6 +5,7 @@ import * as fs from 'fs';
 import * as net from 'net';
 import * as path from 'path';
 import { CurrentUser, Me, Roles } from './auth';
+import { AiService } from './ai';
 import { Bus } from './bus';
 import { ConfigStore } from './config';
 import { PatientsService, daysSince } from './patients';
@@ -21,6 +22,7 @@ export interface AiAgentSettings {
   maxCalls: number; maxSeconds: number; closingSeconds: number;
   transferExt: string; transferRing: number; transferMobile: string; fallback: string;
   crmNationalUrl: string; crmAppLinkUrl: string; crmEmergencyUrl: string;
+  record: boolean; keepTranscript: boolean; transcribeModel: string;
 }
 const CRM_BASE = 'https://crm.drpouriaaflaki.com/api/v1/voip/surgery-status';
 export const AI_AGENT_DEFAULTS: AiAgentSettings = {
@@ -30,6 +32,7 @@ export const AI_AGENT_DEFAULTS: AiAgentSettings = {
   maxCalls: 4, maxSeconds: 900, closingSeconds: 15,
   transferExt: '', transferRing: 10, transferMobile: '', fallback: 'vm',
   crmNationalUrl: CRM_BASE + '/by-national-code', crmAppLinkUrl: CRM_BASE + '/application-link', crmEmergencyUrl: CRM_BASE + '/emergency-sms',
+  record: true, keepTranscript: true, transcribeModel: 'gpt-4o-transcribe',
 };
 
 const SECRET_KEYS = ['openaiKey', 'geminiKey'] as const;
@@ -38,7 +41,7 @@ const envLine = (k: string, v: string | number) => `${k}=${String(v).replace(/[\
 @Injectable()
 export class AiAgentService implements OnModuleInit {
   private log = new Logger('AiAgent');
-  constructor(private db: PrismaService, private store: ConfigStore, private patients: PatientsService, private bus: Bus) {}
+  constructor(private db: PrismaService, private store: ConfigStore, private patients: PatientsService, private bus: Bus, private ai: AiService) {}
 
   async onModuleInit() {
     // the CRM password lives in the patient-system settings; keep the bridge's copy in step
@@ -75,6 +78,8 @@ export class AiAgentService implements OnModuleInit {
       transferExt: str('transferExt').replace(/\D/g, ''), transferRing: int('transferRing', 5, 60),
       transferMobile: str('transferMobile').replace(/\D/g, ''), fallback: str('fallback') || 'vm',
       crmNationalUrl: url('crmNationalUrl'), crmAppLinkUrl: url('crmAppLinkUrl'), crmEmergencyUrl: url('crmEmergencyUrl'),
+      record: !!(b.record ?? cur.record), keepTranscript: !!(b.keepTranscript ?? cur.keepTranscript),
+      transcribeModel: str('transcribeModel') || AI_AGENT_DEFAULTS.transcribeModel,
     };
     if (b.clearOpenaiKey) next.openaiKey = '';
     if (b.clearGeminiKey) next.geminiKey = '';
@@ -124,6 +129,8 @@ export class AiAgentService implements OnModuleInit {
       envLine('ASTERISK_AI_TRANSFER_DIR', path.join(AI_STATE, 'transfers')),
       envLine('ASTERISK_AI_CALLER_METADATA_DIR', path.join(AI_STATE, 'callers')),
       envLine('CRM_CONFIG_PATH', path.join(AI_DIR, 'crm.env')),
+      envLine('ASTERISK_AI_TRANSCRIPT_DIR', s.keepTranscript ? path.join(AI_STATE, 'transcripts') : ''),
+      envLine('ASTERISK_AI_TRANSCRIBE_MODEL', s.transcribeModel),
     ]);
   }
 
@@ -143,6 +150,24 @@ export class AiAgentService implements OnModuleInit {
     fs.writeFileSync(file, JSON.stringify(meta), { mode: 0o660 });
     // the bridge deletes it on read; never leave patient details behind if the call died first
     setTimeout(() => fs.rm(file, { force: true }, () => {}), 120e3).unref();
+  }
+
+  /** After an AI call: take the bridge's transcript, keep it with the call and summarise it for the manager. */
+  importConversation(callId: string, uuid: string) {
+    if (!/^[0-9a-f-]{36}$/i.test(uuid)) return;
+    (async () => {
+      const file = path.join(AI_STATE, 'transcripts', uuid + '.json');
+      // the bridge writes it as its session closes, a moment after Asterisk hangs up
+      for (let i = 0; i < 20 && !fs.existsSync(file); i++) await new Promise(r => setTimeout(r, 500));
+      if (!fs.existsSync(file)) { await this.db.call.update({ where: { id: callId }, data: { aiState: 'none' } }).catch(() => {}); return; }
+      const d = JSON.parse(fs.readFileSync(file, 'utf8'));
+      fs.rmSync(file, { force: true });
+      const lines = (Array.isArray(d.transcript) ? d.transcript : []).slice(0, 2000);
+      const conv = { provider: String(d.provider || ''), model: String(d.model || ''), duration: +d.duration || 0, endReason: String(d.end_reason || ''), lines };
+      await this.db.call.update({ where: { id: callId }, data: { aiConv: conv as any } });
+      this.bus.emit('calls', { id: callId });
+      await this.ai.summarizeConversation(callId, lines);
+    })().catch(e => this.log.warn(`conversation ${callId}: ${e.message}`));
   }
 
   /** Is the bridge listening? */

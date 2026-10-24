@@ -455,6 +455,11 @@ function dialplan(cfg: VoipConfig, opts: { hookUrl: string; hookSecret: string }
     'exten => s,1,Set(__CC_QUEUE=دستیار هوشمند)',
     ' same => n,Answer()',
     ' same => n,Set(__AI_CALL_UUID=${UUID()})',
+    // one recording for the whole call: patient, AI and, after a transfer, the doctor
+    ...(ai.record !== false ? [
+      ' same => n,Set(CC_REC=cc/${STRFTIME(${EPOCH},,%Y%m%d)}-${FILTER(0-9.,${CHANNEL(linkedid)})}.wav)',
+      ' same => n,MixMonitor(${CC_REC})',
+    ] : []),
     ` same => n,Set(CC_CURL=\${CURL(${opts.hookUrl}/aimeta?s=${opts.hookSecret},uuid=\${AI_CALL_UUID}&num=\${CC_NUM})})`,
     ' same => n,Dial(Local/ai@cc-ai-session/n,,g)',
     // a conversation of 3 s or more counts as answered (by the AI, not an operator)
@@ -465,6 +470,8 @@ function dialplan(cfg: VoipConfig, opts: { hookUrl: string; hookSecret: string }
     ' same => n,Playback(custom/ai-unavailable-fa)',
     ' same => n(end),Hangup()',
     ` same => n(transfer),TrySystem(/usr/bin/unlink ${aiTransfer})`,
+    // the AI call is already being recorded; the doctor's answer must not start a second file
+    ...(ai.record !== false ? [' same => n,Set(__CC_RECMODE=never)'] : []),
   ];
   const tExt = digits(ai.transferExt || ''), tMob = digits(ai.transferMobile || '');
   if (tExt && cfg.exts.some(e => e.n === tExt)) aiLines.push(` same => n,Dial(PJSIP/${tExt},${Math.max(5, +ai.transferRing || 10)},tU(cc-agent-answer^0))`, ' same => n,GotoIf($["${DIALSTATUS}"="ANSWER"]?end)');
@@ -481,7 +488,7 @@ function dialplan(cfg: VoipConfig, opts: { hookUrl: string; hookSecret: string }
   // --- hangup handler on the caller (master) channel: reports the finished call to the panel
   X('cc-hangup', [
     'exten => s,1,GotoIf($["${CC_DIR}"=""]?done)',
-    ' same => n,' + hook('call', 'uid=${URIENCODE(${UNIQUEID})}&start=${CC_START}&end=${EPOCH}&cid=${URIENCODE(${CALLERID(num)})}&num=${URIENCODE(${CC_NUM})}&did=${CC_DID}&dir=${CC_DIR}&queue=${URIENCODE(${CC_QUEUE})}&ansext=${CC_ANSEXT}&ansts=${CC_ANSTS}&xfer=${CC_XFER}&vm=${CC_VM}&vmbox=${CC_VMBOX}&rec=${URIENCODE(${CC_REC})}&orig=${CC_ORIG}&opext=${CC_OPEXT}&sv=${CC_SV1}${CC_SV2}${CC_SV3}${CC_SV4}${CC_SV5}&svrec=${URIENCODE(${CC_SVREC})}&blocked=${CC_BLOCKED}'),
+    ' same => n,' + hook('call', 'uid=${URIENCODE(${UNIQUEID})}&start=${CC_START}&end=${EPOCH}&cid=${URIENCODE(${CALLERID(num)})}&num=${URIENCODE(${CC_NUM})}&did=${CC_DID}&dir=${CC_DIR}&queue=${URIENCODE(${CC_QUEUE})}&ansext=${CC_ANSEXT}&ansts=${CC_ANSTS}&xfer=${CC_XFER}&vm=${CC_VM}&vmbox=${CC_VMBOX}&rec=${URIENCODE(${CC_REC})}&orig=${CC_ORIG}&opext=${CC_OPEXT}&sv=${CC_SV1}${CC_SV2}${CC_SV3}${CC_SV4}${CC_SV5}&svrec=${URIENCODE(${CC_SVREC})}&aiuuid=${AI_CALL_UUID}&blocked=${CC_BLOCKED}'),
     ' same => n(done),Return()',
   ]);
 

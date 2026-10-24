@@ -769,5 +769,51 @@ class AppointmentTests(unittest.TestCase):
         self.assertEqual(self.store.normalize_phone("۰۹۱۲ ۱۲۳ ۴۵۶۷"), "09121234567")
 
 
+
+class TranscriptTests(unittest.TestCase):
+    def session(self, temp: str) -> "bridge.CallSession":
+        config = bridge.Config(api_key="test", transcript_dir=temp, appointments_db=os.path.join(temp, "a.db"))
+        session = bridge.CallSession(mock.Mock(), config, b"")
+        session.call_id = str(uuid.uuid4())
+        return session
+
+    def test_national_code_is_masked_and_mobile_kept(self) -> None:
+        self.assertEqual(bridge.mask_national_codes("کد ملی ۰۰۱۲۳۴۵۶۷۸ است"), "کد ملی [کد ملی] است")
+        self.assertEqual(bridge.mask_national_codes("0 0 1 2 3 4 5 6 7 8"), "[کد ملی]")
+        self.assertEqual(bridge.mask_national_codes("شماره 09121234567"), "شماره 09121234567")
+
+    def test_transcript_file_has_lines_and_tool_events_without_arguments(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            session = self.session(temp)
+            session.note("assistant", "سلام، بفرمایید")
+            session.note("caller", "کد ملی من 0012345678")
+            with mock.patch.object(session, "run_tool", return_value={"status": "verified", "name": "x"}):
+                session.execute_tool("verify_surgery_by_national_code", {"national_code": "0012345678"})
+            session.end_reason = "caller_hangup"
+            session.write_transcript(12)
+            data = json.loads((bridge.Path(temp) / f"{session.call_id}.json").read_text(encoding="utf-8"))
+            self.assertEqual(data["duration"], 12)
+            self.assertEqual([x["role"] for x in data["transcript"]], ["assistant", "caller", "event"])
+            self.assertNotIn("0012345678", json.dumps(data, ensure_ascii=False))
+            self.assertEqual(data["transcript"][2]["status"], "verified")
+
+    def test_nothing_kept_without_transcript_dir(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            config = bridge.Config(api_key="test", appointments_db=os.path.join(temp, "a.db"))
+            session = bridge.CallSession(mock.Mock(), config, b"")
+            session.note("caller", "hello")
+            self.assertEqual(session.transcript, [])
+        self.assertNotIn("transcription", bridge.session_update(config)["session"]["audio"]["input"])
+        self.assertIn("transcription", bridge.session_update(bridge.Config(api_key="t", transcript_dir="/x"))["session"]["audio"]["input"])
+
+    def test_gemini_transcription_chunks_become_lines(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            session = self.session(temp)
+            session.handle_gemini_event({"serverContent": {"inputTranscription": {"text": "سلام "}}})
+            session.handle_gemini_event({"serverContent": {"inputTranscription": {"text": "خوبید"}}})
+            session.handle_gemini_event({"serverContent": {"outputTranscription": {"text": "بفرمایید"}, "turnComplete": True}})
+            self.assertEqual([(x["role"], x["text"]) for x in session.transcript], [("caller", "سلام خوبید"), ("assistant", "بفرمایید")])
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
