@@ -2204,45 +2204,48 @@ export default function AppView({ vm }) {
         </>) : null}
         {(vm.is?.live) ? (<>
           <div style={{display: "flex", flexDirection: "column", gap: "18px"}}>
-            <div style={{background: "linear-gradient(135deg,#2E2F31 0%,#1c1d1e 100%)", borderRadius: "24px", padding: "22px 24px", color: "#f2f3ef", display: "flex", flexDirection: "column", gap: "18px", position: "relative", overflow: "hidden"}}>
-              <div style={{position: "absolute", inset: "auto auto -80px -60px", width: "260px", height: "260px", borderRadius: "50%", background: "radial-gradient(circle,rgba(127,181,54,.22),rgba(127,181,54,0) 70%)"}} />
-              <div style={{display: "flex", alignItems: "flex-start", gap: "16px", flexWrap: "wrap", position: "relative"}}>
-                <div style={{flex: "1", minWidth: "220px"}}>
-                  <div style={{display: "flex", alignItems: "center", gap: "12px"}}>
-                    <h1 style={{margin: "0", fontSize: "28px", fontWeight: "800", color: "#fff"}}>{"تماس‌های زنده"}</h1>
-                    <span style={{display: "inline-flex", alignItems: "center", gap: "7px", fontSize: "11px", letterSpacing: "1px", fontWeight: "800", padding: "5px 11px", borderRadius: "999px", background: "rgba(224,87,74,.16)", color: "#ff8d82", border: "1px solid rgba(224,87,74,.35)"}}>
-                      <span style={{width: "8px", height: "8px", borderRadius: "50%", background: "#e0574a", animation: "cc-pulse-red 1.6s infinite"}} />
-                      {"LIVE"}
-                    </span>
-                  </div>
-                  <div style={{fontSize: "13px", color: "#b8bab5", marginTop: "8px", lineHeight: "1.8", maxWidth: "620px"}}>
-                    {"همه تماس‌های در جریان، لحظه‌به‌لحظه. با «گوش بده» صدای مکالمه همین‌جا پخش می‌شود؛ فقط شنیدن است و طرفین متوجه نمی‌شوند. هر شنود با نام شما ثبت می‌شود."}
-                  </div>
-                </div>
-                <div style={{textAlign: "left"}}>
-                  <div style={{fontSize: "34px", fontWeight: "800", color: "#fff", direction: "ltr", letterSpacing: "1px"}}>{vm.lv?.time}</div>
-                  <div style={{fontSize: "12px", color: "#b8bab5"}}>{vm.lv?.date}</div>
-                </div>
+            <div style={{display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: "16px", flexWrap: "wrap"}}>
+              <div>
+                <h1 style={{margin: "0", fontSize: "28px", fontWeight: "800"}}>{"تماس‌های زنده"}</h1>
+                <div style={{fontSize: "14px", color: "#6b6e72", marginTop: "6px"}}>{vm.lv?.subtitle}</div>
               </div>
-              <div style={{display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(130px,1fr))", gap: "10px", position: "relative"}}>
-                {(vm.lv?.kpis || []).map((k, __i8) => <React.Fragment key={__i8}>
-                  <div style={{background: "rgba(255,255,255,.06)", border: "1px solid rgba(255,255,255,.08)", borderRadius: "16px", padding: "12px 14px", borderTop: `3px solid ${k?.accent}`}}>
-                    <div style={{fontSize: "30px", fontWeight: "800", color: "#fff", lineHeight: "1.2"}}>{k?.value}</div>
-                    <div style={{fontSize: "12px", color: "#b8bab5", marginTop: "2px"}}>{k?.label}</div>
+              <div style={{display: "flex", alignItems: "center", gap: "8px", border: "1px solid #e1e3dc", background: "#fff", padding: "9px 14px", borderRadius: "12px", fontSize: "13px", color: "#3a3b3d"}}>
+                <span style={{width: "8px", height: "8px", borderRadius: "50%", background: "#8DC63F", animation: "cc-pulse 2s infinite"}} />
+                {"به‌روزرسانی زنده"}
+                <span style={{color: "#b9bbb6"}}>{"|"}</span>
+                <span style={{fontWeight: "700", direction: "ltr"}}>{vm.lv?.time}</span>
+              </div>
+            </div>
+            <div style={{display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(170px,1fr))", gap: "14px"}}>
+              {(vm.lv?.kpis || []).map((k, __i7) => <React.Fragment key={__i7}>
+                <div style={{background: "#fff", border: "1px solid #e7e8e3", borderRadius: "20px", padding: "16px 18px", display: "flex", alignItems: "center", gap: "12px"}}>
+                  <span style={{width: "10px", height: "10px", borderRadius: "50%", background: k?.accent}} />
+                  <div>
+                    <div style={{fontSize: "12px", color: "#6b6e72"}}>{k?.label}</div>
+                    <div style={{fontSize: "24px", fontWeight: "800"}}>{k?.value}</div>
                   </div>
+                </div>
+              </React.Fragment>)}
+            </div>
+            <div style={{background: "#fff", border: "1px solid #e7e8e3", borderRadius: "20px", padding: "16px 18px", display: "flex", alignItems: "center", gap: "18px", flexWrap: "wrap"}}>
+              <div style={{fontWeight: "700", fontSize: "14px", minWidth: "90px"}}>{"اپراتورها"}</div>
+              <div style={{flex: "1", minWidth: "200px", display: "flex", height: "6px", borderRadius: "99px", overflow: "hidden", background: "#f2f3ef", gap: "2px"}}>
+                {(vm.lv?.cap || []).map((c, __i8) => <React.Fragment key={__i8}>
+                  <div style={{width: c?.w, background: c?.bg, transition: "width .6s"}} />
                 </React.Fragment>)}
               </div>
-              <div style={{position: "relative"}}>
-                <div style={{display: "flex", justifyContent: "space-between", fontSize: "12px", color: "#b8bab5", marginBottom: "6px"}}>
-                  <span>{"ظرفیت اپراتورها"}</span>
-                  <span>{vm.lv?.capText}</span>
-                </div>
-                <div style={{display: "flex", height: "8px", borderRadius: "99px", overflow: "hidden", background: "rgba(255,255,255,.08)", gap: "2px"}}>
-                  {(vm.lv?.cap || []).map((c, __i9) => <React.Fragment key={__i9}>
-                    <div style={{width: c?.w, background: c?.bg, transition: "width .6s"}} />
-                  </React.Fragment>)}
-                </div>
+              <div style={{display: "flex", gap: "16px", fontSize: "12px", color: "#6b6e72", flexWrap: "wrap"}}>
+                {(vm.lv?.capLegend || []).map((g, __i8) => <React.Fragment key={__i8}>
+                  <span style={{display: "flex", alignItems: "center", gap: "6px"}}>
+                    <span style={{width: "8px", height: "8px", borderRadius: "50%", background: g?.bg}} />
+                    {g?.label}{" "}
+                    <b style={{color: "#232425"}}>{g?.n}</b>
+                  </span>
+                </React.Fragment>)}
               </div>
+            </div>
+            <div style={{fontSize: "12px", color: "#8b8e89", marginTop: "-6px", padding: "0 4px"}}>
+              {"شنود فقط شنیدنی است و طرفین متوجه نمی‌شوند؛ هر شنود با نام شما در لاگ ثبت می‌شود."}
             </div>
             {(vm.lv?.listening) ? (<>
               <div style={{position: "sticky", top: "10px", zIndex: "6", background: "rgba(35,36,37,.96)", backdropFilter: "blur(8px)", color: "#fff", border: "1px solid rgba(127,181,54,.5)", borderRadius: "20px", padding: "14px 18px", display: "flex", alignItems: "center", gap: "16px", flexWrap: "wrap", boxShadow: "0 18px 40px rgba(0,0,0,.28)"}}>

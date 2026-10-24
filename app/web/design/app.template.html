@@ -849,20 +849,14 @@
   <!-- ===== LIVE CALLS ===== -->
   <sc-if value="{{ is.live }}">
   <div style="display:flex;flex-direction:column;gap:18px">
-    <div style="background:linear-gradient(135deg,#2E2F31 0%,#1c1d1e 100%);border-radius:24px;padding:22px 24px;color:#f2f3ef;display:flex;flex-direction:column;gap:18px;position:relative;overflow:hidden">
-      <div style="position:absolute;inset:auto auto -80px -60px;width:260px;height:260px;border-radius:50%;background:radial-gradient(circle,rgba(127,181,54,.22),rgba(127,181,54,0) 70%)"></div>
-      <div style="display:flex;align-items:flex-start;gap:16px;flex-wrap:wrap;position:relative">
-        <div style="flex:1;min-width:220px">
-          <div style="display:flex;align-items:center;gap:12px"><h1 style="margin:0;font-size:28px;font-weight:800;color:#fff">تماس‌های زنده</h1><span style="display:inline-flex;align-items:center;gap:7px;font-size:11px;letter-spacing:1px;font-weight:800;padding:5px 11px;border-radius:999px;background:rgba(224,87,74,.16);color:#ff8d82;border:1px solid rgba(224,87,74,.35)"><span style="width:8px;height:8px;border-radius:50%;background:#e0574a;animation:cc-pulse-red 1.6s infinite"></span>LIVE</span></div>
-          <div style="font-size:13px;color:#b8bab5;margin-top:8px;line-height:1.8;max-width:620px">همه تماس‌های در جریان، لحظه‌به‌لحظه. با «گوش بده» صدای مکالمه همین‌جا پخش می‌شود؛ فقط شنیدن است و طرفین متوجه نمی‌شوند. هر شنود با نام شما ثبت می‌شود.</div>
-        </div>
-        <div style="text-align:left"><div style="font-size:34px;font-weight:800;color:#fff;direction:ltr;letter-spacing:1px">{{ lv.time }}</div><div style="font-size:12px;color:#b8bab5">{{ lv.date }}</div></div>
-      </div>
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;position:relative">
-        <sc-for list="{{ lv.kpis }}" as="k"><div style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:12px 14px;border-top:3px solid {{ k.accent }}"><div style="font-size:30px;font-weight:800;color:#fff;line-height:1.2">{{ k.value }}</div><div style="font-size:12px;color:#b8bab5;margin-top:2px">{{ k.label }}</div></div></sc-for>
-      </div>
-      <div style="position:relative"><div style="display:flex;justify-content:space-between;font-size:12px;color:#b8bab5;margin-bottom:6px"><span>ظرفیت اپراتورها</span><span>{{ lv.capText }}</span></div><div style="display:flex;height:8px;border-radius:99px;overflow:hidden;background:rgba(255,255,255,.08);gap:2px"><sc-for list="{{ lv.cap }}" as="c"><div style="width:{{ c.w }};background:{{ c.bg }};transition:width .6s"></div></sc-for></div></div>
+    <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap"><div><h1 style="margin:0;font-size:28px;font-weight:800">تماس‌های زنده</h1><div style="font-size:14px;color:#6b6e72;margin-top:6px">{{ lv.subtitle }}</div></div><div style="display:flex;align-items:center;gap:8px;border:1px solid #e1e3dc;background:#fff;padding:9px 14px;border-radius:12px;font-size:13px;color:#3a3b3d"><span style="width:8px;height:8px;border-radius:50%;background:#8DC63F;animation:cc-pulse 2s infinite"></span>به‌روزرسانی زنده<span style="color:#b9bbb6">|</span><span style="font-weight:700;direction:ltr">{{ lv.time }}</span></div></div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px"><sc-for list="{{ lv.kpis }}" as="k"><div style="background:#fff;border:1px solid #e7e8e3;border-radius:20px;padding:16px 18px;display:flex;align-items:center;gap:12px"><span style="width:10px;height:10px;border-radius:50%;background:{{ k.accent }}"></span><div><div style="font-size:12px;color:#6b6e72">{{ k.label }}</div><div style="font-size:24px;font-weight:800">{{ k.value }}</div></div></div></sc-for></div>
+    <div style="background:#fff;border:1px solid #e7e8e3;border-radius:20px;padding:16px 18px;display:flex;align-items:center;gap:18px;flex-wrap:wrap">
+      <div style="font-weight:700;font-size:14px;min-width:90px">اپراتورها</div>
+      <div style="flex:1;min-width:200px;display:flex;height:6px;border-radius:99px;overflow:hidden;background:#f2f3ef;gap:2px"><sc-for list="{{ lv.cap }}" as="c"><div style="width:{{ c.w }};background:{{ c.bg }};transition:width .6s"></div></sc-for></div>
+      <div style="display:flex;gap:16px;font-size:12px;color:#6b6e72;flex-wrap:wrap"><sc-for list="{{ lv.capLegend }}" as="g"><span style="display:flex;align-items:center;gap:6px"><span style="width:8px;height:8px;border-radius:50%;background:{{ g.bg }}"></span>{{ g.label }} <b style="color:#232425">{{ g.n }}</b></span></sc-for></div>
     </div>
+    <div style="font-size:12px;color:#8b8e89;margin-top:-6px;padding:0 4px">شنود فقط شنیدنی است و طرفین متوجه نمی‌شوند؛ هر شنود با نام شما در لاگ ثبت می‌شود.</div>
 
     <sc-if value="{{ lv.listening }}">
     <div style="position:sticky;top:10px;z-index:6;background:rgba(35,36,37,.96);backdrop-filter:blur(8px);color:#fff;border:1px solid rgba(127,181,54,.5);border-radius:20px;padding:14px 18px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;box-shadow:0 18px 40px rgba(0,0,0,.28)">
