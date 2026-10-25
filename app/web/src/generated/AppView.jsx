@@ -5185,7 +5185,7 @@ export default function AppView({ vm }) {
             </div>
             <button onClick={vm.cvm?.close} style={{width: "36px", height: "36px", borderRadius: "10px", border: "1px solid #e1e3dc", background: "#fff", cursor: "pointer", fontSize: "15px", color: "#55585c"}}>{"✕"}</button>
           </div>
-          <div style={{flex: "1", overflow: "auto", padding: "16px 18px", display: "flex", flexDirection: "column", gap: "14px"}}>
+          <div style={{flex: "1", minHeight: "0", overflow: "auto", padding: "16px 18px", display: "flex", flexDirection: "column", gap: "14px"}}>
             <div style={{background: "#fff", border: "1px solid #e7e8e3", borderRadius: "18px", padding: "14px 16px", display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px 16px", fontSize: "13px"}}>
               <div>
                 <div style={{fontSize: "11px", color: "#8b8e89"}}>{"زمان"}</div>
@@ -5293,7 +5293,7 @@ export default function AppView({ vm }) {
                 </>) : null}
               </div>
               {(vm.cvm?.hasCoach) ? (<>
-                <div style={{background: "linear-gradient(135deg,#ffffff 0%,#f8fbf3 100%)", border: "1px solid #e3ecd5", borderRadius: "20px", overflow: "hidden", boxShadow: "0 1px 2px rgba(0,0,0,.03)"}}>
+                <div style={{flexShrink: "0", background: "linear-gradient(135deg,#ffffff 0%,#f8fbf3 100%)", border: "1px solid #e3ecd5", borderRadius: "20px", overflow: "hidden", boxShadow: "0 1px 2px rgba(0,0,0,.03)"}}>
                   <div onClick={vm.cvm?.coachToggle} style={{display: "flex", alignItems: "center", gap: "14px", padding: "14px 16px", cursor: "pointer"}}>
                     <div style={{position: "relative", width: "58px", height: "58px", flexShrink: "0"}}>
                       <svg width="58" height="58" viewBox="0 0 100 100" style={{transform: "rotate(-90deg)"}}>
