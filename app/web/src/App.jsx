@@ -1219,7 +1219,7 @@ class LiveApp extends React.Component {
           hasCoach: true, coachScore: fa(k.score), coachColor: tone(k.score, 10), coachVerdict: k.verdict, coachOp: c.op ? c.op.name : 'اپراتور',
           coachDash: C.toFixed(1), coachOff: (C * (1 - k.score / 10)).toFixed(1),
           coachLabel: k.score >= 8 ? 'عالی' : k.score >= 6 ? 'خوب' : k.score >= 4 ? 'متوسط' : 'ضعیف',
-          coachOpen: open, coachClosed: !open, coachToggle: () => this.setState({ cvCoachOpen: !open }), coachChev: open ? 'rotate(180deg)' : 'none',
+          coachOpen: open, coachClosed: !open, coachToggle: () => this.setState({ cvCoachOpen: !open }), coachChev: open ? 'rotate(180deg)' : 'none', coachMore: open ? 'بستن' : 'جزئیات',
           coachCounts: fa((k.strengths || []).length) + ' نقطه قوت · ' + fa((k.improvements || []).length) + ' پیشنهاد',
           criteria: (k.criteria || []).map(x => ({ label: CR[x.key] || x.key, score: fa(x.score), w: (x.score / 5 * 100) + '%', color: tone(x.score, 5), note: x.note })),
           strengths: (k.strengths || []).map(x => ({ x })), hasStrengths: (k.strengths || []).length > 0,
