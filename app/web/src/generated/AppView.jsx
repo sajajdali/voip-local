@@ -5405,6 +5405,13 @@ export default function AppView({ vm }) {
           </div>
         </div>
       </>) : null}
+      {(vm.upd?.newVersion) ? (<>
+        <div style={{position: "fixed", top: "18px", left: "50%", transform: "translateX(-50%)", zIndex: "80", background: "#2E2F31", color: "#fff", padding: "10px 12px 10px 18px", borderRadius: "14px", fontSize: "13px", fontWeight: "700", boxShadow: "0 14px 34px rgba(0,0,0,.25)", display: "flex", alignItems: "center", gap: "14px"}}>
+          <span style={{width: "8px", height: "8px", borderRadius: "50%", background: "#8DC63F"}} />
+          {"نسخه جدید پنل نصب شده است"}
+          <button onClick={vm.upd?.reload} style={{background: "#8DC63F", color: "#1f2a10", border: "none", padding: "7px 14px", borderRadius: "10px", fontSize: "12px", fontWeight: "800", cursor: "pointer", fontFamily: "inherit"}}>{"به‌روزرسانی"}</button>
+        </div>
+      </>) : null}
       {(vm.toast?.show) ? (<>
         <div style={{position: "fixed", top: "22px", left: "50%", transform: "translateX(-50%)", zIndex: "70", background: "#2E2F31", color: "#fff", padding: "13px 20px", borderRadius: "14px", fontSize: "14px", fontWeight: "700", boxShadow: "0 14px 34px rgba(0,0,0,.25)", display: "flex", alignItems: "center", gap: "10px", border: "1px solid rgba(141,198,63,.4)", maxWidth: "calc(100vw - 40px)"}}>
           <span style={{width: "24px", height: "24px", borderRadius: "50%", background: "#8DC63F", color: "#1f2021", display: "grid", placeItems: "center", fontSize: "13px", flexShrink: "0"}}>{"✓"}</span>

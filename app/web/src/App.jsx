@@ -53,6 +53,8 @@ class LiveApp extends React.Component {
     this.sock.on('liveaudio', b => this.playLivePcm(b));
     this.sock.on('liveaudio:start', () => this.setState({ lsOn: true }));
     this.sock.on('liveaudio:end', e => { if (e.reason) this.toast(e.reason); this.stopListen(true); });
+    // a newer panel build on the server: offer to load it (the page itself never reloads on its own)
+    this.verT = setInterval(() => this.checkVersion(), 120e3);
     // live timers on the live-calls page
     this.liveTick = setInterval(() => { if (this.state.page === 'live') this.forceUpdate(); }, 1000);
     window.addEventListener('beforeunload', this.flush);
@@ -61,6 +63,7 @@ class LiveApp extends React.Component {
   teardown() {
     clearInterval(this.tick);
     clearInterval(this.liveTick);
+    clearInterval(this.verT);
     this.stopListen(true);
     clearInterval(this.callT);
     this.audio && this.audio.pause();
@@ -1168,6 +1171,16 @@ class LiveApp extends React.Component {
     } };
   }
 
+  async checkVersion() {
+    const mine = (document.querySelector('script[type="module"][src*="/assets/"]') || {}).src;
+    if (!mine || this.state.newVersion) return;
+    try {
+      const html = await (await fetch('/?v=' + Date.now(), { cache: 'no-store' })).text();
+      const live = (/\/assets\/index-[^"']+\.js/.exec(html) || [])[0];
+      if (live && !mine.endsWith(live)) this.setState({ newVersion: true });
+    } catch (e) { /* offline: try again later */ }
+  }
+
   // ---- call view
   openCall(c) {
     this.setState({ cvId: c.id, cvCoachOpen: false });
@@ -1181,7 +1194,8 @@ class LiveApp extends React.Component {
 
   callViewVals(s) {
     const c = s.cvId ? this.calls.find(x => x.id === s.cvId) : null;
-    if (!c) return { cvm: { show: false, barOk: true } };
+    const upd = { newVersion: !!s.newVersion, reload: () => location.reload() };
+    if (!c) return { cvm: { show: false, barOk: true }, upd };
     const d = (s.cvCache || {})[c.id];
     const ai = d && d.ai;
     const state = d ? d.aiState : '';
@@ -1192,7 +1206,7 @@ class LiveApp extends React.Component {
     const playing = s.pid === c.id && !s.paused;
     const u = ai ? URG[ai.urg] || URG.low : URG.low;
     const isAdmin = ME && ME.role === 'admin';
-    return { cvm: {
+    return { upd, cvm: {
       show: true, barOk: false, close: () => this.setState({ cvId: null }),
       isCur: s.pid === c.id, notCur: s.pid !== c.id,
       name: c.name, phone: c.phone, ini: c.ini, when: c.date + ' · ' + c.time, dir: c.dirLabel, queue: c.queue,
