@@ -91,10 +91,12 @@ export class CallsService {
   }
 
   async list(from = jAddDays(-120)) {
-    const [rows, pats, users, cfg, follows] = await Promise.all([
+    const [rows, pats, users, cfg, follows, reps] = await Promise.all([
       this.db.call.findMany({ where: { date: { gte: from } }, orderBy: { startedAt: 'desc' } }),
       this.db.patient.findMany(), this.db.user.findMany({ where: { ext: { not: null } } }), this.store.all(), this.db.follow.findMany(),
+      this.db.callReport.groupBy({ by: ['callId'], _count: { _all: true } }),
     ]);
+    const REP = new Map(reps.map(r => [r.callId, r._count._all]));
     const P = new Map(pats.map(p => [p.phone, p]));
     const U = new Map(users.map(u => [u.ext, u]));
     const F = new Map(follows.map(f => [f.callId, f.status]));
@@ -109,7 +111,7 @@ export class CallsService {
         id: c.id, date: c.date, time: c.time, name: p ? p.name : 'شماره ناشناس', phone: fmtPhone(c.phone), phoneRaw: c.phone,
         nid: p && p.nid ? p.nid : '—', surgery: surgeryText(p?.surgery), known: !!p, dir: c.dir, st: short ? 'missed' : c.st, short, op, queue: c.queue,
         dur: c.dur, wait: c.wait, hasRec: !!c.recPath, ai: listAi(c.ai), survey: publicSurvey(c.survey), aiConv: convBrief(c.aiConv), aiState: c.aiState, follow: c.st === 'voicemail' ? F.get(c.id) || 'new' : null,
-        wave: c.wave, callback: c.callback, summary: c.summary || '',
+        wave: c.wave, callback: c.callback, summary: c.summary || '', rep: REP.get(c.id) || 0,
       };
     });
   }
@@ -468,6 +470,7 @@ export class CallsController {
     const found = rows.map(r => r.id);
     await this.db.$transaction([
       this.db.note.deleteMany({ where: { callId: { in: found } } }),
+      this.db.callReport.deleteMany({ where: { callId: { in: found } } }),
       this.db.follow.deleteMany({ where: { callId: { in: found } } }),
       this.db.call.deleteMany({ where: { id: { in: found } } }),
     ]);

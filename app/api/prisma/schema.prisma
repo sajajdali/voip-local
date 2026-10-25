@@ -168,3 +168,22 @@ model AiUsage {
 
   @@index([at])
 }
+
+/// «گزارش تماس»: what was said / done on a call, written by an operator.
+model CallReport {
+  id        Int      @id @default(autoincrement())
+  callId    String
+  phone     String
+  cat       String // topic: appt | consult | postop | finance | complaint | other
+  outcome   String // done | follow | ref | noans
+  text      String
+  followUp  String? // Jalali date for the next contact
+  userId    String
+  userName  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([callId])
+  @@index([phone])
+  @@index([createdAt])
+}
