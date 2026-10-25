@@ -1816,7 +1816,7 @@ export default class App extends LiveApp {
    kw:Object.entries(kw).sort((a,b)=>b[1]-a[1]).slice(0,14).map(([w,n])=>({w,n})),
    catF:s.aiCat,setCat:e=>this.setState({aiCat:e.target.value}),
    sentTabs:[['all','همه احساسات'],['pos','مثبت'],['neu','خنثی'],['neg','منفی']].map(([id,label])=>({label,onClick:()=>this.setState({aiSent:id}),...pill(s.aiSent===id)})),
-   count:fa.length,items:fa.slice(0,24).map(c=>({...R(c),sentO:SENT[c.ai.sent],urgO:URG[c.ai.urg],isVm:c.st==='voicemail',openVm:()=>this.setState({page:'voice',vSel:c.id,vTab:'all'})}))};
+   count:fa.length,items:fa.slice(0,24).map(c=>({...R(c),sentO:SENT[c.ai.sent],urgO:URG[c.ai.urg],isVm:c.st==='voicemail',isCallAi:c.st!=='voicemail',openVm:()=>this.setState({page:'voice',vSel:c.id,vTab:'all'})}))};
 
   const urV=this.unreachedPage(C,isUR,lastOk);
   // player

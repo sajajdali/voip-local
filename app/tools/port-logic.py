@@ -168,6 +168,8 @@ sub("...this.liveVals(s),", "...this.liveVals(s),...this.sysVals(s),")
 # --- call view: clicking a call shows recording, AI summary and the conversation as chat
 sub("openFile:()=>this.openFile(c),isPlaying:pl,", "openFile:()=>this.openFile(c),openCall:()=>this.openCall(c),isPlaying:pl,")
 sub("...this.sysVals(s),", "...this.sysVals(s),...this.callViewVals(s),")
+# --- AI page: operator calls open the full call view (assessment, chat, player)
+sub("isVm:c.st==='voicemail',openVm:", "isVm:c.st==='voicemail',isCallAi:c.st!=='voicemail',openVm:")
 head = (root / 'tools/app-head.js').read_text(encoding='utf-8')
 src = src.replace("export default class App extends React.Component {", "export default class App extends LiveApp {")
 (root / 'web/src/App.jsx').write_text(head + '\n' + src.strip() + '\n', encoding='utf-8')

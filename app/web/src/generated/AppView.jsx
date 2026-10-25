@@ -1633,6 +1633,12 @@ export default function AppView({ vm }) {
                   {(it?.isVm) ? (<>
                     <button onClick={it?.openVm} style={{alignSelf: "flex-start", border: "none", background: "none", color: "#3d6a0c", fontSize: "13px", fontWeight: "700", cursor: "pointer", padding: "0"}}>{"مشاهده در صندوق پیام صوتی ←"}</button>
                   </>) : null}
+                  {(it?.isCallAi) ? (<>
+                    <button onClick={it?.openCall} style={{alignSelf: "flex-start", display: "inline-flex", alignItems: "center", gap: "6px", border: "1px solid #d6eabb", background: "#f4f9ec", color: "#3d6a0c", fontSize: "13px", fontWeight: "800", cursor: "pointer", padding: "8px 14px", borderRadius: "12px", fontFamily: "inherit"}}>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z" /></svg>
+                      {"ارزیابی AI و متن کامل گفتگو"}
+                    </button>
+                  </>) : null}
                 </div>
               </React.Fragment>)}
             </div>

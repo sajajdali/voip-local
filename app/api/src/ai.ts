@@ -99,6 +99,25 @@ const COACH_SCHEMA = {
   additionalProperties: false,
 };
 
+const CALL_SYSTEM = `${SYSTEM}
+
+این بار ورودی مکالمه تلفنی یک اپراتور مطب با بیمار است (نه پیام صوتی). سه کار را انجام بده و همه را در یک JSON برگردان:
+
+۱) turns — تقسیم گفتگو:
+${CHAT_SYSTEM.split('\n').slice(1).join('\n')}
+
+۲) category، summary، keywords، urgency، sentiment، action — خلاصه برای مدیر: بیمار چه می‌خواست، اپراتور چه پاسخی داد و نتیجه چه شد. در action بنویس چه پیگیری‌ای لازم است (یا «نیاز به پیگیری ندارد»).
+
+۳) coach — ارزیابی عملکرد اپراتور برای مدیر:
+${COACH_SYSTEM.split('\n').slice(1).join('\n')}`;
+
+const CALL_SCHEMA = {
+  type: 'object',
+  properties: { turns: CHAT_SCHEMA.properties.turns, ...SCHEMA.properties, coach: COACH_SCHEMA },
+  required: ['turns', ...SCHEMA.required, 'coach'],
+  additionalProperties: false,
+};
+
 // ---- built-in keyword analysis (no external service)
 const RULES: { cat: string; kw: string[] }[] = [
   { cat: 'postop', kw: ['جراحی', 'عمل', 'بخیه', 'چسب', 'ورم', 'درد', 'کبودی', 'پانسمان', 'آتل'] },
@@ -281,23 +300,14 @@ export class AiService implements OnModuleInit {
     return key ? { ...s, sttProvider: 'openai', sttUrl: 'https://api.openai.com/v1', sttKey: key, sttModel: s.sttModel || 'gpt-transcribe' } : s;
   }
 
-  /** A recorded operator call as chat turns: the mixed recording gives the order, the per-side tracks (when
-   *  recorded) say who spoke; the model only splits and labels, it never rewrites what was said. */
-  private async callChat(c: { recPath: string }, st: AiSettings, llm: AiSettings) {
-    const base = c.recPath.replace(/\.wav$/, '');
-    const side = async (f: string) => (fs.existsSync(f) && fs.statSync(f).size > 4000 ? (await this.transcribe(f, st)).text : '');
-    const [mixed, op] = await Promise.all([this.transcribe(c.recPath, st), side(base + '-op.wav')]);
-    const pt = '';
-    if (!mixed.text.trim()) return { turns: [] as { who: string; text: string }[], text: '', conf: mixed.conf };
-    let turns: { who: string; text: string }[] = [];
-    if (llm.llmProvider !== 'keywords') {
-      const user = 'متن کامل تماس به ترتیب زمان:\n' + mixed.text + (op ? '\n\n(هر جمله‌ای که در صحبت‌های اپراتور نیست، از بیمار است.)' : '')
-        + (op ? '\n\nفقط صحبت‌های اپراتور کلینیک:\n' + op : '') + (pt ? '\n\nفقط صحبت‌های بیمار:\n' + pt : '');
-      const r = await this.llmJson(CHAT_SYSTEM, user, CHAT_SCHEMA, llm);
-      turns = (Array.isArray(r.turns) ? r.turns : []).map((x: any) => ({ who: x.who === 'operator' ? 'operator' : 'patient', text: String(x.text || '').trim() })).filter((x: any) => x.text).slice(0, 400);
-    }
-    const text = turns.length ? turns.map(x => (x.who === 'operator' ? 'اپراتور: ' : 'بیمار: ') + x.text).join('\n') : mixed.text;
-    return { turns, text, conf: mixed.conf };
+  /** Transcripts of a recorded operator call: the full recording (order) and, when recorded, the operator's own track. */
+  private async callTranscripts(c: { recPath: string }, st: AiSettings) {
+    const opFile = c.recPath.replace(/\.wav$/, '') + '-op.wav';
+    const [mixed, op] = await Promise.all([
+      this.transcribe(c.recPath, st),
+      fs.existsSync(opFile) && fs.statSync(opFile).size > 4000 ? this.transcribe(opFile, st).then(r => r.text) : Promise.resolve(''),
+    ]);
+    return { mixed: mixed.text, conf: mixed.conf, op };
   }
 
   private cleanCoach(r: any) {
@@ -425,13 +435,17 @@ export class AiService implements OnModuleInit {
       ai = this.toAi(await this.analyzeText(text, llm), text, conf);
     } else {
       // operator conversation: chat turns plus a summary written for the manager
-      const { turns, text, conf } = await this.callChat({ recPath: c.recPath }, st, llm);
-      const prompt = 'نوع تماس: مکالمه تلفنی اپراتور کلینیک با بیمار (نه پیام صوتی). خلاصه را برای مدیر بنویس: بیمار چه می‌خواست، اپراتور چه پاسخی داد، نتیجه چه شد. در action بنویس چه پیگیری‌ای لازم است (یا «نیاز به پیگیری ندارد»).\n\n' + text;
-      ai = { ...this.toAi(text ? await this.analyzeText(prompt, llm) : keywordAnalysis(''), text, conf), chat: turns };
-      // the operator's performance, for the manager (never blocks the summary if it fails)
-      if (turns.length >= 2 && llm.llmProvider !== 'keywords') {
-        try { ai.coach = this.cleanCoach(await this.llmJson(COACH_SYSTEM, 'مکالمه:\n' + text, COACH_SCHEMA, llm)); }
-        catch (e: any) { this.log.warn(`coach ${id}: ${e.message}`); }
+      // one model request returns the chat turns, the manager's summary and the operator assessment together
+      const { mixed, conf, op } = await this.callTranscripts({ recPath: c.recPath }, st);
+      if (!mixed.trim() || llm.llmProvider === 'keywords') {
+        ai = { ...this.toAi(keywordAnalysis(mixed), mixed, conf), chat: [] };
+      } else {
+        const user = 'متن کامل تماس به ترتیب زمان:\n' + mixed + (op ? '\n\nفقط صحبت‌های اپراتور کلینیک (هر جمله‌ای که اینجا نیست از بیمار است):\n' + op : '');
+        const r = await this.llmJson(CALL_SYSTEM, user, CALL_SCHEMA, llm);
+        const turns = (Array.isArray(r.turns) ? r.turns : []).map((x: any) => ({ who: x.who === 'operator' ? 'operator' : 'patient', text: String(x.text || '').trim() })).filter((x: any) => x.text).slice(0, 400);
+        const text = turns.length ? turns.map((x: any) => (x.who === 'operator' ? 'اپراتور: ' : 'بیمار: ') + x.text).join('\n') : mixed;
+        ai = { ...this.toAi(r, text, conf), chat: turns };
+        if (turns.length >= 2 && r.coach) ai.coach = this.cleanCoach(r.coach);
       }
     }
     await this.db.call.update({ where: { id }, data: { ai: ai as any, aiState: 'done', aiError: null } });
