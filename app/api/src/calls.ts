@@ -7,9 +7,10 @@ import * as path from 'path';
 import { promisify } from 'util';
 import * as ExcelJS from 'exceljs';
 import { AiService } from './ai';
+import { SECTIONS, can } from './perms';
 import { AiAgentService } from './aiagent';
 import { AsteriskService } from './asterisk/asterisk.service';
-import { CurrentUser, Me, Public, Roles } from './auth';
+import { CurrentUser, Me, Public, Roles, Perm } from './auth';
 import { Bus } from './bus';
 import { ConfigStore } from './config';
 import { env } from './env';
@@ -200,7 +201,7 @@ export class CallsController {
     const live = this.ast.live;
     config.exts = config.exts.map((e: any) => ({ ...e, st: live.exts[e.n]?.st || 'offline', dev: live.exts[e.n]?.dev || e.dev }));
     const operators = users.filter(u => u.ext).map(u => ({ id: u.id, name: u.name, ext: u.ext }));
-    return { me, operators, config, workflow, calls };
+    return { me, sections: SECTIONS, operators, config, workflow, calls };
   }
 
   @Get('calls')
@@ -437,12 +438,12 @@ export class CallsController {
     const c = await this.db.call.findUnique({ where: { id }, select: { ai: true, aiState: true, aiError: true, recPath: true, st: true } });
     if (!c) throw new NotFoundException('تماس پیدا نشد');
     // the operator assessment is for managers only
-    const ai: any = c.ai && me.role !== 'admin' ? { ...(c.ai as any), coach: undefined } : c.ai;
+    const ai: any = c.ai && !can(me, 'coach') ? { ...(c.ai as any), coach: undefined } : c.ai;
     return { ai, aiState: c.aiState, aiError: c.aiError, hasRec: !!c.recPath };
   }
 
   /** Full AI receptionist conversation (transcript and actions) for the review page. */
-  @Roles('admin')
+  @Perm('aiconv')
   @Get('calls/:id/conversation')
   async conversation(@Param('id') id: string) {
     const c = await this.db.call.findUnique({ where: { id }, select: { aiConv: true, ai: true, aiState: true, aiError: true } });

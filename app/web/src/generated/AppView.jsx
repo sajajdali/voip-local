@@ -12,20 +12,24 @@ export default function AppView({ vm }) {
         </div>
         <nav style={{display: "flex", flexDirection: "column", gap: "4px"}}>
           <div style={{fontSize: "11px", color: "#8b8e89", padding: "6px 14px"}}>{"مرکز تماس"}</div>
-          <div onClick={vm.nav?.calls?.go} style={{display: "flex", alignItems: "center", gap: "12px", padding: "11px 14px", borderRadius: "12px", cursor: "pointer", background: vm.nav?.calls?.bg, color: vm.nav?.calls?.fg, fontSize: "14px", fontWeight: "600"}}>
-            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" /></svg>
-            <span style={{flex: "1"}}>{"لیست تماس‌ها"}</span>
-            <span style={{fontSize: "11px", padding: "2px 8px", borderRadius: "99px", background: vm.nav?.calls?.cbg}}>{vm.nav?.calls?.count}</span>
-          </div>
-          <div onClick={vm.nav?.inbound?.go} style={{display: "flex", alignItems: "center", gap: "12px", padding: "11px 14px", borderRadius: "12px", cursor: "pointer", background: vm.nav?.inbound?.bg, color: vm.nav?.inbound?.fg, fontSize: "14px", fontWeight: "600"}}>
-            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2" />
-              <path d="M21 3l-6 6M15 4v5h5" />
-            </svg>
-            <span style={{flex: "1"}}>{"تماس‌های ورودی"}</span>
-            <span style={{fontSize: "11px", padding: "2px 8px", borderRadius: "99px", background: vm.nav?.inbound?.cbg}}>{vm.nav?.inbound?.count}</span>
-          </div>
-          {(vm.me?.isAdmin) ? (<>
+          {(vm.can?.calls) ? (<>
+            <div onClick={vm.nav?.calls?.go} style={{display: "flex", alignItems: "center", gap: "12px", padding: "11px 14px", borderRadius: "12px", cursor: "pointer", background: vm.nav?.calls?.bg, color: vm.nav?.calls?.fg, fontSize: "14px", fontWeight: "600"}}>
+              <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" /></svg>
+              <span style={{flex: "1"}}>{"لیست تماس‌ها"}</span>
+              <span style={{fontSize: "11px", padding: "2px 8px", borderRadius: "99px", background: vm.nav?.calls?.cbg}}>{vm.nav?.calls?.count}</span>
+            </div>
+          </>) : null}
+          {(vm.can?.inbound) ? (<>
+            <div onClick={vm.nav?.inbound?.go} style={{display: "flex", alignItems: "center", gap: "12px", padding: "11px 14px", borderRadius: "12px", cursor: "pointer", background: vm.nav?.inbound?.bg, color: vm.nav?.inbound?.fg, fontSize: "14px", fontWeight: "600"}}>
+              <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2" />
+                <path d="M21 3l-6 6M15 4v5h5" />
+              </svg>
+              <span style={{flex: "1"}}>{"تماس‌های ورودی"}</span>
+              <span style={{fontSize: "11px", padding: "2px 8px", borderRadius: "99px", background: vm.nav?.inbound?.cbg}}>{vm.nav?.inbound?.count}</span>
+            </div>
+          </>) : null}
+          {(vm.can?.live) ? (<>
             <div onClick={vm.nav?.live?.go} style={{display: "flex", alignItems: "center", gap: "12px", padding: "11px 14px", borderRadius: "12px", cursor: "pointer", background: vm.nav?.live?.bg, color: vm.nav?.live?.fg, fontSize: "14px", fontWeight: "600"}}>
               <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M3 14v-2a9 9 0 0 1 18 0v2M3 14a2 2 0 0 1 2-2h1v7H5a2 2 0 0 1-2-2zM21 14a2 2 0 0 0-2-2h-1v7h1a2 2 0 0 0 2-2z" />
@@ -34,49 +38,61 @@ export default function AppView({ vm }) {
               <span style={{fontSize: "11px", padding: "2px 8px", borderRadius: "99px", background: "#7FB536", color: "#fff"}}>{vm.nav?.live?.count}</span>
             </div>
           </>) : null}
-          <div onClick={vm.nav?.voice?.go} style={{display: "flex", alignItems: "center", gap: "12px", padding: "11px 14px", borderRadius: "12px", cursor: "pointer", background: vm.nav?.voice?.bg, color: vm.nav?.voice?.fg, fontSize: "14px", fontWeight: "600"}}>
-            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
-              <rect x="9" y="3" width="6" height="11" rx="3" />
-              <path d="M5 11a7 7 0 0 0 14 0M12 18v3" />
-            </svg>
-            <span style={{flex: "1"}}>{"پیام‌های صوتی"}</span>
-            <span style={{fontSize: "11px", padding: "2px 8px", borderRadius: "99px", background: "#e0574a", color: "#fff"}}>{vm.nav?.voice?.count}</span>
-          </div>
-          <div onClick={vm.nav?.unreached?.go} style={{display: "flex", alignItems: "center", gap: "12px", padding: "11px 14px", borderRadius: "12px", cursor: "pointer", background: vm.nav?.unreached?.bg, color: vm.nav?.unreached?.fg, fontSize: "14px", fontWeight: "600"}}>
-            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
-              <path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2" />
-              <path d="M15 3l6 6M21 3l-6 6" />
-            </svg>
-            <span style={{flex: "1"}}>{"پیگیری‌نشده‌ها"}</span>
-            <span style={{fontSize: "11px", padding: "2px 8px", borderRadius: "99px", background: "#e0574a", color: "#fff"}}>{vm.nav?.unreached?.count}</span>
-          </div>
-          <div onClick={vm.nav?.toggleRep} style={{display: "flex", alignItems: "center", gap: "12px", padding: "11px 14px", borderRadius: "12px", cursor: "pointer", background: vm.nav?.repBg, color: "#d9dad6", fontSize: "14px", fontWeight: "600"}}>
-            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M4 20V10M10 20V4M16 20v-7M21 20H3" /></svg>
-            <span style={{flex: "1"}}>{"گزارش‌ها"}</span>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" style={{transform: vm.nav?.repChev, transition: "transform .2s"}}><path d="M6 9l6 6 6-6" /></svg>
-          </div>
-          {(vm.nav?.repOpen) ? (<>
-            <div style={{display: "flex", flexDirection: "column", gap: "2px", marginRight: "24px", paddingRight: "10px", borderRight: "1px solid rgba(255,255,255,.12)"}}>
-              <div onClick={vm.nav?.reports?.go} style={{display: "flex", alignItems: "center", gap: "10px", padding: "9px 12px", borderRadius: "10px", cursor: "pointer", fontSize: "13px", fontWeight: "600", background: vm.nav?.reports?.bg, color: vm.nav?.reports?.fg}}><span style={{flex: "1"}}>{"گزارش‌ساز"}</span></div>
-              <div onClick={vm.nav?.days?.go} style={{display: "flex", alignItems: "center", gap: "10px", padding: "9px 12px", borderRadius: "10px", cursor: "pointer", fontSize: "13px", fontWeight: "600", background: vm.nav?.days?.bg, color: vm.nav?.days?.fg}}><span style={{flex: "1"}}>{"گزارش روزها (زوج و فرد)"}</span></div>
+          {(vm.can?.voice) ? (<>
+            <div onClick={vm.nav?.voice?.go} style={{display: "flex", alignItems: "center", gap: "12px", padding: "11px 14px", borderRadius: "12px", cursor: "pointer", background: vm.nav?.voice?.bg, color: vm.nav?.voice?.fg, fontSize: "14px", fontWeight: "600"}}>
+              <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
+                <rect x="9" y="3" width="6" height="11" rx="3" />
+                <path d="M5 11a7 7 0 0 0 14 0M12 18v3" />
+              </svg>
+              <span style={{flex: "1"}}>{"پیام‌های صوتی"}</span>
+              <span style={{fontSize: "11px", padding: "2px 8px", borderRadius: "99px", background: "#e0574a", color: "#fff"}}>{vm.nav?.voice?.count}</span>
             </div>
           </>) : null}
-          <div onClick={vm.nav?.survey?.go} style={{display: "flex", alignItems: "center", gap: "12px", padding: "11px 14px", borderRadius: "12px", cursor: "pointer", background: vm.nav?.survey?.bg, color: vm.nav?.survey?.fg, fontSize: "14px", fontWeight: "600"}}>
-            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round">
-              <path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z" />
-            </svg>
-            <span style={{flex: "1"}}>{"نظرسنجی"}</span>
-            <span style={{fontSize: "11px", padding: "2px 8px", borderRadius: "99px", background: vm.nav?.survey?.cbg}}>{vm.nav?.survey?.count}</span>
-          </div>
-          <div style={{fontSize: "11px", color: "#8b8e89", padding: "16px 14px 6px"}}>{"هوش مصنوعی"}</div>
-          <div onClick={vm.nav?.ai?.go} style={{display: "flex", alignItems: "center", gap: "12px", padding: "11px 14px", borderRadius: "12px", cursor: "pointer", background: vm.nav?.ai?.bg, color: vm.nav?.ai?.fg, fontSize: "14px", fontWeight: "600", border: "1px solid rgba(141,198,63,.35)"}}>
-            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round">
-              <path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8zM19 16l.8 2.2L22 19l-2.2.8L19 22l-.8-2.2L16 19l2.2-.8z" />
-            </svg>
-            <span style={{flex: "1"}}>{"تحلیل هوش مصنوعی"}</span>
-            <span style={{fontSize: "11px", padding: "2px 8px", borderRadius: "99px", background: vm.nav?.ai?.cbg}}>{vm.nav?.ai?.count}</span>
-          </div>
-          {(vm.me?.isAdmin) ? (<>
+          {(vm.can?.unreached) ? (<>
+            <div onClick={vm.nav?.unreached?.go} style={{display: "flex", alignItems: "center", gap: "12px", padding: "11px 14px", borderRadius: "12px", cursor: "pointer", background: vm.nav?.unreached?.bg, color: vm.nav?.unreached?.fg, fontSize: "14px", fontWeight: "600"}}>
+              <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
+                <path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2" />
+                <path d="M15 3l6 6M21 3l-6 6" />
+              </svg>
+              <span style={{flex: "1"}}>{"پیگیری‌نشده‌ها"}</span>
+              <span style={{fontSize: "11px", padding: "2px 8px", borderRadius: "99px", background: "#e0574a", color: "#fff"}}>{vm.nav?.unreached?.count}</span>
+            </div>
+          </>) : null}
+          {(vm.can?.reports) ? (<>
+            <div onClick={vm.nav?.toggleRep} style={{display: "flex", alignItems: "center", gap: "12px", padding: "11px 14px", borderRadius: "12px", cursor: "pointer", background: vm.nav?.repBg, color: "#d9dad6", fontSize: "14px", fontWeight: "600"}}>
+              <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M4 20V10M10 20V4M16 20v-7M21 20H3" /></svg>
+              <span style={{flex: "1"}}>{"گزارش‌ها"}</span>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" style={{transform: vm.nav?.repChev, transition: "transform .2s"}}><path d="M6 9l6 6 6-6" /></svg>
+            </div>
+            {(vm.nav?.repOpen) ? (<>
+              <div style={{display: "flex", flexDirection: "column", gap: "2px", marginRight: "24px", paddingRight: "10px", borderRight: "1px solid rgba(255,255,255,.12)"}}>
+                <div onClick={vm.nav?.reports?.go} style={{display: "flex", alignItems: "center", gap: "10px", padding: "9px 12px", borderRadius: "10px", cursor: "pointer", fontSize: "13px", fontWeight: "600", background: vm.nav?.reports?.bg, color: vm.nav?.reports?.fg}}><span style={{flex: "1"}}>{"گزارش‌ساز"}</span></div>
+                <div onClick={vm.nav?.days?.go} style={{display: "flex", alignItems: "center", gap: "10px", padding: "9px 12px", borderRadius: "10px", cursor: "pointer", fontSize: "13px", fontWeight: "600", background: vm.nav?.days?.bg, color: vm.nav?.days?.fg}}><span style={{flex: "1"}}>{"گزارش روزها (زوج و فرد)"}</span></div>
+              </div>
+            </>) : null}
+          </>) : null}
+          {(vm.can?.survey) ? (<>
+            <div onClick={vm.nav?.survey?.go} style={{display: "flex", alignItems: "center", gap: "12px", padding: "11px 14px", borderRadius: "12px", cursor: "pointer", background: vm.nav?.survey?.bg, color: vm.nav?.survey?.fg, fontSize: "14px", fontWeight: "600"}}>
+              <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round">
+                <path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z" />
+              </svg>
+              <span style={{flex: "1"}}>{"نظرسنجی"}</span>
+              <span style={{fontSize: "11px", padding: "2px 8px", borderRadius: "99px", background: vm.nav?.survey?.cbg}}>{vm.nav?.survey?.count}</span>
+            </div>
+          </>) : null}
+          {(vm.can?.anyAi) ? (<>
+            <div style={{fontSize: "11px", color: "#8b8e89", padding: "16px 14px 6px"}}>{"هوش مصنوعی"}</div>
+          </>) : null}
+          {(vm.can?.ai) ? (<>
+            <div onClick={vm.nav?.ai?.go} style={{display: "flex", alignItems: "center", gap: "12px", padding: "11px 14px", borderRadius: "12px", cursor: "pointer", background: vm.nav?.ai?.bg, color: vm.nav?.ai?.fg, fontSize: "14px", fontWeight: "600", border: "1px solid rgba(141,198,63,.35)"}}>
+              <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round">
+                <path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8zM19 16l.8 2.2L22 19l-2.2.8L19 22l-.8-2.2L16 19l2.2-.8z" />
+              </svg>
+              <span style={{flex: "1"}}>{"تحلیل هوش مصنوعی"}</span>
+              <span style={{fontSize: "11px", padding: "2px 8px", borderRadius: "99px", background: vm.nav?.ai?.cbg}}>{vm.nav?.ai?.count}</span>
+            </div>
+          </>) : null}
+          {(vm.can?.aiconv) ? (<>
             <div onClick={vm.nav?.aiconv?.go} style={{display: "flex", alignItems: "center", gap: "12px", padding: "11px 14px", borderRadius: "12px", cursor: "pointer", background: vm.nav?.aiconv?.bg, color: vm.nav?.aiconv?.fg, fontSize: "14px", fontWeight: "600", marginTop: "4px"}}>
               <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M12 3a3 3 0 0 0-3 3v5a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3zM6 10a6 6 0 0 0 12 0M12 16v3M4 21h16" />
@@ -84,77 +100,103 @@ export default function AppView({ vm }) {
               <span style={{flex: "1"}}>{"گفتگوهای دستیار"}</span>
               <span style={{fontSize: "11px", padding: "2px 8px", borderRadius: "99px", background: vm.nav?.aiconv?.cbg}}>{vm.nav?.aiconv?.count}</span>
             </div>
-            <div onClick={vm.nav?.usage?.go} style={{display: "flex", alignItems: "center", gap: "12px", padding: "11px 14px", borderRadius: "12px", cursor: "pointer", background: vm.nav?.usage?.bg, color: vm.nav?.usage?.fg, fontSize: "14px", fontWeight: "600"}}>
-              <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M12 3v18M16.5 7.5c0-1.7-2-3-4.5-3s-4.5 1.3-4.5 3 2 2.6 4.5 3 4.5 1.3 4.5 3-2 3-4.5 3-4.5-1.3-4.5-3" />
-              </svg>
-              <span style={{flex: "1"}}>{"مصرف توکن"}</span>
-            </div>
+          </>) : null}
+          {(vm.can?.anySettings) ? (<>
             <div style={{fontSize: "11px", color: "#8b8e89", padding: "16px 14px 6px"}}>{"تنظیمات"}</div>
-            <div onClick={vm.nav?.sys?.go} style={{display: "flex", alignItems: "center", gap: "12px", padding: "11px 14px", borderRadius: "12px", cursor: "pointer", background: vm.nav?.sys?.bg, color: vm.nav?.sys?.fg, fontSize: "14px", fontWeight: "600"}}>
-              <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4h16v6H4zM4 14h16v6H4zM8 7h.01M8 17h.01" /></svg>
-              <span style={{flex: "1"}}>{"وضعیت سرور"}</span>
-            </div>
-            <div onClick={vm.nav?.toggleVoip} style={{display: "flex", alignItems: "center", gap: "12px", padding: "11px 14px", borderRadius: "12px", cursor: "pointer", background: vm.nav?.voipBg, color: "#d9dad6", fontSize: "14px", fontWeight: "600"}}>
-              <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
-                <circle cx="12" cy="12" r="3" />
-                <path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z" />
-              </svg>
-              <span style={{flex: "1"}}>{"تنظیمات VoIP"}</span>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" style={{transform: vm.nav?.voipChev, transition: "transform .2s"}}><path d="M6 9l6 6 6-6" /></svg>
-            </div>
-            {(vm.nav?.voipOpen) ? (<>
-              <div style={{display: "flex", flexDirection: "column", gap: "2px", marginRight: "24px", paddingRight: "10px", borderRight: "1px solid rgba(255,255,255,.12)"}}>
-                <div onClick={vm.nav?.vext?.go} style={{display: "flex", alignItems: "center", gap: "10px", padding: "9px 12px", borderRadius: "10px", cursor: "pointer", background: vm.nav?.vext?.bg, color: vm.nav?.vext?.fg, fontSize: "13px", fontWeight: "600"}}>
-                  <span style={{flex: "1"}}>{"مدیریت داخلی‌ها"}</span>
-                  <span style={{fontSize: "11px", padding: "1px 7px", borderRadius: "99px", background: vm.nav?.vext?.cbg}}>{vm.nav?.vext?.count}</span>
-                </div>
-                <div onClick={vm.nav?.vtrunk?.go} style={{display: "flex", alignItems: "center", gap: "10px", padding: "9px 12px", borderRadius: "10px", cursor: "pointer", background: vm.nav?.vtrunk?.bg, color: vm.nav?.vtrunk?.fg, fontSize: "13px", fontWeight: "600"}}>
-                  <span style={{flex: "1"}}>{"مدیریت ترانک‌ها"}</span>
-                  <span style={{fontSize: "11px", padding: "1px 7px", borderRadius: "99px", background: vm.nav?.vtrunk?.cbg}}>{vm.nav?.vtrunk?.count}</span>
-                </div>
-                <div onClick={vm.nav?.vqueue?.go} style={{display: "flex", alignItems: "center", gap: "10px", padding: "9px 12px", borderRadius: "10px", cursor: "pointer", background: vm.nav?.vqueue?.bg, color: vm.nav?.vqueue?.fg, fontSize: "13px", fontWeight: "600"}}>
-                  <span style={{flex: "1"}}>{"مدیریت صف‌ها"}</span>
-                  <span style={{fontSize: "11px", padding: "1px 7px", borderRadius: "99px", background: vm.nav?.vqueue?.cbg}}>{vm.nav?.vqueue?.count}</span>
-                </div>
-                <div onClick={vm.nav?.vivr?.go} style={{display: "flex", alignItems: "center", gap: "10px", padding: "9px 12px", borderRadius: "10px", cursor: "pointer", background: vm.nav?.vivr?.bg, color: vm.nav?.vivr?.fg, fontSize: "13px", fontWeight: "600"}}>
-                  <span style={{flex: "1"}}>{"مدیریت IVR‌ها"}</span>
-                  <span style={{fontSize: "11px", padding: "1px 7px", borderRadius: "99px", background: vm.nav?.vivr?.cbg}}>{vm.nav?.vivr?.count}</span>
-                </div>
-                <div onClick={vm.nav?.vsound?.go} style={{display: "flex", alignItems: "center", gap: "10px", padding: "9px 12px", borderRadius: "10px", cursor: "pointer", background: vm.nav?.vsound?.bg, color: vm.nav?.vsound?.fg, fontSize: "13px", fontWeight: "600"}}>
-                  <span style={{flex: "1"}}>{"مدیریت صداها"}</span>
-                  <span style={{fontSize: "11px", padding: "1px 7px", borderRadius: "99px", background: vm.nav?.vsound?.cbg}}>{vm.nav?.vsound?.count}</span>
-                </div>
-                <div style={{fontSize: "10px", color: "#8b8e89", padding: "8px 12px 2px"}}>{"مسیریابی تماس"}</div>
-                <div onClick={vm.nav?.vroute?.go} style={{display: "flex", alignItems: "center", gap: "10px", padding: "9px 12px", borderRadius: "10px", cursor: "pointer", background: vm.nav?.vroute?.bg, color: vm.nav?.vroute?.fg, fontSize: "13px", fontWeight: "600"}}>
-                  <span style={{flex: "1"}}>{"مسیرهای ورودی"}</span>
-                  <span style={{fontSize: "11px", padding: "1px 7px", borderRadius: "99px", background: vm.nav?.vroute?.cbg}}>{vm.nav?.vroute?.count}</span>
-                </div>
-                <div onClick={vm.nav?.vout?.go} style={{display: "flex", alignItems: "center", gap: "10px", padding: "9px 12px", borderRadius: "10px", cursor: "pointer", background: vm.nav?.vout?.bg, color: vm.nav?.vout?.fg, fontSize: "13px", fontWeight: "600"}}>
-                  <span style={{flex: "1"}}>{"مسیرهای خروجی"}</span>
-                  <span style={{fontSize: "11px", padding: "1px 7px", borderRadius: "99px", background: vm.nav?.vout?.cbg}}>{vm.nav?.vout?.count}</span>
-                </div>
-                <div onClick={vm.nav?.vtime?.go} style={{display: "flex", alignItems: "center", gap: "10px", padding: "9px 12px", borderRadius: "10px", cursor: "pointer", background: vm.nav?.vtime?.bg, color: vm.nav?.vtime?.fg, fontSize: "13px", fontWeight: "600"}}>
-                  <span style={{flex: "1"}}>{"شرایط و گروه‌های زمانی"}</span>
-                  <span style={{fontSize: "11px", padding: "1px 7px", borderRadius: "99px", background: vm.nav?.vtime?.cbg}}>{vm.nav?.vtime?.count}</span>
-                </div>
-                <div onClick={vm.nav?.vring?.go} style={{display: "flex", alignItems: "center", gap: "10px", padding: "9px 12px", borderRadius: "10px", cursor: "pointer", background: vm.nav?.vring?.bg, color: vm.nav?.vring?.fg, fontSize: "13px", fontWeight: "600"}}>
-                  <span style={{flex: "1"}}>{"گروه زنگ"}</span>
-                  <span style={{fontSize: "11px", padding: "1px 7px", borderRadius: "99px", background: vm.nav?.vring?.cbg}}>{vm.nav?.vring?.count}</span>
-                </div>
-                <div onClick={vm.nav?.vfollow?.go} style={{display: "flex", alignItems: "center", gap: "10px", padding: "9px 12px", borderRadius: "10px", cursor: "pointer", background: vm.nav?.vfollow?.bg, color: vm.nav?.vfollow?.fg, fontSize: "13px", fontWeight: "600"}}>
-                  <span style={{flex: "1"}}>{"دنبال‌کردن تماس"}</span>
-                  <span style={{fontSize: "11px", padding: "1px 7px", borderRadius: "99px", background: vm.nav?.vfollow?.cbg}}>{vm.nav?.vfollow?.count}</span>
-                </div>
-                <div onClick={vm.nav?.vblack?.go} style={{display: "flex", alignItems: "center", gap: "10px", padding: "9px 12px", borderRadius: "10px", cursor: "pointer", background: vm.nav?.vblack?.bg, color: vm.nav?.vblack?.fg, fontSize: "13px", fontWeight: "600"}}>
-                  <span style={{flex: "1"}}>{"لیست سیاه"}</span>
-                  <span style={{fontSize: "11px", padding: "1px 7px", borderRadius: "99px", background: vm.nav?.vblack?.cbg}}>{vm.nav?.vblack?.count}</span>
-                </div>
-                <div onClick={vm.nav?.vbackup?.go} style={{display: "flex", alignItems: "center", gap: "10px", padding: "9px 12px", borderRadius: "10px", cursor: "pointer", background: vm.nav?.vbackup?.bg, color: vm.nav?.vbackup?.fg, fontSize: "13px", fontWeight: "600"}}>
-                  <span style={{flex: "1"}}>{"بکاپ و بازیابی"}</span>
-                  <span style={{fontSize: "11px", padding: "1px 7px", borderRadius: "99px", background: vm.nav?.vbackup?.cbg}}>{vm.nav?.vbackup?.count}</span>
-                </div>
+            {(vm.can?.sys) ? (<>
+              <div onClick={vm.nav?.sys?.go} style={{display: "flex", alignItems: "center", gap: "12px", padding: "11px 14px", borderRadius: "12px", cursor: "pointer", background: vm.nav?.sys?.bg, color: vm.nav?.sys?.fg, fontSize: "14px", fontWeight: "600"}}>
+                <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4h16v6H4zM4 14h16v6H4zM8 7h.01M8 17h.01" /></svg>
+                <span style={{flex: "1"}}>{"وضعیت سرور"}</span>
               </div>
+            </>) : null}
+            {(vm.can?.anyVoip) ? (<>
+              <div onClick={vm.nav?.toggleVoip} style={{display: "flex", alignItems: "center", gap: "12px", padding: "11px 14px", borderRadius: "12px", cursor: "pointer", background: vm.nav?.voipBg, color: "#d9dad6", fontSize: "14px", fontWeight: "600"}}>
+                <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
+                  <circle cx="12" cy="12" r="3" />
+                  <path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z" />
+                </svg>
+                <span style={{flex: "1"}}>{"تنظیمات VoIP"}</span>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" style={{transform: vm.nav?.voipChev, transition: "transform .2s"}}><path d="M6 9l6 6 6-6" /></svg>
+              </div>
+              {(vm.nav?.voipOpen) ? (<>
+                <div style={{display: "flex", flexDirection: "column", gap: "2px", marginRight: "24px", paddingRight: "10px", borderRight: "1px solid rgba(255,255,255,.12)"}}>
+                  {(vm.can?.vext) ? (<>
+                    <div onClick={vm.nav?.vext?.go} style={{display: "flex", alignItems: "center", gap: "10px", padding: "9px 12px", borderRadius: "10px", cursor: "pointer", background: vm.nav?.vext?.bg, color: vm.nav?.vext?.fg, fontSize: "13px", fontWeight: "600"}}>
+                      <span style={{flex: "1"}}>{"مدیریت داخلی‌ها"}</span>
+                      <span style={{fontSize: "11px", padding: "1px 7px", borderRadius: "99px", background: vm.nav?.vext?.cbg}}>{vm.nav?.vext?.count}</span>
+                    </div>
+                  </>) : null}
+                  {(vm.can?.vtrunk) ? (<>
+                    <div onClick={vm.nav?.vtrunk?.go} style={{display: "flex", alignItems: "center", gap: "10px", padding: "9px 12px", borderRadius: "10px", cursor: "pointer", background: vm.nav?.vtrunk?.bg, color: vm.nav?.vtrunk?.fg, fontSize: "13px", fontWeight: "600"}}>
+                      <span style={{flex: "1"}}>{"مدیریت ترانک‌ها"}</span>
+                      <span style={{fontSize: "11px", padding: "1px 7px", borderRadius: "99px", background: vm.nav?.vtrunk?.cbg}}>{vm.nav?.vtrunk?.count}</span>
+                    </div>
+                  </>) : null}
+                  {(vm.can?.vqueue) ? (<>
+                    <div onClick={vm.nav?.vqueue?.go} style={{display: "flex", alignItems: "center", gap: "10px", padding: "9px 12px", borderRadius: "10px", cursor: "pointer", background: vm.nav?.vqueue?.bg, color: vm.nav?.vqueue?.fg, fontSize: "13px", fontWeight: "600"}}>
+                      <span style={{flex: "1"}}>{"مدیریت صف‌ها"}</span>
+                      <span style={{fontSize: "11px", padding: "1px 7px", borderRadius: "99px", background: vm.nav?.vqueue?.cbg}}>{vm.nav?.vqueue?.count}</span>
+                    </div>
+                  </>) : null}
+                  {(vm.can?.vivr) ? (<>
+                    <div onClick={vm.nav?.vivr?.go} style={{display: "flex", alignItems: "center", gap: "10px", padding: "9px 12px", borderRadius: "10px", cursor: "pointer", background: vm.nav?.vivr?.bg, color: vm.nav?.vivr?.fg, fontSize: "13px", fontWeight: "600"}}>
+                      <span style={{flex: "1"}}>{"مدیریت IVR‌ها"}</span>
+                      <span style={{fontSize: "11px", padding: "1px 7px", borderRadius: "99px", background: vm.nav?.vivr?.cbg}}>{vm.nav?.vivr?.count}</span>
+                    </div>
+                  </>) : null}
+                  {(vm.can?.vsound) ? (<>
+                    <div onClick={vm.nav?.vsound?.go} style={{display: "flex", alignItems: "center", gap: "10px", padding: "9px 12px", borderRadius: "10px", cursor: "pointer", background: vm.nav?.vsound?.bg, color: vm.nav?.vsound?.fg, fontSize: "13px", fontWeight: "600"}}>
+                      <span style={{flex: "1"}}>{"مدیریت صداها"}</span>
+                      <span style={{fontSize: "11px", padding: "1px 7px", borderRadius: "99px", background: vm.nav?.vsound?.cbg}}>{vm.nav?.vsound?.count}</span>
+                    </div>
+                  </>) : null}
+                  {(vm.can?.anyRouting) ? (<>
+                    <div style={{fontSize: "10px", color: "#8b8e89", padding: "8px 12px 2px"}}>{"مسیریابی تماس"}</div>
+                  </>) : null}
+                  {(vm.can?.vroute) ? (<>
+                    <div onClick={vm.nav?.vroute?.go} style={{display: "flex", alignItems: "center", gap: "10px", padding: "9px 12px", borderRadius: "10px", cursor: "pointer", background: vm.nav?.vroute?.bg, color: vm.nav?.vroute?.fg, fontSize: "13px", fontWeight: "600"}}>
+                      <span style={{flex: "1"}}>{"مسیرهای ورودی"}</span>
+                      <span style={{fontSize: "11px", padding: "1px 7px", borderRadius: "99px", background: vm.nav?.vroute?.cbg}}>{vm.nav?.vroute?.count}</span>
+                    </div>
+                  </>) : null}
+                  {(vm.can?.vout) ? (<>
+                    <div onClick={vm.nav?.vout?.go} style={{display: "flex", alignItems: "center", gap: "10px", padding: "9px 12px", borderRadius: "10px", cursor: "pointer", background: vm.nav?.vout?.bg, color: vm.nav?.vout?.fg, fontSize: "13px", fontWeight: "600"}}>
+                      <span style={{flex: "1"}}>{"مسیرهای خروجی"}</span>
+                      <span style={{fontSize: "11px", padding: "1px 7px", borderRadius: "99px", background: vm.nav?.vout?.cbg}}>{vm.nav?.vout?.count}</span>
+                    </div>
+                  </>) : null}
+                  {(vm.can?.vtime) ? (<>
+                    <div onClick={vm.nav?.vtime?.go} style={{display: "flex", alignItems: "center", gap: "10px", padding: "9px 12px", borderRadius: "10px", cursor: "pointer", background: vm.nav?.vtime?.bg, color: vm.nav?.vtime?.fg, fontSize: "13px", fontWeight: "600"}}>
+                      <span style={{flex: "1"}}>{"شرایط و گروه‌های زمانی"}</span>
+                      <span style={{fontSize: "11px", padding: "1px 7px", borderRadius: "99px", background: vm.nav?.vtime?.cbg}}>{vm.nav?.vtime?.count}</span>
+                    </div>
+                  </>) : null}
+                  {(vm.can?.vring) ? (<>
+                    <div onClick={vm.nav?.vring?.go} style={{display: "flex", alignItems: "center", gap: "10px", padding: "9px 12px", borderRadius: "10px", cursor: "pointer", background: vm.nav?.vring?.bg, color: vm.nav?.vring?.fg, fontSize: "13px", fontWeight: "600"}}>
+                      <span style={{flex: "1"}}>{"گروه زنگ"}</span>
+                      <span style={{fontSize: "11px", padding: "1px 7px", borderRadius: "99px", background: vm.nav?.vring?.cbg}}>{vm.nav?.vring?.count}</span>
+                    </div>
+                  </>) : null}
+                  {(vm.can?.vfollow) ? (<>
+                    <div onClick={vm.nav?.vfollow?.go} style={{display: "flex", alignItems: "center", gap: "10px", padding: "9px 12px", borderRadius: "10px", cursor: "pointer", background: vm.nav?.vfollow?.bg, color: vm.nav?.vfollow?.fg, fontSize: "13px", fontWeight: "600"}}>
+                      <span style={{flex: "1"}}>{"دنبال‌کردن تماس"}</span>
+                      <span style={{fontSize: "11px", padding: "1px 7px", borderRadius: "99px", background: vm.nav?.vfollow?.cbg}}>{vm.nav?.vfollow?.count}</span>
+                    </div>
+                  </>) : null}
+                  {(vm.can?.vblack) ? (<>
+                    <div onClick={vm.nav?.vblack?.go} style={{display: "flex", alignItems: "center", gap: "10px", padding: "9px 12px", borderRadius: "10px", cursor: "pointer", background: vm.nav?.vblack?.bg, color: vm.nav?.vblack?.fg, fontSize: "13px", fontWeight: "600"}}>
+                      <span style={{flex: "1"}}>{"لیست سیاه"}</span>
+                      <span style={{fontSize: "11px", padding: "1px 7px", borderRadius: "99px", background: vm.nav?.vblack?.cbg}}>{vm.nav?.vblack?.count}</span>
+                    </div>
+                  </>) : null}
+                  {(vm.can?.vbackup) ? (<>
+                    <div onClick={vm.nav?.vbackup?.go} style={{display: "flex", alignItems: "center", gap: "10px", padding: "9px 12px", borderRadius: "10px", cursor: "pointer", background: vm.nav?.vbackup?.bg, color: vm.nav?.vbackup?.fg, fontSize: "13px", fontWeight: "600"}}>
+                      <span style={{flex: "1"}}>{"بکاپ و بازیابی"}</span>
+                      <span style={{fontSize: "11px", padding: "1px 7px", borderRadius: "99px", background: vm.nav?.vbackup?.cbg}}>{vm.nav?.vbackup?.count}</span>
+                    </div>
+                  </>) : null}
+                </div>
+              </>) : null}
             </>) : null}
             <div onClick={vm.nav?.settings?.go} style={{display: "flex", alignItems: "center", gap: "12px", padding: "11px 14px", borderRadius: "12px", cursor: "pointer", background: vm.nav?.settings?.bg, color: vm.nav?.settings?.fg, fontSize: "14px", fontWeight: "600"}}>
               <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
@@ -203,6 +245,9 @@ export default function AppView({ vm }) {
             </button>
             <span style={{fontSize: "12px", color: "#8b8e89"}}>{"تنظیمات / "}{vm.crumb?.title}</span>
           </div>
+        </>) : null}
+        {(vm.crumb?.readOnly) ? (<>
+          <div style={{background: "#f2f3ef", border: "1px solid #e1e3dc", color: "#55585c", borderRadius: "12px", padding: "9px 14px", fontSize: "13px", marginBottom: "14px"}}>{"شما فقط اجازه مشاهده این بخش را دارید؛ تغییرات ذخیره نمی‌شوند."}</div>
         </>) : null}
         {(vm.is?.calls) ? (<>
           <div style={{display: "flex", flexDirection: "column", gap: "22px"}}>
@@ -1604,6 +1649,7 @@ export default function AppView({ vm }) {
               {(vm.ai?.sentTabs || []).map((t, __i7) => <React.Fragment key={__i7}>
                 <button onClick={t?.onClick} style={{border: `1px solid ${t?.bd}`, background: t?.bg, color: t?.fg, padding: "7px 13px", borderRadius: "999px", fontSize: "12px", fontWeight: "600", cursor: "pointer"}}>{t?.label}</button>
               </React.Fragment>)}
+              <input value={vm.ai?.q} onChange={vm.ai?.setQ} placeholder="جستجوی شماره موبایل، داخلی یا نام…" style={{border: "1px solid #e1e3dc", borderRadius: "10px", padding: "8px 12px", fontSize: "13px", outline: "none", minWidth: "220px", fontFamily: "inherit"}} />
               <span style={{marginRight: "auto", fontSize: "13px", color: "#6b6e72"}}>{vm.ai?.count}{" مورد"}</span>
             </div>
             <div style={{display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(360px,1fr))", gap: "16px"}}>
@@ -1648,6 +1694,13 @@ export default function AppView({ vm }) {
                 </div>
               </React.Fragment>)}
             </div>
+            {(vm.ai?.hasPages) ? (<>
+              <div style={{display: "flex", alignItems: "center", justifyContent: "center", gap: "12px"}}>
+                <button onClick={vm.ai?.prev} style={{border: "1px solid #e1e3dc", background: "#fff", padding: "8px 14px", borderRadius: "10px", fontSize: "13px", fontWeight: "700", cursor: "pointer", fontFamily: "inherit", opacity: vm.ai?.prevOp}}>{"قبلی"}</button>
+                <span style={{fontSize: "13px", color: "#55585c"}}>{vm.ai?.pageText}</span>
+                <button onClick={vm.ai?.next} style={{border: "1px solid #e1e3dc", background: "#fff", padding: "8px 14px", borderRadius: "10px", fontSize: "13px", fontWeight: "700", cursor: "pointer", fontFamily: "inherit", opacity: vm.ai?.nextOp}}>{"بعدی"}</button>
+              </div>
+            </>) : null}
           </div>
         </>) : null}
         {(vm.is?.vbackup) ? (<>
@@ -3143,6 +3196,165 @@ export default function AppView({ vm }) {
                       </React.Fragment>)}
                     </div>
                   </>) : null}
+                </div>
+              </div>
+            </>) : null}
+          </div>
+        </>) : null}
+        {(vm.is?.users) ? (<>
+          <div style={{display: "flex", flexDirection: "column", gap: "18px"}}>
+            <div style={{display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: "16px", flexWrap: "wrap"}}>
+              <div>
+                <h1 style={{margin: "0", fontSize: "28px", fontWeight: "800"}}>{"کاربران و دسترسی‌ها"}</h1>
+                <div style={{fontSize: "14px", color: "#6b6e72", marginTop: "6px"}}>
+                  {"برای هر کاربر مشخص کنید چه بخش‌هایی را ببیند و در هر بخش اجازه افزودن، ویرایش یا حذف داشته باشد."}
+                </div>
+              </div>
+              {(vm.uv?.canAdd) ? (<>
+                <button onClick={vm.uv?.add} style={{display: "flex", alignItems: "center", gap: "8px", border: "none", background: "#8DC63F", color: "#1f2021", padding: "10px 16px", borderRadius: "12px", fontSize: "13px", fontWeight: "800", cursor: "pointer", fontFamily: "inherit"}}>
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>
+                  {"کاربر جدید"}
+                </button>
+              </>) : null}
+            </div>
+            {(vm.uv?.ready) ? (<>
+              {(vm.uv?.editing) ? (<>
+                <div style={{background: "#fff", border: "1px solid #e7e8e3", borderRadius: "20px", padding: "18px 20px", display: "flex", flexDirection: "column", gap: "16px", borderColor: "#cfe4ad", background: "#fbfdf8"}}>
+                  <div style={{display: "flex", alignItems: "center", gap: "10px"}}>
+                    <div style={{flex: "1", fontWeight: "800", fontSize: "17px"}}>{vm.uv?.form?.title}</div>
+                    <button onClick={vm.uv?.form?.cancel} style={{border: "1px solid #e1e3dc", background: "#fff", color: "#2E2F31", padding: "6px 11px", borderRadius: "9px", fontSize: "12px", fontWeight: "700", cursor: "pointer", fontFamily: "inherit"}}>{"انصراف"}</button>
+                    <button onClick={vm.uv?.form?.save} style={{border: "none", background: "#2E2F31", color: "#fff", padding: "8px 16px", borderRadius: "10px", fontSize: "13px", fontWeight: "800", cursor: "pointer", fontFamily: "inherit"}}>{"ذخیره"}</button>
+                  </div>
+                  <div style={{display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(190px,1fr))", gap: "12px"}}>
+                    <label style={{display: "flex", flexDirection: "column", gap: "6px", fontSize: "12px", color: "#6b6e72"}}>
+                      {"نام و نام خانوادگی"}
+                      <input value={vm.uv?.form?.f?.name} onChange={vm.uv?.form?.set?.name} style={{border: "1px solid #e1e3dc", borderRadius: "10px", padding: "10px 12px", fontSize: "13px", outline: "none", background: "#fff", color: "#232425", fontFamily: "inherit", width: "100%"}} />
+                    </label>
+                    <label style={{display: "flex", flexDirection: "column", gap: "6px", fontSize: "12px", color: "#6b6e72"}}>
+                      {"نام کاربری"}
+                      <input value={vm.uv?.form?.f?.username} onChange={vm.uv?.form?.set?.username} placeholder="مثلاً op110" style={{border: "1px solid #e1e3dc", borderRadius: "10px", padding: "10px 12px", fontSize: "13px", outline: "none", background: "#fff", color: "#232425", fontFamily: "inherit", width: "100%", direction: "ltr", textAlign: "left"}} />
+                    </label>
+                    <label style={{display: "flex", flexDirection: "column", gap: "6px", fontSize: "12px", color: "#6b6e72"}}>
+                      {"رمز عبور"}
+                      <input type="password" value={vm.uv?.form?.f?.password} onChange={vm.uv?.form?.set?.password} placeholder={vm.uv?.form?.passPh} autoComplete="new-password" style={{border: "1px solid #e1e3dc", borderRadius: "10px", padding: "10px 12px", fontSize: "13px", outline: "none", background: "#fff", color: "#232425", fontFamily: "inherit", width: "100%", direction: "ltr", textAlign: "left"}} />
+                    </label>
+                    <label style={{display: "flex", flexDirection: "column", gap: "6px", fontSize: "12px", color: "#6b6e72"}}>
+                      {"داخلی (اختیاری)"}
+                      <input value={vm.uv?.form?.f?.ext} onChange={vm.uv?.form?.set?.ext} placeholder="مثلاً 101" style={{border: "1px solid #e1e3dc", borderRadius: "10px", padding: "10px 12px", fontSize: "13px", outline: "none", background: "#fff", color: "#232425", fontFamily: "inherit", width: "100%", direction: "ltr", textAlign: "left"}} />
+                    </label>
+                  </div>
+                  <div style={{display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap"}}>
+                    <span style={{fontSize: "12px", color: "#6b6e72"}}>{"قالب دسترسی:"}</span>
+                    {(vm.uv?.form?.presets || []).map((p, __i10) => <React.Fragment key={__i10}>
+                      <button onClick={p?.click} style={{background: p?.bg, color: p?.fg, border: `1px solid ${p?.bd}`, padding: "6px 14px", borderRadius: "999px", fontSize: "12px", fontWeight: "700", cursor: "pointer", fontFamily: "inherit"}}>{p?.label}</button>
+                    </React.Fragment>)}
+                    <span style={{fontSize: "11px", color: "#9a9d97"}}>{"بعد از انتخاب قالب، تیک‌ها را می‌توانید تغییر دهید."}</span>
+                    <span style={{flex: "1"}} />
+                    <span style={{fontSize: "12px", color: "#6b6e72"}}>{"حساب فعال"}</span>
+                    <button onClick={vm.uv?.form?.toggleActive} style={{width: "42px", height: "24px", borderRadius: "99px", border: "none", background: vm.uv?.form?.activeT?.bg, display: "flex", justifyContent: vm.uv?.form?.activeT?.j, alignItems: "center", padding: "3px", cursor: "pointer"}}>
+                      <span style={{width: "18px", height: "18px", borderRadius: "50%", background: "#fff", boxShadow: "0 1px 2px rgba(0,0,0,.25)"}} />
+                    </button>
+                  </div>
+                  {(vm.uv?.form?.isAdmin) ? (<>
+                    <div style={{background: "#2E2F31", color: "#d9dad6", borderRadius: "12px", padding: "10px 14px", fontSize: "13px"}}>{"مدیر به همه بخش‌ها و همه کارها دسترسی کامل دارد."}</div>
+                  </>) : null}
+                  {(vm.uv?.form?.notAdmin) ? (<>
+                    <div style={{display: "flex", flexDirection: "column", gap: "12px"}}>
+                      {(vm.uv?.form?.groups || []).map((g, __i11) => <React.Fragment key={__i11}>
+                        <div style={{background: "#fff", border: "1px solid #e7e8e3", borderRadius: "16px", overflow: "hidden"}}>
+                          <div style={{display: "grid", gridTemplateColumns: "minmax(200px,1fr) repeat(4,72px) 64px", alignItems: "center", background: "#fafaf8", borderBottom: "1px solid #eeefeb", padding: "8px 12px", fontSize: "12px", color: "#6b6e72", fontWeight: "700"}}>
+                            <span style={{color: "#232425", fontSize: "13px"}}>{g?.title}</span>
+                            {(vm.uv?.form?.acts || []).map((a, __i14) => <React.Fragment key={__i14}>
+                              <span style={{textAlign: "center"}}>{a?.label}</span>
+                            </React.Fragment>)}
+                            <button onClick={g?.all} style={{border: "none", background: "none", color: "#3d6a0c", fontSize: "11px", fontWeight: "800", cursor: "pointer", fontFamily: "inherit"}}>{"همه"}</button>
+                          </div>
+                          {(g?.rows || []).map((r, __i13) => <React.Fragment key={__i13}>
+                            <div style={{display: "grid", gridTemplateColumns: "minmax(200px,1fr) repeat(4,72px) 64px", alignItems: "center", padding: "7px 12px", borderBottom: "1px solid #f4f5f1", fontSize: "13px"}}>
+                              <span>{r?.label}</span>
+                              {(r?.cells || []).map((c, __i15) => <React.Fragment key={__i15}>
+                                <span style={{display: "flex", justifyContent: "center"}}>
+                                  {(c?.ok) ? (<>
+                                    <button title={c?.title} onClick={c?.click} style={{width: "22px", height: "22px", borderRadius: "6px", border: `1.5px solid ${c?.bd}`, background: c?.bg, color: "#fff", cursor: "pointer", display: "grid", placeItems: "center", fontSize: "13px", fontWeight: "800", lineHeight: "1", padding: "0"}}>{c?.mark}</button>
+                                  </>) : null}
+                                  {(c?.na) ? (<>
+                                    <span title={c?.title} style={{color: "#d9dad6"}}>{"—"}</span>
+                                  </>) : null}
+                                </span>
+                              </React.Fragment>)}
+                              <button onClick={r?.all} style={{border: "none", background: "none", color: "#6b6e72", fontSize: "11px", cursor: "pointer", fontFamily: "inherit"}}>{"همه"}</button>
+                            </div>
+                          </React.Fragment>)}
+                        </div>
+                      </React.Fragment>)}
+                      <div style={{fontSize: "11px", color: "#8b8e89", lineHeight: "1.8"}}>
+                        {"با زدن نگه‌داشتن ماوس روی هر خانه، کاربرد آن در همان بخش نوشته شده است؛ مثلاً در «تماس‌های زنده» ویرایش یعنی گوش دادن به مکالمه. هر کاری غیر از مشاهده، مشاهده را هم خودکار روشن می‌کند."}
+                      </div>
+                    </div>
+                  </>) : null}
+                </div>
+              </>) : null}
+              <div style={{background: "#fff", border: "1px solid #e7e8e3", borderRadius: "20px", overflow: "hidden"}}>
+                <div style={{padding: "14px 18px", fontWeight: "800", fontSize: "15px"}}>
+                  {"کاربران "}
+                  <span style={{fontSize: "12px", color: "#8b8e89", fontWeight: "500"}}>{"("}{vm.uv?.count}{")"}</span>
+                </div>
+                <div style={{overflowX: "auto"}}>
+                  <table style={{width: "100%", borderCollapse: "collapse"}}>
+                    <thead>
+                      <tr>
+                        <th style={{padding: "10px 12px", fontSize: "12px", color: "#6b6e72", fontWeight: "600", textAlign: "right", whiteSpace: "nowrap", borderBottom: "1px solid #eeefeb", background: "#fafaf8"}}>{"کاربر"}</th>
+                        <th style={{padding: "10px 12px", fontSize: "12px", color: "#6b6e72", fontWeight: "600", textAlign: "right", whiteSpace: "nowrap", borderBottom: "1px solid #eeefeb", background: "#fafaf8"}}>{"داخلی"}</th>
+                        <th style={{padding: "10px 12px", fontSize: "12px", color: "#6b6e72", fontWeight: "600", textAlign: "right", whiteSpace: "nowrap", borderBottom: "1px solid #eeefeb", background: "#fafaf8"}}>{"نقش"}</th>
+                        <th style={{padding: "10px 12px", fontSize: "12px", color: "#6b6e72", fontWeight: "600", textAlign: "right", whiteSpace: "nowrap", borderBottom: "1px solid #eeefeb", background: "#fafaf8"}}>{"وضعیت"}</th>
+                        <th style={{padding: "10px 12px", fontSize: "12px", color: "#6b6e72", fontWeight: "600", textAlign: "right", whiteSpace: "nowrap", borderBottom: "1px solid #eeefeb", background: "#fafaf8"}}>{"آخرین ورود"}</th>
+                        <th style={{padding: "10px 12px", fontSize: "12px", color: "#6b6e72", fontWeight: "600", textAlign: "right", whiteSpace: "nowrap", borderBottom: "1px solid #eeefeb", background: "#fafaf8"}} />
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(vm.uv?.users || []).map((u, __i11) => <React.Fragment key={__i11}>
+                        <tr style={{opacity: u?.op}}>
+                          <td style={{padding: "11px 12px", fontSize: "13px", borderBottom: "1px solid #f1f2ee", whiteSpace: "nowrap"}}>
+                            <div style={{fontWeight: "700"}}>{u?.name}</div>
+                            <div style={{fontSize: "12px", color: "#6b6e72", direction: "ltr", textAlign: "right"}}>{u?.username}</div>
+                          </td>
+                          <td style={{padding: "11px 12px", fontSize: "13px", borderBottom: "1px solid #f1f2ee", whiteSpace: "nowrap"}}>{u?.ext}</td>
+                          <td style={{padding: "11px 12px", fontSize: "13px", borderBottom: "1px solid #f1f2ee", whiteSpace: "nowrap"}}>
+                            <span style={{padding: "3px 10px", borderRadius: "999px", fontSize: "12px", fontWeight: "700", background: u?.roleBg, color: u?.roleFg}}>{u?.roleTag}</span>
+                          </td>
+                          <td style={{padding: "11px 12px", fontSize: "13px", borderBottom: "1px solid #f1f2ee", whiteSpace: "nowrap"}}>
+                            <span style={{padding: "3px 10px", borderRadius: "999px", fontSize: "12px", fontWeight: "700", background: u?.statusBg, color: u?.statusFg}}>{u?.statusLabel}</span>
+                          </td>
+                          <td style={{padding: "11px 12px", fontSize: "13px", borderBottom: "1px solid #f1f2ee", whiteSpace: "nowrap", color: "#6b6e72"}}>{u?.last}</td>
+                          <td style={{padding: "11px 12px", fontSize: "13px", borderBottom: "1px solid #f1f2ee", whiteSpace: "nowrap", textAlign: "left"}}>
+                            <div style={{display: "inline-flex", gap: "6px", alignItems: "center"}}>
+                              {(u?.canEdit) ? (<>
+                                <button onClick={u?.edit} style={{border: "1px solid #e1e3dc", background: "#fff", color: "#2E2F31", padding: "6px 11px", borderRadius: "9px", fontSize: "12px", fontWeight: "700", cursor: "pointer", fontFamily: "inherit"}}>{"ویرایش و دسترسی‌ها"}</button>
+                              </>) : null}
+                              {(u?.canToggle) ? (<>
+                                <button onClick={u?.toggle} style={{border: "1px solid #e1e3dc", background: "#fff", color: "#2E2F31", padding: "6px 11px", borderRadius: "9px", fontSize: "12px", fontWeight: "700", cursor: "pointer", fontFamily: "inherit"}}>{u?.toggleLabel}</button>
+                              </>) : null}
+                              {(u?.canDel) ? (<>
+                                {(u?.confirmDel) ? (<>
+                                  <span style={{fontSize: "12px", color: "#b42318"}}>{"حذف شود؟"}</span>
+                                  <button onClick={u?.doDel} style={{border: "none", background: "#e0574a", color: "#fff", padding: "6px 11px", borderRadius: "9px", fontSize: "12px", fontWeight: "700", cursor: "pointer", fontFamily: "inherit"}}>{"بله، حذف"}</button>
+                                  <button onClick={u?.cancelDel} style={{border: "1px solid #e1e3dc", background: "#fff", color: "#2E2F31", padding: "6px 11px", borderRadius: "9px", fontSize: "12px", fontWeight: "700", cursor: "pointer", fontFamily: "inherit"}}>{"خیر"}</button>
+                                </>) : null}
+                              </>) : null}
+                              {(u?.canDel) ? (<>
+                                {(u?.notConfirm) ? (<>
+                                  <button onClick={u?.del} style={{border: "1px solid #e1e3dc", background: "#fff", color: "#2E2F31", padding: "6px 11px", borderRadius: "9px", fontSize: "12px", fontWeight: "700", cursor: "pointer", fontFamily: "inherit", color: "#b42318", borderColor: "#f5c2bd"}}>{"حذف"}</button>
+                                </>) : null}
+                              </>) : null}
+                              {(u?.self) ? (<>
+                                <span style={{fontSize: "11px", color: "#9a9d97"}}>{"حساب شما"}</span>
+                              </>) : null}
+                            </div>
+                          </td>
+                        </tr>
+                      </React.Fragment>)}
+                    </tbody>
+                  </table>
                 </div>
               </div>
             </>) : null}

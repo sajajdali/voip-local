@@ -7,7 +7,7 @@ import * as os from 'os';
 import * as path from 'path';
 import { promisify } from 'util';
 import { AsteriskService } from './asterisk/asterisk.service';
-import { Roles } from './auth';
+import { Roles, Perm } from './auth';
 import { BackupService } from './backups';
 import { env } from './env';
 import { PrismaService } from './prisma.service';
@@ -178,7 +178,7 @@ export class SystemService implements OnModuleInit {
   }
 }
 
-@Roles('admin')
+@Perm('sys')
 @Controller('system')
 export class SystemController {
   constructor(private sys: SystemService) {}

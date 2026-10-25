@@ -8,28 +8,37 @@
   </div>
   <nav style="display:flex;flex-direction:column;gap:4px">
     <div style="font-size:11px;color:#8b8e89;padding:6px 14px">مرکز تماس</div>
+    <sc-if value="{{ can.calls }}">
     <div sc-camel-on-click="{{ nav.calls.go }}" style="display:flex;align-items:center;gap:12px;padding:11px 14px;border-radius:12px;cursor:pointer;background:{{ nav.calls.bg }};color:{{ nav.calls.fg }};font-size:14px;font-weight:600">
       <svg width="19" height="19" sc-camel-view-box="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"></path></svg>
       <span style="flex:1">لیست تماس‌ها</span><span style="font-size:11px;padding:2px 8px;border-radius:99px;background:{{ nav.calls.cbg }}">{{ nav.calls.count }}</span>
     </div>
+    </sc-if>
+    <sc-if value="{{ can.inbound }}">
     <div sc-camel-on-click="{{ nav.inbound.go }}" style="display:flex;align-items:center;gap:12px;padding:11px 14px;border-radius:12px;cursor:pointer;background:{{ nav.inbound.bg }};color:{{ nav.inbound.fg }};font-size:14px;font-weight:600">
       <svg width="19" height="19" sc-camel-view-box="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2"></path><path d="M21 3l-6 6M15 4v5h5"></path></svg>
       <span style="flex:1">تماس‌های ورودی</span><span style="font-size:11px;padding:2px 8px;border-radius:99px;background:{{ nav.inbound.cbg }}">{{ nav.inbound.count }}</span>
     </div>
-    <sc-if value="{{ me.isAdmin }}">
+    </sc-if>
+    <sc-if value="{{ can.live }}">
     <div sc-camel-on-click="{{ nav.live.go }}" style="display:flex;align-items:center;gap:12px;padding:11px 14px;border-radius:12px;cursor:pointer;background:{{ nav.live.bg }};color:{{ nav.live.fg }};font-size:14px;font-weight:600">
       <svg width="19" height="19" sc-camel-view-box="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 14v-2a9 9 0 0 1 18 0v2M3 14a2 2 0 0 1 2-2h1v7H5a2 2 0 0 1-2-2zM21 14a2 2 0 0 0-2-2h-1v7h1a2 2 0 0 0 2-2z"></path></svg>
       <span style="flex:1">تماس‌های زنده</span><span style="font-size:11px;padding:2px 8px;border-radius:99px;background:#7FB536;color:#fff">{{ nav.live.count }}</span>
     </div>
     </sc-if>
+    <sc-if value="{{ can.voice }}">
     <div sc-camel-on-click="{{ nav.voice.go }}" style="display:flex;align-items:center;gap:12px;padding:11px 14px;border-radius:12px;cursor:pointer;background:{{ nav.voice.bg }};color:{{ nav.voice.fg }};font-size:14px;font-weight:600">
       <svg width="19" height="19" sc-camel-view-box="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="9" y="3" width="6" height="11" rx="3"></rect><path d="M5 11a7 7 0 0 0 14 0M12 18v3"></path></svg>
       <span style="flex:1">پیام‌های صوتی</span><span style="font-size:11px;padding:2px 8px;border-radius:99px;background:#e0574a;color:#fff">{{ nav.voice.count }}</span>
     </div>
+    </sc-if>
+    <sc-if value="{{ can.unreached }}">
     <div sc-camel-on-click="{{ nav.unreached.go }}" style="display:flex;align-items:center;gap:12px;padding:11px 14px;border-radius:12px;cursor:pointer;background:{{ nav.unreached.bg }};color:{{ nav.unreached.fg }};font-size:14px;font-weight:600">
       <svg width="19" height="19" sc-camel-view-box="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2"></path><path d="M15 3l6 6M21 3l-6 6"></path></svg>
       <span style="flex:1">پیگیری‌نشده‌ها</span><span style="font-size:11px;padding:2px 8px;border-radius:99px;background:#e0574a;color:#fff">{{ nav.unreached.count }}</span>
     </div>
+    </sc-if>
+    <sc-if value="{{ can.reports }}">
     <div sc-camel-on-click="{{ nav.toggleRep }}" style="display:flex;align-items:center;gap:12px;padding:11px 14px;border-radius:12px;cursor:pointer;background:{{ nav.repBg }};color:#d9dad6;font-size:14px;font-weight:600">
       <svg width="19" height="19" sc-camel-view-box="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 20V10M10 20V4M16 20v-7M21 20H3"></path></svg>
       <span style="flex:1">گزارش‌ها</span>
@@ -41,29 +50,35 @@
         <div sc-camel-on-click="{{ nav.days.go }}" style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:10px;cursor:pointer;font-size:13px;font-weight:600;background:{{ nav.days.bg }};color:{{ nav.days.fg }}"><span style="flex:1">گزارش روزها (زوج و فرد)</span></div>
       </div>
     </sc-if>
+    </sc-if>
+    <sc-if value="{{ can.survey }}">
     <div sc-camel-on-click="{{ nav.survey.go }}" style="display:flex;align-items:center;gap:12px;padding:11px 14px;border-radius:12px;cursor:pointer;background:{{ nav.survey.bg }};color:{{ nav.survey.fg }};font-size:14px;font-weight:600">
       <svg width="19" height="19" sc-camel-view-box="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"></path></svg>
       <span style="flex:1">نظرسنجی</span><span style="font-size:11px;padding:2px 8px;border-radius:99px;background:{{ nav.survey.cbg }}">{{ nav.survey.count }}</span>
     </div>
-    <div style="font-size:11px;color:#8b8e89;padding:16px 14px 6px">هوش مصنوعی</div>
+    </sc-if>
+    <sc-if value="{{ can.anyAi }}">    <div style="font-size:11px;color:#8b8e89;padding:16px 14px 6px">هوش مصنوعی</div></sc-if>
+    <sc-if value="{{ can.ai }}">
     <div sc-camel-on-click="{{ nav.ai.go }}" style="display:flex;align-items:center;gap:12px;padding:11px 14px;border-radius:12px;cursor:pointer;background:{{ nav.ai.bg }};color:{{ nav.ai.fg }};font-size:14px;font-weight:600;border:1px solid rgba(141,198,63,.35)">
       <svg width="19" height="19" sc-camel-view-box="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8zM19 16l.8 2.2L22 19l-2.2.8L19 22l-.8-2.2L16 19l2.2-.8z"></path></svg>
       <span style="flex:1">تحلیل هوش مصنوعی</span><span style="font-size:11px;padding:2px 8px;border-radius:99px;background:{{ nav.ai.cbg }}">{{ nav.ai.count }}</span>
     </div>
-<sc-if value="{{ me.isAdmin }}">
+    </sc-if>
+    <sc-if value="{{ can.aiconv }}">
     <div sc-camel-on-click="{{ nav.aiconv.go }}" style="display:flex;align-items:center;gap:12px;padding:11px 14px;border-radius:12px;cursor:pointer;background:{{ nav.aiconv.bg }};color:{{ nav.aiconv.fg }};font-size:14px;font-weight:600;margin-top:4px">
       <svg width="19" height="19" sc-camel-view-box="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a3 3 0 0 0-3 3v5a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3zM6 10a6 6 0 0 0 12 0M12 16v3M4 21h16"></path></svg>
       <span style="flex:1">گفتگوهای دستیار</span><span style="font-size:11px;padding:2px 8px;border-radius:99px;background:{{ nav.aiconv.cbg }}">{{ nav.aiconv.count }}</span>
     </div>
-    <div sc-camel-on-click="{{ nav.usage.go }}" style="display:flex;align-items:center;gap:12px;padding:11px 14px;border-radius:12px;cursor:pointer;background:{{ nav.usage.bg }};color:{{ nav.usage.fg }};font-size:14px;font-weight:600">
-      <svg width="19" height="19" sc-camel-view-box="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18M16.5 7.5c0-1.7-2-3-4.5-3s-4.5 1.3-4.5 3 2 2.6 4.5 3 4.5 1.3 4.5 3-2 3-4.5 3-4.5-1.3-4.5-3"></path></svg>
-      <span style="flex:1">مصرف توکن</span>
-    </div>
+    </sc-if>
+<sc-if value="{{ can.anySettings }}">
   <div style="font-size:11px;color:#8b8e89;padding:16px 14px 6px">تنظیمات</div>
+    <sc-if value="{{ can.sys }}">
     <div sc-camel-on-click="{{ nav.sys.go }}" style="display:flex;align-items:center;gap:12px;padding:11px 14px;border-radius:12px;cursor:pointer;background:{{ nav.sys.bg }};color:{{ nav.sys.fg }};font-size:14px;font-weight:600">
       <svg width="19" height="19" sc-camel-view-box="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16v6H4zM4 14h16v6H4zM8 7h.01M8 17h.01"></path></svg>
       <span style="flex:1">وضعیت سرور</span>
     </div>
+    </sc-if>
+    <sc-if value="{{ can.anyVoip }}">
     <div sc-camel-on-click="{{ nav.toggleVoip }}" style="display:flex;align-items:center;gap:12px;padding:11px 14px;border-radius:12px;cursor:pointer;background:{{ nav.voipBg }};color:#d9dad6;font-size:14px;font-weight:600">
       <svg width="19" height="19" sc-camel-view-box="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"></path></svg>
       <span style="flex:1">تنظیمات VoIP</span>
@@ -71,20 +86,21 @@
     </div>
     <sc-if value="{{ nav.voipOpen }}">
       <div style="display:flex;flex-direction:column;gap:2px;margin-right:24px;padding-right:10px;border-right:1px solid rgba(255,255,255,.12)">
-        <div sc-camel-on-click="{{ nav.vext.go }}" style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:10px;cursor:pointer;background:{{ nav.vext.bg }};color:{{ nav.vext.fg }};font-size:13px;font-weight:600"><span style="flex:1">مدیریت داخلی‌ها</span><span style="font-size:11px;padding:1px 7px;border-radius:99px;background:{{ nav.vext.cbg }}">{{ nav.vext.count }}</span></div>
-        <div sc-camel-on-click="{{ nav.vtrunk.go }}" style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:10px;cursor:pointer;background:{{ nav.vtrunk.bg }};color:{{ nav.vtrunk.fg }};font-size:13px;font-weight:600"><span style="flex:1">مدیریت ترانک‌ها</span><span style="font-size:11px;padding:1px 7px;border-radius:99px;background:{{ nav.vtrunk.cbg }}">{{ nav.vtrunk.count }}</span></div>
-        <div sc-camel-on-click="{{ nav.vqueue.go }}" style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:10px;cursor:pointer;background:{{ nav.vqueue.bg }};color:{{ nav.vqueue.fg }};font-size:13px;font-weight:600"><span style="flex:1">مدیریت صف‌ها</span><span style="font-size:11px;padding:1px 7px;border-radius:99px;background:{{ nav.vqueue.cbg }}">{{ nav.vqueue.count }}</span></div>
-        <div sc-camel-on-click="{{ nav.vivr.go }}" style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:10px;cursor:pointer;background:{{ nav.vivr.bg }};color:{{ nav.vivr.fg }};font-size:13px;font-weight:600"><span style="flex:1">مدیریت IVR‌ها</span><span style="font-size:11px;padding:1px 7px;border-radius:99px;background:{{ nav.vivr.cbg }}">{{ nav.vivr.count }}</span></div>
-        <div sc-camel-on-click="{{ nav.vsound.go }}" style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:10px;cursor:pointer;background:{{ nav.vsound.bg }};color:{{ nav.vsound.fg }};font-size:13px;font-weight:600"><span style="flex:1">مدیریت صداها</span><span style="font-size:11px;padding:1px 7px;border-radius:99px;background:{{ nav.vsound.cbg }}">{{ nav.vsound.count }}</span></div>
-        <div style="font-size:10px;color:#8b8e89;padding:8px 12px 2px">مسیریابی تماس</div>
-        <div sc-camel-on-click="{{ nav.vroute.go }}" style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:10px;cursor:pointer;background:{{ nav.vroute.bg }};color:{{ nav.vroute.fg }};font-size:13px;font-weight:600"><span style="flex:1">مسیرهای ورودی</span><span style="font-size:11px;padding:1px 7px;border-radius:99px;background:{{ nav.vroute.cbg }}">{{ nav.vroute.count }}</span></div>
-        <div sc-camel-on-click="{{ nav.vout.go }}" style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:10px;cursor:pointer;background:{{ nav.vout.bg }};color:{{ nav.vout.fg }};font-size:13px;font-weight:600"><span style="flex:1">مسیرهای خروجی</span><span style="font-size:11px;padding:1px 7px;border-radius:99px;background:{{ nav.vout.cbg }}">{{ nav.vout.count }}</span></div>
-        <div sc-camel-on-click="{{ nav.vtime.go }}" style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:10px;cursor:pointer;background:{{ nav.vtime.bg }};color:{{ nav.vtime.fg }};font-size:13px;font-weight:600"><span style="flex:1">شرایط و گروه‌های زمانی</span><span style="font-size:11px;padding:1px 7px;border-radius:99px;background:{{ nav.vtime.cbg }}">{{ nav.vtime.count }}</span></div>
-        <div sc-camel-on-click="{{ nav.vring.go }}" style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:10px;cursor:pointer;background:{{ nav.vring.bg }};color:{{ nav.vring.fg }};font-size:13px;font-weight:600"><span style="flex:1">گروه زنگ</span><span style="font-size:11px;padding:1px 7px;border-radius:99px;background:{{ nav.vring.cbg }}">{{ nav.vring.count }}</span></div>
-        <div sc-camel-on-click="{{ nav.vfollow.go }}" style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:10px;cursor:pointer;background:{{ nav.vfollow.bg }};color:{{ nav.vfollow.fg }};font-size:13px;font-weight:600"><span style="flex:1">دنبال‌کردن تماس</span><span style="font-size:11px;padding:1px 7px;border-radius:99px;background:{{ nav.vfollow.cbg }}">{{ nav.vfollow.count }}</span></div>
-        <div sc-camel-on-click="{{ nav.vblack.go }}" style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:10px;cursor:pointer;background:{{ nav.vblack.bg }};color:{{ nav.vblack.fg }};font-size:13px;font-weight:600"><span style="flex:1">لیست سیاه</span><span style="font-size:11px;padding:1px 7px;border-radius:99px;background:{{ nav.vblack.cbg }}">{{ nav.vblack.count }}</span></div>
-        <div sc-camel-on-click="{{ nav.vbackup.go }}" style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:10px;cursor:pointer;background:{{ nav.vbackup.bg }};color:{{ nav.vbackup.fg }};font-size:13px;font-weight:600"><span style="flex:1">بکاپ و بازیابی</span><span style="font-size:11px;padding:1px 7px;border-radius:99px;background:{{ nav.vbackup.cbg }}">{{ nav.vbackup.count }}</span></div>
+        <sc-if value="{{ can.vext }}"><div sc-camel-on-click="{{ nav.vext.go }}" style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:10px;cursor:pointer;background:{{ nav.vext.bg }};color:{{ nav.vext.fg }};font-size:13px;font-weight:600"><span style="flex:1">مدیریت داخلی‌ها</span><span style="font-size:11px;padding:1px 7px;border-radius:99px;background:{{ nav.vext.cbg }}">{{ nav.vext.count }}</span></div></sc-if>
+        <sc-if value="{{ can.vtrunk }}"><div sc-camel-on-click="{{ nav.vtrunk.go }}" style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:10px;cursor:pointer;background:{{ nav.vtrunk.bg }};color:{{ nav.vtrunk.fg }};font-size:13px;font-weight:600"><span style="flex:1">مدیریت ترانک‌ها</span><span style="font-size:11px;padding:1px 7px;border-radius:99px;background:{{ nav.vtrunk.cbg }}">{{ nav.vtrunk.count }}</span></div></sc-if>
+        <sc-if value="{{ can.vqueue }}"><div sc-camel-on-click="{{ nav.vqueue.go }}" style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:10px;cursor:pointer;background:{{ nav.vqueue.bg }};color:{{ nav.vqueue.fg }};font-size:13px;font-weight:600"><span style="flex:1">مدیریت صف‌ها</span><span style="font-size:11px;padding:1px 7px;border-radius:99px;background:{{ nav.vqueue.cbg }}">{{ nav.vqueue.count }}</span></div></sc-if>
+        <sc-if value="{{ can.vivr }}"><div sc-camel-on-click="{{ nav.vivr.go }}" style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:10px;cursor:pointer;background:{{ nav.vivr.bg }};color:{{ nav.vivr.fg }};font-size:13px;font-weight:600"><span style="flex:1">مدیریت IVR‌ها</span><span style="font-size:11px;padding:1px 7px;border-radius:99px;background:{{ nav.vivr.cbg }}">{{ nav.vivr.count }}</span></div></sc-if>
+        <sc-if value="{{ can.vsound }}"><div sc-camel-on-click="{{ nav.vsound.go }}" style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:10px;cursor:pointer;background:{{ nav.vsound.bg }};color:{{ nav.vsound.fg }};font-size:13px;font-weight:600"><span style="flex:1">مدیریت صداها</span><span style="font-size:11px;padding:1px 7px;border-radius:99px;background:{{ nav.vsound.cbg }}">{{ nav.vsound.count }}</span></div></sc-if>
+        <sc-if value="{{ can.anyRouting }}"><div style="font-size:10px;color:#8b8e89;padding:8px 12px 2px">مسیریابی تماس</div></sc-if>
+        <sc-if value="{{ can.vroute }}"><div sc-camel-on-click="{{ nav.vroute.go }}" style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:10px;cursor:pointer;background:{{ nav.vroute.bg }};color:{{ nav.vroute.fg }};font-size:13px;font-weight:600"><span style="flex:1">مسیرهای ورودی</span><span style="font-size:11px;padding:1px 7px;border-radius:99px;background:{{ nav.vroute.cbg }}">{{ nav.vroute.count }}</span></div></sc-if>
+        <sc-if value="{{ can.vout }}"><div sc-camel-on-click="{{ nav.vout.go }}" style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:10px;cursor:pointer;background:{{ nav.vout.bg }};color:{{ nav.vout.fg }};font-size:13px;font-weight:600"><span style="flex:1">مسیرهای خروجی</span><span style="font-size:11px;padding:1px 7px;border-radius:99px;background:{{ nav.vout.cbg }}">{{ nav.vout.count }}</span></div></sc-if>
+        <sc-if value="{{ can.vtime }}"><div sc-camel-on-click="{{ nav.vtime.go }}" style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:10px;cursor:pointer;background:{{ nav.vtime.bg }};color:{{ nav.vtime.fg }};font-size:13px;font-weight:600"><span style="flex:1">شرایط و گروه‌های زمانی</span><span style="font-size:11px;padding:1px 7px;border-radius:99px;background:{{ nav.vtime.cbg }}">{{ nav.vtime.count }}</span></div></sc-if>
+        <sc-if value="{{ can.vring }}"><div sc-camel-on-click="{{ nav.vring.go }}" style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:10px;cursor:pointer;background:{{ nav.vring.bg }};color:{{ nav.vring.fg }};font-size:13px;font-weight:600"><span style="flex:1">گروه زنگ</span><span style="font-size:11px;padding:1px 7px;border-radius:99px;background:{{ nav.vring.cbg }}">{{ nav.vring.count }}</span></div></sc-if>
+        <sc-if value="{{ can.vfollow }}"><div sc-camel-on-click="{{ nav.vfollow.go }}" style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:10px;cursor:pointer;background:{{ nav.vfollow.bg }};color:{{ nav.vfollow.fg }};font-size:13px;font-weight:600"><span style="flex:1">دنبال‌کردن تماس</span><span style="font-size:11px;padding:1px 7px;border-radius:99px;background:{{ nav.vfollow.cbg }}">{{ nav.vfollow.count }}</span></div></sc-if>
+        <sc-if value="{{ can.vblack }}"><div sc-camel-on-click="{{ nav.vblack.go }}" style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:10px;cursor:pointer;background:{{ nav.vblack.bg }};color:{{ nav.vblack.fg }};font-size:13px;font-weight:600"><span style="flex:1">لیست سیاه</span><span style="font-size:11px;padding:1px 7px;border-radius:99px;background:{{ nav.vblack.cbg }}">{{ nav.vblack.count }}</span></div></sc-if>
+        <sc-if value="{{ can.vbackup }}"><div sc-camel-on-click="{{ nav.vbackup.go }}" style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:10px;cursor:pointer;background:{{ nav.vbackup.bg }};color:{{ nav.vbackup.fg }};font-size:13px;font-weight:600"><span style="flex:1">بکاپ و بازیابی</span><span style="font-size:11px;padding:1px 7px;border-radius:99px;background:{{ nav.vbackup.cbg }}">{{ nav.vbackup.count }}</span></div></sc-if>
       </div>
+    </sc-if>
     </sc-if>
     <div sc-camel-on-click="{{ nav.settings.go }}" style="display:flex;align-items:center;gap:12px;padding:11px 14px;border-radius:12px;cursor:pointer;background:{{ nav.settings.bg }};color:{{ nav.settings.fg }};font-size:14px;font-weight:600">
       <svg width="19" height="19" sc-camel-view-box="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="3" width="7" height="7" rx="2"></rect><rect x="14" y="3" width="7" height="7" rx="2"></rect><rect x="3" y="14" width="7" height="7" rx="2"></rect><rect x="14" y="14" width="7" height="7" rx="2"></rect></svg>
@@ -115,6 +131,7 @@
   <sc-if value="{{ crumb.show }}">
   <div style="display:flex;align-items:center;gap:10px;margin-bottom:-8px"><button sc-camel-on-click="{{ crumb.back }}" style="display:flex;align-items:center;gap:6px;border:1px solid #e1e3dc;background:#fff;color:#2E2F31;padding:7px 14px;border-radius:999px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit"><span style="font-size:14px">→</span>بازگشت به تنظیمات</button><span style="font-size:12px;color:#8b8e89">تنظیمات / {{ crumb.title }}</span></div>
   </sc-if>
+  <sc-if value="{{ crumb.readOnly }}"><div style="background:#f2f3ef;border:1px solid #e1e3dc;color:#55585c;border-radius:12px;padding:9px 14px;font-size:13px;margin-bottom:14px">شما فقط اجازه مشاهده این بخش را دارید؛ تغییرات ذخیره نمی‌شوند.</div></sc-if>
 
   <!-- ===== CALLS ===== -->
   <sc-if value="{{ is.calls }}" hint-placeholder-val="{{ true }}">
@@ -659,6 +676,7 @@
       <span style="font-size:13px;font-weight:700">فیلتر:</span>
       <sc-raw-select value="{{ ai.catF }}" sc-camel-on-change="{{ ai.setCat }}" style="border:1px solid #e1e3dc;border-radius:10px;padding:8px 10px;font-size:13px;background:#fff"><option value="all">همه دسته‌ها</option><sc-for list="{{ cats }}" as="o"><option value="{{ o.id }}">{{ o.name }}</option></sc-for></sc-raw-select>
       <sc-for list="{{ ai.sentTabs }}" as="t"><button sc-camel-on-click="{{ t.onClick }}" style="border:1px solid {{ t.bd }};background:{{ t.bg }};color:{{ t.fg }};padding:7px 13px;border-radius:999px;font-size:12px;font-weight:600;cursor:pointer">{{ t.label }}</button></sc-for>
+      <input value="{{ ai.q }}" sc-camel-on-change="{{ ai.setQ }}" placeholder="جستجوی شماره موبایل، داخلی یا نام…" style="border:1px solid #e1e3dc;border-radius:10px;padding:8px 12px;font-size:13px;outline:none;min-width:220px;font-family:inherit">
       <span style="margin-right:auto;font-size:13px;color:#6b6e72">{{ ai.count }} مورد</span>
     </div>
     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:16px">
@@ -677,6 +695,7 @@
         </div>
       </sc-for>
     </div>
+    <sc-if value="{{ ai.hasPages }}"><div style="display:flex;align-items:center;justify-content:center;gap:12px"><button sc-camel-on-click="{{ ai.prev }}" style="border:1px solid #e1e3dc;background:#fff;padding:8px 14px;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;opacity:{{ ai.prevOp }}">قبلی</button><span style="font-size:13px;color:#55585c">{{ ai.pageText }}</span><button sc-camel-on-click="{{ ai.next }}" style="border:1px solid #e1e3dc;background:#fff;padding:8px 14px;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;opacity:{{ ai.nextOp }}">بعدی</button></div></sc-if>
   </div>
   </sc-if>
 
@@ -1147,6 +1166,66 @@
         </div>
         </sc-if>
       </div>
+    </div>
+    </sc-if>
+  </div>
+  </sc-if>
+
+  <!-- ===== USERS ===== -->
+  <sc-if value="{{ is.users }}">
+  <div style="display:flex;flex-direction:column;gap:18px">
+    <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap"><div><h1 style="margin:0;font-size:28px;font-weight:800">کاربران و دسترسی‌ها</h1><div style="font-size:14px;color:#6b6e72;margin-top:6px">برای هر کاربر مشخص کنید چه بخش‌هایی را ببیند و در هر بخش اجازه افزودن، ویرایش یا حذف داشته باشد.</div></div>
+      <sc-if value="{{ uv.canAdd }}"><button sc-camel-on-click="{{ uv.add }}" style="display:flex;align-items:center;gap:8px;border:none;background:#8DC63F;color:#1f2021;padding:10px 16px;border-radius:12px;font-size:13px;font-weight:800;cursor:pointer;font-family:inherit"><svg width="15" height="15" sc-camel-view-box="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>کاربر جدید</button></sc-if></div>
+    <sc-if value="{{ uv.ready }}">
+    <sc-if value="{{ uv.editing }}">
+    <div style="background:#fff;border:1px solid #e7e8e3;border-radius:20px;padding:18px 20px;display:flex;flex-direction:column;gap:16px;border-color:#cfe4ad;background:#fbfdf8">
+      <div style="display:flex;align-items:center;gap:10px"><div style="flex:1;font-weight:800;font-size:17px">{{ uv.form.title }}</div><button sc-camel-on-click="{{ uv.form.cancel }}" style="border:1px solid #e1e3dc;background:#fff;color:#2E2F31;padding:6px 11px;border-radius:9px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">انصراف</button><button sc-camel-on-click="{{ uv.form.save }}" style="border:none;background:#2E2F31;color:#fff;padding:8px 16px;border-radius:10px;font-size:13px;font-weight:800;cursor:pointer;font-family:inherit">ذخیره</button></div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px">
+        <label style="display:flex;flex-direction:column;gap:6px;font-size:12px;color:#6b6e72">نام و نام خانوادگی<input value="{{ uv.form.f.name }}" sc-camel-on-change="{{ uv.form.set.name }}" style="border:1px solid #e1e3dc;border-radius:10px;padding:10px 12px;font-size:13px;outline:none;background:#fff;color:#232425;font-family:inherit;width:100%"></label>
+        <label style="display:flex;flex-direction:column;gap:6px;font-size:12px;color:#6b6e72">نام کاربری<input value="{{ uv.form.f.username }}" sc-camel-on-change="{{ uv.form.set.username }}" placeholder="مثلاً op110" style="border:1px solid #e1e3dc;border-radius:10px;padding:10px 12px;font-size:13px;outline:none;background:#fff;color:#232425;font-family:inherit;width:100%;direction:ltr;text-align:left"></label>
+        <label style="display:flex;flex-direction:column;gap:6px;font-size:12px;color:#6b6e72">رمز عبور<input type="password" value="{{ uv.form.f.password }}" sc-camel-on-change="{{ uv.form.set.password }}" placeholder="{{ uv.form.passPh }}" autocomplete="new-password" style="border:1px solid #e1e3dc;border-radius:10px;padding:10px 12px;font-size:13px;outline:none;background:#fff;color:#232425;font-family:inherit;width:100%;direction:ltr;text-align:left"></label>
+        <label style="display:flex;flex-direction:column;gap:6px;font-size:12px;color:#6b6e72">داخلی (اختیاری)<input value="{{ uv.form.f.ext }}" sc-camel-on-change="{{ uv.form.set.ext }}" placeholder="مثلاً 101" style="border:1px solid #e1e3dc;border-radius:10px;padding:10px 12px;font-size:13px;outline:none;background:#fff;color:#232425;font-family:inherit;width:100%;direction:ltr;text-align:left"></label>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><span style="font-size:12px;color:#6b6e72">قالب دسترسی:</span><sc-for list="{{ uv.form.presets }}" as="p"><button sc-camel-on-click="{{ p.click }}" style="background:{{ p.bg }};color:{{ p.fg }};border:1px solid {{ p.bd }};padding:6px 14px;border-radius:999px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">{{ p.label }}</button></sc-for><span style="font-size:11px;color:#9a9d97">بعد از انتخاب قالب، تیک‌ها را می‌توانید تغییر دهید.</span>
+        <span style="flex:1"></span><span style="font-size:12px;color:#6b6e72">حساب فعال</span><button sc-camel-on-click="{{ uv.form.toggleActive }}" style="width:42px;height:24px;border-radius:99px;border:none;background:{{ uv.form.activeT.bg }};display:flex;justify-content:{{ uv.form.activeT.j }};align-items:center;padding:3px;cursor:pointer"><span style="width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.25)"></span></button></div>
+      <sc-if value="{{ uv.form.isAdmin }}"><div style="background:#2E2F31;color:#d9dad6;border-radius:12px;padding:10px 14px;font-size:13px">مدیر به همه بخش‌ها و همه کارها دسترسی کامل دارد.</div></sc-if>
+      <sc-if value="{{ uv.form.notAdmin }}">
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <sc-for list="{{ uv.form.groups }}" as="g">
+        <div style="background:#fff;border:1px solid #e7e8e3;border-radius:16px;overflow:hidden">
+          <div style="display:grid;grid-template-columns:minmax(200px,1fr) repeat(4,72px) 64px;align-items:center;background:#fafaf8;border-bottom:1px solid #eeefeb;padding:8px 12px;font-size:12px;color:#6b6e72;font-weight:700"><span style="color:#232425;font-size:13px">{{ g.title }}</span><sc-for list="{{ uv.form.acts }}" as="a"><span style="text-align:center">{{ a.label }}</span></sc-for><button sc-camel-on-click="{{ g.all }}" style="border:none;background:none;color:#3d6a0c;font-size:11px;font-weight:800;cursor:pointer;font-family:inherit">همه</button></div>
+          <sc-for list="{{ g.rows }}" as="r">
+          <div style="display:grid;grid-template-columns:minmax(200px,1fr) repeat(4,72px) 64px;align-items:center;padding:7px 12px;border-bottom:1px solid #f4f5f1;font-size:13px">
+            <span>{{ r.label }}</span>
+            <sc-for list="{{ r.cells }}" as="c"><span style="display:flex;justify-content:center"><sc-if value="{{ c.ok }}"><button title="{{ c.title }}" sc-camel-on-click="{{ c.click }}" style="width:22px;height:22px;border-radius:6px;border:1.5px solid {{ c.bd }};background:{{ c.bg }};color:#fff;cursor:pointer;display:grid;place-items:center;font-size:13px;font-weight:800;line-height:1;padding:0">{{ c.mark }}</button></sc-if><sc-if value="{{ c.na }}"><span title="{{ c.title }}" style="color:#d9dad6">—</span></sc-if></span></sc-for>
+            <button sc-camel-on-click="{{ r.all }}" style="border:none;background:none;color:#6b6e72;font-size:11px;cursor:pointer;font-family:inherit">همه</button>
+          </div>
+          </sc-for>
+        </div>
+        </sc-for>
+        <div style="font-size:11px;color:#8b8e89;line-height:1.8">با زدن نگه‌داشتن ماوس روی هر خانه، کاربرد آن در همان بخش نوشته شده است؛ مثلاً در «تماس‌های زنده» ویرایش یعنی گوش دادن به مکالمه. هر کاری غیر از مشاهده، مشاهده را هم خودکار روشن می‌کند.</div>
+      </div>
+      </sc-if>
+    </div>
+    </sc-if>
+    <div style="background:#fff;border:1px solid #e7e8e3;border-radius:20px;overflow:hidden">
+      <div style="padding:14px 18px;font-weight:800;font-size:15px">کاربران <span style="font-size:12px;color:#8b8e89;font-weight:500">({{ uv.count }})</span></div>
+      <div style="overflow-x:auto"><sc-raw-table style="width:100%;border-collapse:collapse"><sc-raw-thead><sc-raw-tr><sc-raw-th style="padding:10px 12px;font-size:12px;color:#6b6e72;font-weight:600;text-align:right;white-space:nowrap;border-bottom:1px solid #eeefeb;background:#fafaf8">کاربر</sc-raw-th><sc-raw-th style="padding:10px 12px;font-size:12px;color:#6b6e72;font-weight:600;text-align:right;white-space:nowrap;border-bottom:1px solid #eeefeb;background:#fafaf8">داخلی</sc-raw-th><sc-raw-th style="padding:10px 12px;font-size:12px;color:#6b6e72;font-weight:600;text-align:right;white-space:nowrap;border-bottom:1px solid #eeefeb;background:#fafaf8">نقش</sc-raw-th><sc-raw-th style="padding:10px 12px;font-size:12px;color:#6b6e72;font-weight:600;text-align:right;white-space:nowrap;border-bottom:1px solid #eeefeb;background:#fafaf8">وضعیت</sc-raw-th><sc-raw-th style="padding:10px 12px;font-size:12px;color:#6b6e72;font-weight:600;text-align:right;white-space:nowrap;border-bottom:1px solid #eeefeb;background:#fafaf8">آخرین ورود</sc-raw-th><sc-raw-th style="padding:10px 12px;font-size:12px;color:#6b6e72;font-weight:600;text-align:right;white-space:nowrap;border-bottom:1px solid #eeefeb;background:#fafaf8"></sc-raw-th></sc-raw-tr></sc-raw-thead><sc-raw-tbody>
+        <sc-for list="{{ uv.users }}" as="u"><sc-raw-tr style="opacity:{{ u.op }}">
+          <sc-raw-td style="padding:11px 12px;font-size:13px;border-bottom:1px solid #f1f2ee;white-space:nowrap"><div style="font-weight:700">{{ u.name }}</div><div style="font-size:12px;color:#6b6e72;direction:ltr;text-align:right">{{ u.username }}</div></sc-raw-td>
+          <sc-raw-td style="padding:11px 12px;font-size:13px;border-bottom:1px solid #f1f2ee;white-space:nowrap">{{ u.ext }}</sc-raw-td>
+          <sc-raw-td style="padding:11px 12px;font-size:13px;border-bottom:1px solid #f1f2ee;white-space:nowrap"><span style="padding:3px 10px;border-radius:999px;font-size:12px;font-weight:700;background:{{ u.roleBg }};color:{{ u.roleFg }}">{{ u.roleTag }}</span></sc-raw-td>
+          <sc-raw-td style="padding:11px 12px;font-size:13px;border-bottom:1px solid #f1f2ee;white-space:nowrap"><span style="padding:3px 10px;border-radius:999px;font-size:12px;font-weight:700;background:{{ u.statusBg }};color:{{ u.statusFg }}">{{ u.statusLabel }}</span></sc-raw-td>
+          <sc-raw-td style="padding:11px 12px;font-size:13px;border-bottom:1px solid #f1f2ee;white-space:nowrap;color:#6b6e72">{{ u.last }}</sc-raw-td>
+          <sc-raw-td style="padding:11px 12px;font-size:13px;border-bottom:1px solid #f1f2ee;white-space:nowrap;text-align:left"><div style="display:inline-flex;gap:6px;align-items:center">
+            <sc-if value="{{ u.canEdit }}"><button sc-camel-on-click="{{ u.edit }}" style="border:1px solid #e1e3dc;background:#fff;color:#2E2F31;padding:6px 11px;border-radius:9px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">ویرایش و دسترسی‌ها</button></sc-if>
+            <sc-if value="{{ u.canToggle }}"><button sc-camel-on-click="{{ u.toggle }}" style="border:1px solid #e1e3dc;background:#fff;color:#2E2F31;padding:6px 11px;border-radius:9px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">{{ u.toggleLabel }}</button></sc-if>
+            <sc-if value="{{ u.canDel }}"><sc-if value="{{ u.confirmDel }}"><span style="font-size:12px;color:#b42318">حذف شود؟</span><button sc-camel-on-click="{{ u.doDel }}" style="border:none;background:#e0574a;color:#fff;padding:6px 11px;border-radius:9px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">بله، حذف</button><button sc-camel-on-click="{{ u.cancelDel }}" style="border:1px solid #e1e3dc;background:#fff;color:#2E2F31;padding:6px 11px;border-radius:9px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">خیر</button></sc-if></sc-if>
+            <sc-if value="{{ u.canDel }}"><sc-if value="{{ u.notConfirm }}"><button sc-camel-on-click="{{ u.del }}" style="border:1px solid #e1e3dc;background:#fff;color:#2E2F31;padding:6px 11px;border-radius:9px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;color:#b42318;border-color:#f5c2bd">حذف</button></sc-if></sc-if>
+            <sc-if value="{{ u.self }}"><span style="font-size:11px;color:#9a9d97">حساب شما</span></sc-if>
+          </div></sc-raw-td>
+        </sc-raw-tr></sc-for>
+      </sc-raw-tbody></sc-raw-table></div>
     </div>
     </sc-if>
   </div>

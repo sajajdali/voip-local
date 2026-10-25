@@ -8,7 +8,14 @@ import { TODAY, MONTH_START, jAdd, jWeekday, jLong, WD_NAMES, jStr, jToDate, pad
 // rolling window: 'yyyy/mm/dd HH:MM' of now minus 24 hours (comparable with call date + time)
 const since24 = () => { const d = new Date(Date.now() - 24 * 3600e3); return jStr(d) + ' ' + jpad(d.getHours()) + ':' + jpad(d.getMinutes()); };
 
-let ME = { id: '', name: '', ext: '', role: 'operator' };
+let ME = { id: '', name: '', ext: '', role: 'operator', perms: {} };
+let SECTIONS = [];
+// page → the permission section that guards it
+const PAGE_SECTION = { calls: 'calls', file: 'calls', inbound: 'inbound', live: 'live', voice: 'voice', unreached: 'unreached', reports: 'reports', days: 'reports', survey: 'survey', ai: 'ai', aiconv: 'aiconv', sys: 'sys', usage: 'usage', users: 'users', vai: 'vai', vagent: 'vagent', vcrm: 'vcrm', vapi: 'vapi', vbackup: 'vbackup', vsurvey: 'vsurvey', vext: 'vext', vtrunk: 'vtrunk', vqueue: 'vqueue', vivr: 'vivr', vsound: 'vsound', vroute: 'vroute', vout: 'vout', vtime: 'vtime', vring: 'vring', vfollow: 'vfollow', vblack: 'vblack' };
+const VOIP_SECTIONS = ['vext', 'vtrunk', 'vqueue', 'vivr', 'vsound', 'vroute', 'vout', 'vtime', 'vring', 'vfollow', 'vblack', 'vsurvey'];
+const SETTING_SECTIONS = [...VOIP_SECTIONS, 'vai', 'vagent', 'vcrm', 'vapi', 'usage', 'vbackup', 'sys', 'users'];
+const CAN = (section, action = 'view') => ME.role === 'admin' || !!(ME.perms && ME.perms[section] && ME.perms[section].includes(action));
+const canPage = p => (p === 'settings' ? SETTING_SECTIONS.some(k => CAN(k)) : PAGE_SECTION[p] ? CAN(PAGE_SECTION[p]) : true);
 let OPS = [];
 
 const ROLE_LABEL = { admin: 'مدیر سامانه', supervisor: 'سرپرست مرکز تماس', operator: 'اپراتور', accounting: 'حسابداری', reception: 'پذیرش', emergency: 'پشتیبانی اضطراری' };
@@ -33,6 +40,7 @@ class LiveApp extends React.Component {
   init() {
     const b = this.props.boot;
     ME = { ...b.me };
+    SECTIONS = b.sections || [];
     OPS = b.operators;
     this.applyBoot(b);
     this.audio = new Audio();
@@ -123,6 +131,9 @@ class LiveApp extends React.Component {
     if (s.page === 'vbackup' && prev.page !== 'vbackup') this.loadBackups();
     if (s.page === 'vai' && prev.page !== 'vai') this.loadAi();
     if (s.page === 'vcrm' && prev.page !== 'vcrm') this.loadCrm();
+    if (s.page === 'users' && prev.page !== 'users') this.loadUsers();
+    // a page this user may not open: go to the first one they may
+    if (!canPage(s.page)) { const first = ['calls', 'inbound', 'voice', 'unreached', 'live', 'reports', 'survey', 'ai', 'aiconv', 'settings'].find(canPage); if (first && first !== s.page) this.setState({ page: first }); }
     if (s.page === 'usage' && (prev.page !== 'usage' || prev.uF2 !== s.uF2)) this.loadUsage();
     if (s.page === 'sys' && prev.page !== 'sys') { this.loadSys(); clearInterval(this.sysT); this.sysT = setInterval(() => { if (this.state.page === 'sys') this.loadSys(); else clearInterval(this.sysT); }, 5000); }
     if (s.page === 'vagent' && prev.page !== 'vagent') this.loadAgent();
@@ -155,6 +166,7 @@ class LiveApp extends React.Component {
       if (r.applied === false) this.toast('ذخیره شد ولی اعمال در مرکز تلفن ناموفق بود: ' + (r.error || ''));
     } catch (e) {
       this.toast('ذخیره تنظیمات ناموفق بود: ' + e.message);
+      try { this.applyRemote({ [k]: mergeLive(k, JSON.parse(this.synced[k]), this.state[k]) }); } catch (e2) { /* keep the screen */ }
     }
   }
 
@@ -473,11 +485,12 @@ class LiveApp extends React.Component {
       follow: 'M17 1l4 4-4 4M3 11V9a4 4 0 0 1 4-4h14M7 23l-4-4 4-4M21 13v2a4 4 0 0 1-4 4H3', block: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM5.6 5.6l12.8 12.8',
       ai: 'M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z',
       mic: 'M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3zM5 11a7 7 0 0 0 14 0M12 18v3',
+      coin: 'M12 3v18M16.5 7.5c0-1.7-2-3-4.5-3s-4.5 1.3-4.5 3 2 2.6 4.5 3 4.5 1.3 4.5 3-2 3-4.5 3-4.5-1.3-4.5-3',
       user: 'M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 21a8 8 0 0 1 16 0',
       star: 'M12 3l2.8 5.7 6.2.9-4.5 4.4 1 6.2L12 17.3 6.5 20.2l1-6.2L3 9.6l6.2-.9z', code: 'M8 9l-4 3 4 3M16 9l4 3-4 3M13.5 6l-3 12',
       db: 'M4 6c0-1.7 3.6-3 8-3s8 1.3 8 3-3.6 3-8 3-8-1.3-8-3zM4 6v12c0 1.7 3.6 3 8 3s8-1.3 8-3V6M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3',
     };
-    const card = (page, title, icon, desc, stat, statFg, tone) => ({ title, icon, desc, stat, statFg: statFg || '#55585c', go: go(page), bg: tone[0], fg: tone[1] });
+    const card = (page, title, icon, desc, stat, statFg, tone) => ({ page, title, icon, desc, stat, statFg: statFg || '#55585c', go: go(page), bg: tone[0], fg: tone[1] });
     const G = ['#eaf4dc', '#3d6a0c'], B = ['#e5eff7', '#1d5a85'], A = ['#fbf1dc', '#8a5a00'], P = ['#f0ebf8', '#6a4b9c'], R = ['#fdeceb', '#b42318'], K = ['#2E2F31', '#8DC63F'];
     const groups = [
       { title: 'مرکز تلفن', sub: 'داخلی‌ها، خطوط و مسیر تماس‌ها', items: [
@@ -498,14 +511,20 @@ class LiveApp extends React.Component {
         card('vai', 'هوش مصنوعی', I.ai, 'تبدیل گفتار به متن و تحلیل خودکار پیام‌ها: مدل، آدرس و کلید', ai ? (ai.enabled ? 'فعال · ' + (ai.llmProvider === 'claude' ? 'Claude' : ai.llmProvider === 'openai' ? 'OpenAI-سازگار' : 'کلیدواژه‌ای') : 'غیرفعال') : '…', ai && ai.enabled ? ok : off, K),
         card('vagent', 'دستیار هوشمند تلفنی', I.mic, 'منشی صوتی هوش مصنوعی: پاسخ به بیماران، تأیید جراحی، پیامک لینک نوبت و انتقال به پزشک', ag ? (ag.enabled ? 'فعال · کد ' + ag.code + (s.agData.status.running ? '' : ' · سرویس متوقف') : 'غیرفعال') : '…', ag && ag.enabled ? (s.agData.status.running ? ok : '#b42318') : off, K),
         card('vcrm', 'سامانه بیماران (نام تماس‌گیرنده)', I.user, 'نمایش نام بیمار روی گوشی و در پنل، از API سامانه بیماران کلینیک', crm ? (crm.enabled ? 'فعال · ' + (s.crmData.status.named || 0).toLocaleString('fa-IR') + ' نام' : 'غیرفعال') : '…', crm && crm.enabled ? ok : off, K),
+        card('usage', 'مصرف توکن هوش مصنوعی', I.coin, 'توکن و هزینه دلاری هر روز، هر بخش و هر مدل؛ جدول قیمت', 'گزارش مصرف', null, K),
         card('vapi', 'ارسال تماس‌ها (API)', I.code, 'ارسال اطلاعات هر تماس بعد از پایان به آدرس دلخواه', wh ? (wh.enabled ? 'فعال' : 'غیرفعال') : '…', wh && wh.enabled ? ok : off, K),
       ] },
       { title: 'نگهداری', sub: 'پشتیبان‌گیری و بازگردانی', items: [
+        card('users', 'کاربران و دسترسی‌ها', I.user, 'تعریف کاربر، نقش، دسترسی به هر بخش و غیرفعال یا حذف کردن کاربر', s.usersData ? s.usersData.users.length + ' کاربر' : 'مدیریت کاربران', null, B),
         card('vbackup', 'بکاپ و بازیابی', I.db, 'بکاپ گرفتن از بخش‌های دلخواه، دانلود و بازیابی', bks ? bks.length + ' بکاپ' + (s.bk.schedule && s.bk.schedule.enabled ? ' · خودکار فعال' : '') : '…', null, G),
       ] },
     ];
-    const TITLES = { vext: 'داخلی‌ها', vtrunk: 'ترانک‌ها', vqueue: 'صف‌ها', vivr: 'منوهای IVR', vsound: 'صداها', vroute: 'مسیرهای ورودی', vout: 'مسیرهای خروجی', vtime: 'شرایط و گروه‌های زمانی', vring: 'گروه زنگ', vfollow: 'دنبال‌کردن تماس', vblack: 'لیست سیاه', vsurvey: 'نظرسنجی بعد از تماس', vai: 'هوش مصنوعی', vcrm: 'سامانه بیماران (نام تماس‌گیرنده)', vagent: 'دستیار هوشمند تلفنی', vapi: 'ارسال تماس‌ها (API)', vbackup: 'بکاپ و بازیابی' };
-    return { hub: { groups }, crumb: { show: !!TITLES[s.page], title: TITLES[s.page] || '', back: go('settings') } };
+    const TITLES = { vext: 'داخلی‌ها', vtrunk: 'ترانک‌ها', vqueue: 'صف‌ها', vivr: 'منوهای IVR', vsound: 'صداها', vroute: 'مسیرهای ورودی', vout: 'مسیرهای خروجی', vtime: 'شرایط و گروه‌های زمانی', vring: 'گروه زنگ', vfollow: 'دنبال‌کردن تماس', vblack: 'لیست سیاه', vsurvey: 'نظرسنجی بعد از تماس', vai: 'هوش مصنوعی', vcrm: 'سامانه بیماران (نام تماس‌گیرنده)', vagent: 'دستیار هوشمند تلفنی', usage: 'مصرف توکن هوش مصنوعی', vapi: 'ارسال تماس‌ها (API)', vbackup: 'بکاپ و بازیابی' };
+    TITLES.users = 'کاربران و دسترسی‌ها';
+    const shown = groups.map(g => ({ ...g, items: g.items.filter(it => canPage(it.page)) })).filter(g => g.items.length);
+    const sec = PAGE_SECTION[s.page];
+    const readOnly = !!sec && VOIP_SECTIONS.includes(sec) && !['add', 'edit', 'delete'].some(a => CAN(sec, a));
+    return { hub: { groups: shown }, crumb: { show: !!TITLES[s.page] && canPage('settings'), title: TITLES[s.page] || '', back: go('settings'), readOnly } };
   }
 
   // ---- «نظرسنجی بعد از تماس» settings page (saved like every VoIP setting: automatically, then applied to Asterisk)
@@ -1266,6 +1285,86 @@ class LiveApp extends React.Component {
     } };
   }
 
+  // ---- what the signed-in user may see (menus, pages)
+  canVals(s) {
+    const c = {};
+    Object.keys(PAGE_SECTION).forEach(p => { c[p] = canPage(p); });
+    c.anyVoip = VOIP_SECTIONS.some(k => CAN(k));
+    c.anyRouting = ['vroute', 'vout', 'vtime', 'vring', 'vfollow', 'vblack', 'vbackup'].some(k => CAN(k));
+    c.anySettings = canPage('settings');
+    c.anyAi = CAN('ai') || CAN('aiconv');
+    return { can: c };
+  }
+
+  // ---- «کاربران و دسترسی‌ها»
+  async loadUsers() {
+    try { this.setState({ usersData: await api('/users') }); } catch (e) { this.toast('بارگذاری کاربران ناموفق بود: ' + e.message); }
+  }
+
+  usersVals(s) {
+    const d = s.usersData;
+    if (!d) return { uv: { ready: false } };
+    const fa = n => String(n).replace(/\d/g, x => '۰۱۲۳۴۵۶۷۸۹'[x]);
+    const ROLE = { admin: 'مدیر', supervisor: 'سرپرست', operator: 'اپراتور' };
+    const ACT = { view: 'مشاهده', add: 'افزودن', edit: 'ویرایش', delete: 'حذف' };
+    const when = iso => { if (!iso) return 'هرگز'; const t = new Date(iso); return fa(jStr(t) + ' · ' + jpad(t.getHours()) + ':' + jpad(t.getMinutes())); };
+    const f = s.uEdit;
+    const canAdd = CAN('users', 'add'), canEdit = CAN('users', 'edit'), canDel = CAN('users', 'delete');
+    const open = u => this.setState({ uEdit: u ? { id: u.id, username: u.username, name: u.name, ext: u.ext || '', role: u.role, active: u.active, password: '', perms: JSON.parse(JSON.stringify(u.perms || {})) } : { id: null, username: '', name: '', ext: '', role: 'operator', active: true, password: '', perms: JSON.parse(JSON.stringify(d.roles.find(r => r.id === 'operator').perms)) } });
+    const users = d.users.map(u => ({
+      name: u.name, username: u.username, ext: u.ext ? fa(u.ext) : '—', role: ROLE[u.role] || u.role, custom: u.custom, roleTag: u.custom ? ROLE[u.role] + ' · سفارشی' : ROLE[u.role],
+      roleBg: u.role === 'admin' ? '#2E2F31' : '#f2f3ef', roleFg: u.role === 'admin' ? '#8DC63F' : '#3a3b3d',
+      active: u.active, inactive: !u.active, statusLabel: u.active ? 'فعال' : 'غیرفعال', statusBg: u.active ? '#eaf4dc' : '#f2f3ef', statusFg: u.active ? '#3d6a0c' : '#8b8e89',
+      last: when(u.lastLogin), self: u.id === ME.id, op: u.active ? 1 : 0.6,
+      edit: () => open(u), canEdit, canDel: canDel && u.id !== ME.id, canToggle: canEdit && u.id !== ME.id,
+      toggleLabel: u.active ? 'غیرفعال کردن' : 'فعال کردن',
+      toggle: async () => { try { await api('/users/' + u.id, { active: !u.active }, 'PUT'); this.toast(u.active ? 'کاربر غیرفعال شد و از پنل خارج می‌شود' : 'کاربر فعال شد'); this.loadUsers(); } catch (e) { this.toast(e.message); } },
+      del: () => this.setState({ uDel: u.id }), confirmDel: s.uDel === u.id, notConfirm: s.uDel !== u.id, cancelDel: () => this.setState({ uDel: null }),
+      doDel: async () => { try { await api('/users/' + u.id, null, 'DELETE'); this.toast('کاربر حذف شد'); this.setState({ uDel: null }); this.loadUsers(); } catch (e) { this.toast(e.message); } },
+    }));
+    let form = null;
+    if (f) {
+      const setF = o => this.setState({ uEdit: { ...f, ...o } });
+      const isAdmin = f.role === 'admin';
+      const has = (k, a) => isAdmin || ((f.perms[k] || []).includes(a));
+      const toggle = (sec, a) => () => {
+        if (isAdmin) return;
+        let list = [...(f.perms[sec.key] || [])];
+        if (list.includes(a)) list = a === 'view' ? [] : list.filter(x => x !== a);
+        else { list.push(a); if (!list.includes('view')) list.push('view'); }
+        setF({ perms: { ...f.perms, [sec.key]: list } });
+      };
+      const rowAll = sec => () => { if (isAdmin) return; const full = sec.actions.every(a => has(sec.key, a)); setF({ perms: { ...f.perms, [sec.key]: full ? [] : [...sec.actions] } }); };
+      const groups = [...new Set(SECTIONS.map(x => x.group))].map(g => {
+        const secs = SECTIONS.filter(x => x.group === g);
+        const groupAll = () => { if (isAdmin) return; const full = secs.every(x => x.actions.every(a => has(x.key, a))); const p = { ...f.perms }; secs.forEach(x => { p[x.key] = full ? [] : [...x.actions]; }); setF({ perms: p }); };
+        return { title: g, all: groupAll, rows: secs.map(x => ({
+          label: x.label, all: rowAll(x), allOn: x.actions.every(a => has(x.key, a)),
+          cells: ['view', 'add', 'edit', 'delete'].map(a => {
+            const ok = x.actions.includes(a), on = ok && has(x.key, a);
+            return { ok, na: !ok, on, mark: on ? '✓' : '', click: toggle(x, a), bg: on ? '#8DC63F' : '#fff', bd: on ? '#8DC63F' : '#d9dad6', title: ok ? (x.hint && x.hint[a]) || ACT[a] : 'برای این بخش کاربرد ندارد', hint: ok && x.hint && x.hint[a] ? x.hint[a] : '' };
+          }),
+        })) };
+      });
+      const preset = r => () => setF({ role: r.id, perms: JSON.parse(JSON.stringify(r.perms)) });
+      form = {
+        isNew: !f.id, title: f.id ? 'ویرایش کاربر' : 'کاربر جدید', f, isAdmin, notAdmin: !isAdmin, self: f.id === ME.id,
+        set: Object.fromEntries(['name', 'username', 'password', 'ext'].map(k => [k, e => setF({ [k]: e.target.value })])),
+        presets: d.roles.map(r => ({ label: r.label, click: preset(r), bg: f.role === r.id ? '#2E2F31' : '#fff', fg: f.role === r.id ? '#fff' : '#3a3b3d', bd: f.role === r.id ? '#2E2F31' : '#e1e3dc' })),
+        activeT: { bg: f.active ? '#8DC63F' : '#d9dad6', j: f.active ? 'flex-end' : 'flex-start' }, toggleActive: () => f.id !== ME.id && setF({ active: !f.active }),
+        groups, acts: ['view', 'add', 'edit', 'delete'].map(a => ({ label: ACT[a] })),
+        passPh: f.id ? 'خالی بگذارید تا تغییر نکند' : 'حداقل ۶ کاراکتر',
+        cancel: () => this.setState({ uEdit: null }),
+        save: async () => {
+          const body = { name: f.name, username: f.username, ext: f.ext, role: f.role, active: f.active, perms: f.perms, ...(f.password ? { password: f.password } : {}) };
+          try { if (f.id) await api('/users/' + f.id, body, 'PUT'); else await api('/users', body); this.toast(f.id ? 'تغییرات کاربر ذخیره شد' : 'کاربر ساخته شد'); this.setState({ uEdit: null }); this.loadUsers(); }
+          catch (e) { this.toast(e.message); }
+        },
+      };
+    }
+    return { uv: { ready: true, users, canAdd, add: () => open(null), editing: !!f, form: form || {}, count: fa(d.users.length) } };
+  }
+
   // ---- call view
   openCall(c) {
     this.setState({ cvId: c.id, cvCoachOpen: false });
@@ -1290,7 +1389,7 @@ class LiveApp extends React.Component {
     const opName = c.op ? c.op.name : 'اپراتور';
     const playing = s.pid === c.id && !s.paused;
     const u = ai ? URG[ai.urg] || URG.low : URG.low;
-    const isAdmin = ME && ME.role === 'admin';
+    const isAdmin = CAN('ai', 'edit');
     return { upd, cvm: {
       show: true, barOk: false, close: () => this.setState({ cvId: null }),
       isCur: s.pid === c.id, notCur: s.pid !== c.id,

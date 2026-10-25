@@ -15,6 +15,7 @@ model User {
   role      String // admin | supervisor | operator | accounting | reception | emergency
   ext       String?
   active    Boolean  @default(true)
+  perms     Json? // {section: [view|add|edit|delete]}; empty = the role's defaults
   createdAt DateTime @default(now())
 }
 

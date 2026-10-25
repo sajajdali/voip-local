@@ -174,6 +174,17 @@ sub("isVm:c.st==='voicemail',openVm:", "isVm:c.st==='voicemail',isCallAi:c.st!==
 sub("vapi:nv('vapi',''),settings:nv('settings',''),", "vapi:nv('vapi',''),settings:nv('settings',''),usage:nv('usage',''),")
 sub("'vagent','aiconv','days','live','sys','file'].forEach", "'vagent','aiconv','days','live','sys','usage','file'].forEach")
 sub("...this.callViewVals(s),", "...this.callViewVals(s),...this.usageVals(s),")
+# --- AI page: no NaN, search by phone / extension, pagination
+sub("const ai={kpis:[{label:'ویس تحلیل‌شده',value:AI.length},{label:'اولویت فوری',value:AI.filter(c=>c.ai.urg==='high').length},{label:'احساس منفی',value:Math.round(sc.neg/AI.length*100)+'%'},{label:'میانگین دقت تبدیل',value:Math.round(AI.reduce((a,c)=>a+c.ai.conf,0)/AI.length)+'%'}],",
+    "const confs=AI.map(c=>+c.ai.conf).filter(x=>isFinite(x)&&x>0);const ai={kpis:[{label:'مورد تحلیل‌شده',value:AI.length},{label:'اولویت فوری',value:AI.filter(c=>c.ai.urg==='high').length},{label:'احساس منفی',value:AI.length?Math.round(sc.neg/AI.length*100)+'%':'—'},{label:'میانگین دقت تبدیل',value:confs.length?Math.round(confs.reduce((a,x)=>a+x,0)/confs.length)+'%':'—'}],")
+sub("const fa=AI.filter(c=>(s.aiCat==='all'||c.ai.cat.id===s.aiCat)&&(s.aiSent==='all'||c.ai.sent===s.aiSent));",
+    "const aq=(s.aiQ||'').replace(/\\s/g,'');const fa=AI.filter(c=>(s.aiCat==='all'||c.ai.cat.id===s.aiCat)&&(s.aiSent==='all'||c.ai.sent===s.aiSent)&&(!aq||(c.phoneRaw||'').includes(aq.replace(/^\\+?98/,'0'))||(c.op&&String(c.op.ext)===aq)||(c.name||'').includes(s.aiQ.trim())));const aiPS=24,aiPages=Math.max(1,Math.ceil(fa.length/aiPS)),aiPg=Math.min(s.aiPg||0,aiPages-1);")
+sub("count:fa.length,items:fa.slice(0,24).map(c=>",
+    "count:fa.length,q:s.aiQ||'',setQ:e=>this.setState({aiQ:e.target.value,aiPg:0}),pageText:'صفحه '+(aiPg+1)+' از '+aiPages,hasPages:aiPages>1,prev:()=>this.setState({aiPg:Math.max(0,aiPg-1)}),next:()=>this.setState({aiPg:Math.min(aiPages-1,aiPg+1)}),prevOp:aiPg>0?1:.4,nextOp:aiPg<aiPages-1?1:.4,items:fa.slice(aiPg*aiPS,aiPg*aiPS+aiPS).map(c=>")
+# --- permissions: menus by section, users page
+sub("vapi:nv('vapi',''),settings:nv('settings',''),", "vapi:nv('vapi',''),settings:nv('settings',''),users:nv('users',''),")
+sub("'vagent','aiconv','days','live','sys','usage','file'].forEach", "'vagent','aiconv','days','live','sys','usage','users','file'].forEach")
+sub("...this.usageVals(s),", "...this.usageVals(s),...this.canVals(s),...this.usersVals(s),")
 head = (root / 'tools/app-head.js').read_text(encoding='utf-8')
 src = src.replace("export default class App extends React.Component {", "export default class App extends LiveApp {")
 (root / 'web/src/App.jsx').write_text(head + '\n' + src.strip() + '\n', encoding='utf-8')

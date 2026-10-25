@@ -2,7 +2,7 @@
 // computed at report time from an editable price list, so correcting a price fixes the whole history.
 import { BadRequestException, Body, Controller, Get, Injectable, Logger, Put, Query } from '@nestjs/common';
 import { AsyncLocalStorage } from 'async_hooks';
-import { CurrentUser, Me, Roles } from './auth';
+import { CurrentUser, Me, Roles, Perm } from './auth';
 import { jalaliDate, jalaliToDate } from './jalali';
 import { PrismaService } from './prisma.service';
 
@@ -118,7 +118,7 @@ export class UsageService {
   }
 }
 
-@Roles('admin')
+@Perm('usage')
 @Controller('usage')
 export class UsageController {
   constructor(private usage: UsageService) {}

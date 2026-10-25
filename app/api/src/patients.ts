@@ -1,7 +1,7 @@
 // Patient directory: names come from the clinic CRM, looked up once per inbound call and cached locally.
 // The CRM logs every lookup as a call, so it is asked exactly once per inbound call and never in bulk.
 import { BadRequestException, Body, Controller, Get, Injectable, Logger, Post, Put } from '@nestjs/common';
-import { CurrentUser, Me, Roles } from './auth';
+import { CurrentUser, Me, Roles, Perm } from './auth';
 import { Bus } from './bus';
 import { PrismaService } from './prisma.service';
 
@@ -189,7 +189,7 @@ export class PatientsService {
   }
 }
 
-@Roles('admin')
+@Perm('vcrm')
 @Controller('crm')
 export class CrmController {
   constructor(private patients: PatientsService, private db: PrismaService) {}
@@ -214,6 +214,7 @@ export class CrmController {
   save(@Body() b: any, @CurrentUser() me: Me) { return this.patients.save(b, me); }
 
   /** One real lookup (the CRM logs it like a call). */
+  @Perm('vcrm', 'edit')
   @Post('test')
   async test(@Body() b: { phone?: string }) {
     const phone = String(b.phone || '').replace(/\D/g, '').replace(/^98/, '0').replace(/^9/, '09');

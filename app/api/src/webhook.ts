@@ -1,7 +1,7 @@
 // "تنظیمات API": every finished call is POSTed as JSON to an external address.
 // Settings live in ConfigEntry('webhook'); every delivery attempt is logged in WebhookLog.
 import { BadRequestException, Body, Controller, Get, Injectable, Logger, NotFoundException, Param, Post, Put } from '@nestjs/common';
-import { CurrentUser, Me, Roles } from './auth';
+import { CurrentUser, Me, Roles, Perm } from './auth';
 import { env } from './env';
 import { PrismaService } from './prisma.service';
 
@@ -137,7 +137,7 @@ export class WebhookService {
   }
 }
 
-@Roles('admin')
+@Perm('vapi')
 @Controller('webhook')
 export class WebhookController {
   constructor(private hooks: WebhookService, private db: PrismaService) {}
@@ -151,6 +151,7 @@ export class WebhookController {
   @Put()
   save(@Body() b: any, @CurrentUser() me: Me) { return this.hooks.save(b, me); }
 
+  @Perm('vapi', 'edit')
   @Post('test')
   async test() {
     const latest = await this.db.call.findFirst({ orderBy: { startedAt: 'desc' } });
@@ -158,6 +159,7 @@ export class WebhookController {
     return this.hooks.send(null, 1, { ...(sample || {}), event: 'test', callId: 'test', test: true });
   }
 
+  @Perm('vapi', 'edit')
   @Post('resend/:callId')
   async resend(@Param('callId') callId: string) {
     if (!(await this.db.call.findUnique({ where: { id: callId } }))) throw new NotFoundException('تماس پیدا نشد');

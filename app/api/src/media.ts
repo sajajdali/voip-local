@@ -8,7 +8,7 @@ import * as os from 'os';
 import * as path from 'path';
 import { promisify } from 'util';
 import { AsteriskService } from './asterisk/asterisk.service';
-import { CurrentUser, Me, Roles } from './auth';
+import { CurrentUser, Me, Roles, Perm } from './auth';
 import { ConfigStore } from './config';
 import { env } from './env';
 import { todayJ } from './jalali';
@@ -19,7 +19,7 @@ const run = promisify(execFile);
 export class MediaController {
   constructor(private store: ConfigStore, private ast: AsteriskService) {}
 
-  @Roles('admin')
+  @Perm('vsound', 'add')
   @Post('sounds')
   @UseInterceptors(FileInterceptor('file', { dest: os.tmpdir(), limits: { fileSize: 40 * 1024 * 1024 } }))
   async upload(@UploadedFile() file: Express.Multer.File, @Body() b: { cat?: string }, @CurrentUser() me: Me) {
@@ -48,7 +48,7 @@ export class MediaController {
     res.sendFile(f);
   }
 
-  @Roles('admin')
+  @Perm('vtrunk', 'view')
   @Post('trunks/:id/test')
   test(@Param('id') id: string) { return this.ast.testTrunk(id.replace(/[^A-Za-z0-9_-]/g, '')); }
 }

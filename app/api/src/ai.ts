@@ -5,7 +5,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { BadRequestException, Body, Controller, Get, Injectable, Logger, Post, Put, Param, OnModuleInit } from '@nestjs/common';
 import * as fs from 'fs';
-import { CurrentUser, Me, Roles } from './auth';
+import { CurrentUser, Me, Roles, Perm } from './auth';
 import { Bus } from './bus';
 import { UsageService, usageCtx, wavSeconds } from './usage';
 import { PrismaService } from './prisma.service';
@@ -510,7 +510,7 @@ export class AiService implements OnModuleInit {
   }
 }
 
-@Roles('admin')
+@Perm('vai')
 @Controller('ai')
 export class AiController {
   constructor(private ai: AiService) {}
@@ -521,14 +521,17 @@ export class AiController {
   @Put()
   save(@Body() b: any, @CurrentUser() me: Me) { return this.ai.save(b, me); }
 
+  @Perm('vai', 'edit')
   @Post('test')
   test(@Body() b: { text?: string; stt?: boolean }) {
     return this.ai.test(String(b.text || 'سلام وقت بخیر، هفته پیش عمل بینی کردم و از دیشب ورم و درد دارم، لطفاً هرچه زودتر با من تماس بگیرید.').slice(0, 2000), !!b.stt);
   }
 
+  @Perm('ai', 'edit')
   @Post('analyze/:id')
   analyze(@Param('id') id: string) { return this.ai.analyzeNow(id); }
 
+  @Perm('vai', 'edit')
   @Post('requeue')
   requeue(@Body() b: { days?: number; failed?: boolean }) { return this.ai.requeue(Math.min(90, Math.max(1, +(b.days ?? 7) || 7)), !!b.failed); }
 }

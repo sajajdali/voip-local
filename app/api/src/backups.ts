@@ -8,7 +8,7 @@ import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 import { promisify } from 'util';
-import { CurrentUser, Me, Roles } from './auth';
+import { CurrentUser, Me, Roles, Perm } from './auth';
 import { ConfigStore } from './config';
 import { env } from './env';
 import { hhmm, jalaliDate, localParts } from './jalali';
@@ -240,7 +240,7 @@ export class BackupService implements OnModuleInit {
   }
 }
 
-@Roles('admin')
+@Perm('vbackup')
 @Controller('backups')
 export class BackupController {
   constructor(private svc: BackupService) {}
@@ -273,6 +273,7 @@ export class BackupController {
     return this.svc.adopt(file.path, Buffer.from(file.originalname, 'latin1').toString('utf8'), me);
   }
 
+  @Perm('vbackup', 'edit')
   @Post(':id/restore')
   restore(@Param('id') id: string, @Body() b: { components: string[] }, @CurrentUser() me: Me) { return this.svc.restore(id, b.components || [], me); }
 }

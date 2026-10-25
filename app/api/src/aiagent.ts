@@ -4,7 +4,7 @@ import { BadRequestException, Body, Controller, Get, Injectable, Logger, OnModul
 import * as fs from 'fs';
 import * as net from 'net';
 import * as path from 'path';
-import { CurrentUser, Me, Roles } from './auth';
+import { CurrentUser, Me, Roles, Perm } from './auth';
 import { AiService } from './ai';
 import { UsageService } from './usage';
 import { Bus } from './bus';
@@ -218,7 +218,7 @@ export class AiAgentService implements OnModuleInit {
   }
 }
 
-@Roles('admin')
+@Perm('vagent')
 @Controller('aiagent')
 export class AiAgentController {
   constructor(private agent: AiAgentService, private db: PrismaService) {}

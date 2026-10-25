@@ -1,7 +1,8 @@
 // VoIP configuration store: one JSON document per collection; every save regenerates Asterisk config.
-import { BadRequestException, Body, Controller, Get, Injectable, Param, Put } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Get, Injectable, Param, Put, ForbiddenException } from '@nestjs/common';
 import { randomBytes } from 'crypto';
-import { CurrentUser, Me, Roles } from './auth';
+import { CurrentUser, Me, Roles, Perm } from './auth';
+import { Action, CONFIG_SECTION, can } from './perms';
 import { AsteriskService } from './asterisk/asterisk.service';
 import { VoipConfig } from './asterisk/generator';
 import { Bus } from './bus';
@@ -126,11 +127,27 @@ function diff(key: string, a: any, b: any) {
 export class ConfigController {
   constructor(private store: ConfigStore, private db: PrismaService) {}
 
-  @Roles('admin')
+  /** Every VoIP list is saved whole: work out what this save adds, edits and removes, and check each. */
   @Put(':key')
-  save(@Param('key') key: string, @Body() b: { data: any }, @CurrentUser() me: Me) { return this.store.save(key, b.data, me); }
+  async save(@Param('key') key: string, @Body() b: { data: any }, @CurrentUser() me: Me) {
+    const section = CONFIG_SECTION[key];
+    if (!section) throw new ForbiddenException('دسترسی به این بخش مجاز نیست');
+    if (me.role !== 'admin') {
+      const cfg = await this.store.all();
+      const old = (cfg as any)[key];
+      let add = false, del = false, edit = false;
+      if (Array.isArray(old) && Array.isArray(b.data)) {
+        const d = diff(key, old, b.data) as any;
+        add = d.added.length > 0; del = d.removed.length > 0; edit = d.changed.length > 0;
+      } else edit = JSON.stringify(old) !== JSON.stringify(b.data);
+      const need = [add && 'add', del && 'delete', edit && 'edit'].filter(Boolean) as Action[];
+      const missing = need.filter(a => !can(me, section, a));
+      if (missing.length) throw new ForbiddenException('اجازه ' + missing.map(a => ({ add: 'افزودن', edit: 'ویرایش', delete: 'حذف' } as any)[a]).join(' و ') + ' در این بخش را ندارید');
+    }
+    return this.store.save(key, b.data, me);
+  }
 
-  @Roles('admin')
+  @Perm('users', 'view')
   @Get('audit/log')
   audit() { return this.db.auditLog.findMany({ orderBy: { at: 'desc' }, take: 200 }); }
 }
