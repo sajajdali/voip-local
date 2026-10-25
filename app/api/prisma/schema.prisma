@@ -148,3 +148,22 @@ model Backup {
   sizeBytes  Float    @default(0)
   counts     Json?
 }
+
+/// One request to an AI service (OpenAI / Claude): tokens and audio minutes; cost is priced at report time.
+model AiUsage {
+  id       Int      @id @default(autoincrement())
+  at       DateTime @default(now())
+  feature  String // call | voicemail | agent_voice | agent_summary | survey | test | other
+  kind     String // stt | llm | realtime
+  model    String
+  callId   String?
+  inTok    Int      @default(0) // text input tokens (cached included)
+  cached   Int      @default(0) // part of the input billed at the cached rate
+  outTok   Int      @default(0) // text output tokens
+  audioIn  Int      @default(0)
+  audioOut Int      @default(0)
+  seconds  Float    @default(0) // audio length for per-minute speech-to-text
+  requests Int      @default(1)
+
+  @@index([at])
+}

@@ -269,6 +269,8 @@ class Config:
     caller_metadata_dir: str = "/var/lib/asterisk-ai/callers"
     # empty = keep nothing (the original privacy default); set by the call-center panel when calls are reviewed
     transcript_dir: str = ""
+    # the dir always receives the call's usage; the spoken lines only when this is on
+    keep_transcript: bool = True
     transcribe_model: str = "gpt-transcribe"
 
     @classmethod
@@ -315,6 +317,7 @@ class Config:
                 "/var/lib/asterisk-ai/callers",
             ),
             transcript_dir=os.environ.get("ASTERISK_AI_TRANSCRIPT_DIR", "").strip(),
+            keep_transcript=os.environ.get("ASTERISK_AI_KEEP_TRANSCRIPT", "1").strip() != "0",
             transcribe_model=os.environ.get("ASTERISK_AI_TRANSCRIBE_MODEL", "gpt-transcribe").strip() or "gpt-transcribe",
         )
 
@@ -727,7 +730,7 @@ def session_update(config: Config, instructions: str = INSTRUCTIONS) -> dict:
                     "format": {"type": "audio/pcma"},
                     **(
                         {"transcription": {"model": config.transcribe_model, "language": "fa"}}
-                        if config.transcript_dir
+                        if config.transcript_dir and config.keep_transcript
                         else {}
                     ),
                     "turn_detection": {
@@ -782,7 +785,7 @@ def gemini_setup(config: Config, instructions: str = INSTRUCTIONS) -> dict:
             "tools": [{"functionDeclarations": function_declarations()}],
             **(
                 {"inputAudioTranscription": {}, "outputAudioTranscription": {}}
-                if config.transcript_dir
+                if config.transcript_dir and config.keep_transcript
                 else {}
             ),
             "realtimeInputConfig": {
@@ -851,6 +854,8 @@ class CallSession:
         self.pending_openai_response: dict | None = None
         self.appointments = AppointmentStore(config.appointments_db)
         self.transcript: list[dict] = []
+        # what the provider billed for this call, as it reported it
+        self.usage: dict = {"realtime": {"text_in": 0, "audio_in": 0, "cached": 0, "text_out": 0, "audio_out": 0, "responses": 0}, "transcribe": {"seconds": 0.0, "in_tokens": 0, "out_tokens": 0, "audio_tokens": 0, "count": 0}}
         self.gemini_turn = {"caller": "", "assistant": ""}
         self.end_reason = ""
 
@@ -947,6 +952,7 @@ class CallSession:
                     with self.response_lock:
                         self.openai_response_active = True
                 elif event_type == "response.done":
+                    self.add_usage(event.get("response", {}).get("usage") or {})
                     self.finish_openai_response()
                 elif event_type in ("response.output_audio.delta", "response.audio.delta"):
                     pcm = alaw_to_pcm(base64.b64decode(event.get("delta", "")))
@@ -961,6 +967,7 @@ class CallSession:
                 elif event_type == "input_audio_buffer.speech_started":
                     self.clear_output()
                 elif event_type == "conversation.item.input_audio_transcription.completed":
+                    self.add_transcribe_usage(event.get("usage") or {})
                     self.note("caller", event.get("transcript", ""))
                 elif event_type in ("response.output_audio_transcript.done", "response.audio_transcript.done"):
                     self.note("assistant", event.get("transcript", ""))
@@ -1004,6 +1011,15 @@ class CallSession:
                     LOG.warning("call=%s output_queue_overflow", self.call_id)
 
     def handle_gemini_event(self, event: dict) -> None:
+        meta = event.get("usageMetadata")
+        if isinstance(meta, dict):
+            r = self.usage["realtime"]
+            by = lambda key: {d.get("modality"): int(d.get("tokenCount") or 0) for d in (meta.get(key) or []) if isinstance(d, dict)}
+            p, o = by("promptTokensDetails"), by("responseTokensDetails")
+            r["text_in"], r["audio_in"] = p.get("TEXT", 0), p.get("AUDIO", 0)
+            r["text_out"], r["audio_out"] = o.get("TEXT", 0), o.get("AUDIO", 0)
+            r["cached"] = int(meta.get("cachedContentTokenCount") or 0)
+            r["responses"] += 1
         content = event.get("serverContent", {})
         for key, role in (("inputTranscription", "caller"), ("outputTranscription", "assistant")):
             text = (content.get(key) or {}).get("text", "")
@@ -1044,14 +1060,40 @@ class CallSession:
 
     def execute_tool(self, name: str, arguments: dict) -> dict:
         result = self.run_tool(name, arguments)
-        if self.config.transcript_dir:
+        if self.config.transcript_dir and self.config.keep_transcript:
             status = result.get("status", "") if isinstance(result, dict) else ""
             self.transcript.append({"t": round(time.monotonic() - self.started, 1), "role": "event", "name": name, "status": str(status)[:40]})
         return result
 
+    def add_usage(self, u: dict) -> None:
+        """Token counts from an OpenAI Realtime response.done event."""
+        if not isinstance(u, dict) or not u:
+            return
+        r = self.usage["realtime"]
+        inp, out = u.get("input_token_details") or {}, u.get("output_token_details") or {}
+        r["text_in"] += int(inp.get("text_tokens") or 0)
+        r["audio_in"] += int(inp.get("audio_tokens") or 0)
+        r["cached"] += int(inp.get("cached_tokens") or 0)
+        r["text_out"] += int(out.get("text_tokens") or 0)
+        r["audio_out"] += int(out.get("audio_tokens") or 0)
+        r["responses"] += 1
+
+    def add_transcribe_usage(self, u: dict) -> None:
+        """The caller-side transcription is billed separately (by duration or by tokens)."""
+        if not isinstance(u, dict) or not u:
+            return
+        t = self.usage["transcribe"]
+        t["count"] += 1
+        if u.get("type") == "duration":
+            t["seconds"] += float(u.get("seconds") or 0)
+        else:
+            t["in_tokens"] += int(u.get("input_tokens") or 0)
+            t["out_tokens"] += int(u.get("output_tokens") or 0)
+            t["audio_tokens"] += int((u.get("input_token_details") or {}).get("audio_tokens") or 0)
+
     def note(self, role: str, text: str) -> None:
         """One spoken line for the call review; national codes are masked before anything is kept."""
-        if not self.config.transcript_dir:
+        if not (self.config.transcript_dir and self.config.keep_transcript):
             return
         text = mask_national_codes(" ".join(str(text or "").split()))
         if text:
@@ -1075,6 +1117,7 @@ class CallSession:
                 "duration": duration,
                 "end_reason": self.end_reason,
                 "transcript": self.transcript,
+                "usage": self.usage,
             }
             path = Path(self.config.transcript_dir) / f"{self.call_id}.json"
             tmp = path.with_suffix(".tmp")

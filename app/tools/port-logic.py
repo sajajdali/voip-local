@@ -170,6 +170,10 @@ sub("openFile:()=>this.openFile(c),isPlaying:pl,", "openFile:()=>this.openFile(c
 sub("...this.sysVals(s),", "...this.sysVals(s),...this.callViewVals(s),")
 # --- AI page: operator calls open the full call view (assessment, chat, player)
 sub("isVm:c.st==='voicemail',openVm:", "isVm:c.st==='voicemail',isCallAi:c.st!=='voicemail',openVm:")
+# --- «مصرف توکن»: AI tokens and cost per day, part and model
+sub("vapi:nv('vapi',''),settings:nv('settings',''),", "vapi:nv('vapi',''),settings:nv('settings',''),usage:nv('usage',''),")
+sub("'vagent','aiconv','days','live','sys','file'].forEach", "'vagent','aiconv','days','live','sys','usage','file'].forEach")
+sub("...this.callViewVals(s),", "...this.callViewVals(s),...this.usageVals(s),")
 head = (root / 'tools/app-head.js').read_text(encoding='utf-8')
 src = src.replace("export default class App extends React.Component {", "export default class App extends LiveApp {")
 (root / 'web/src/App.jsx').write_text(head + '\n' + src.strip() + '\n', encoding='utf-8')

@@ -84,6 +84,12 @@ export default function AppView({ vm }) {
               <span style={{flex: "1"}}>{"گفتگوهای دستیار"}</span>
               <span style={{fontSize: "11px", padding: "2px 8px", borderRadius: "99px", background: vm.nav?.aiconv?.cbg}}>{vm.nav?.aiconv?.count}</span>
             </div>
+            <div onClick={vm.nav?.usage?.go} style={{display: "flex", alignItems: "center", gap: "12px", padding: "11px 14px", borderRadius: "12px", cursor: "pointer", background: vm.nav?.usage?.bg, color: vm.nav?.usage?.fg, fontSize: "14px", fontWeight: "600"}}>
+              <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 3v18M16.5 7.5c0-1.7-2-3-4.5-3s-4.5 1.3-4.5 3 2 2.6 4.5 3 4.5 1.3 4.5 3-2 3-4.5 3-4.5-1.3-4.5-3" />
+              </svg>
+              <span style={{flex: "1"}}>{"مصرف توکن"}</span>
+            </div>
             <div style={{fontSize: "11px", color: "#8b8e89", padding: "16px 14px 6px"}}>{"تنظیمات"}</div>
             <div onClick={vm.nav?.sys?.go} style={{display: "flex", alignItems: "center", gap: "12px", padding: "11px 14px", borderRadius: "12px", cursor: "pointer", background: vm.nav?.sys?.bg, color: vm.nav?.sys?.fg, fontSize: "14px", fontWeight: "600"}}>
               <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4h16v6H4zM4 14h16v6H4zM8 7h.01M8 17h.01" /></svg>
@@ -3137,6 +3143,279 @@ export default function AppView({ vm }) {
                       </React.Fragment>)}
                     </div>
                   </>) : null}
+                </div>
+              </div>
+            </>) : null}
+          </div>
+        </>) : null}
+        {(vm.is?.usage) ? (<>
+          <div style={{display: "flex", flexDirection: "column", gap: "18px"}}>
+            <div style={{display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: "16px", flexWrap: "wrap"}}>
+              <div>
+                <h1 style={{margin: "0", fontSize: "28px", fontWeight: "800", display: "flex", alignItems: "center", gap: "10px"}}>
+                  {"مصرف توکن"}
+                  <span style={{fontSize: "12px", padding: "4px 10px", borderRadius: "999px", background: "#2E2F31", color: "#8DC63F", fontWeight: "700"}}>{"AI"}</span>
+                </h1>
+                <div style={{fontSize: "14px", color: "#6b6e72", marginTop: "6px"}}>
+                  {"هر درخواست به هوش مصنوعی ثبت می‌شود؛ هزینه‌ها به دلار و بر اساس جدول قیمت پایین صفحه حساب می‌شوند."}
+                </div>
+              </div>
+              <div style={{display: "flex", gap: "8px"}}>
+                <button onClick={vm.us?.refresh} style={{border: "1px solid #e1e3dc", background: "#fff", color: "#2E2F31", padding: "10px 14px", borderRadius: "12px", fontSize: "13px", fontWeight: "700", cursor: "pointer", fontFamily: "inherit"}}>{"بازخوانی"}</button>
+                {(vm.us?.ready) ? (<>
+                  <button onClick={vm.us?.export} style={{background: "#2E2F31", color: "#fff", border: "none", padding: "10px 16px", borderRadius: "12px", fontSize: "13px", fontWeight: "700", cursor: "pointer", fontFamily: "inherit"}}>{"خروجی Excel"}</button>
+                </>) : null}
+              </div>
+            </div>
+            <div style={{background: "#fff", border: "1px solid #e7e8e3", borderRadius: "20px", padding: "14px 16px", display: "flex", gap: "10px", flexWrap: "wrap", alignItems: "flex-end"}}>
+              <div style={{width: "170px"}}>
+                <JalaliDatePicker label="از تاریخ" value={vm.us?.from} rangeStart={vm.us?.from} rangeEnd={vm.us?.to} onChange={vm.us?.pick?.from} />
+              </div>
+              <div style={{width: "170px"}}>
+                <JalaliDatePicker label="تا تاریخ" value={vm.us?.to} rangeStart={vm.us?.from} rangeEnd={vm.us?.to} onChange={vm.us?.pick?.to} />
+              </div>
+              <div style={{display: "flex", gap: "6px", flexWrap: "wrap", flex: "1", minWidth: "240px", paddingBottom: "4px"}}>
+                {(vm.us?.quick || []).map((p, __i8) => <React.Fragment key={__i8}>
+                  <button onClick={p?.onClick} style={{background: p?.bg, color: p?.fg, border: `1px solid ${p?.bd}`, padding: "6px 12px", borderRadius: "999px", fontSize: "12px", fontWeight: "700", cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap"}}>{p?.label}</button>
+                </React.Fragment>)}
+              </div>
+            </div>
+            {(vm.us?.loading) ? (<>
+              <div style={{background: "#fff", border: "1px solid #e7e8e3", borderRadius: "20px", padding: "40px", textAlign: "center", color: "#6b6e72"}}>{"در حال بارگذاری…"}</div>
+            </>) : null}
+            {(vm.us?.ready) ? (<>
+              {(vm.us?.hasUnpriced) ? (<>
+                <div style={{background: "#fcf3e0", border: "1px solid #f0d9a8", color: "#8a5a00", borderRadius: "14px", padding: "10px 14px", fontSize: "13px"}}>
+                  {"برای این مدل‌ها قیمت ثبت نشده و هزینه‌شان صفر حساب می‌شود: "}{vm.us?.unpriced}{" — در جدول قیمت پایین صفحه وارد کنید."}
+                </div>
+              </>) : null}
+              <div style={{display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(200px,1fr))", gap: "12px"}}>
+                {(vm.us?.kpis || []).map((k, __i8) => <React.Fragment key={__i8}>
+                  <div style={{background: "#fff", border: "1px solid #e7e8e3", borderRadius: "20px", padding: "14px 16px"}}>
+                    <div style={{fontSize: "12px", color: "#6b6e72"}}>{k?.label}</div>
+                    <div style={{fontSize: "24px", fontWeight: "800", marginTop: "4px", direction: "ltr", textAlign: "right"}}>{k?.value}</div>
+                    <div style={{fontSize: "11px", color: "#8b8e89", marginTop: "2px"}}>{k?.sub}</div>
+                  </div>
+                </React.Fragment>)}
+              </div>
+              {(vm.us?.empty) ? (<>
+                <div style={{background: "#fff", border: "1px solid #e7e8e3", borderRadius: "20px", padding: "40px", textAlign: "center", color: "#6b6e72", fontSize: "14px"}}>
+                  {"در این بازه درخواستی به هوش مصنوعی ثبت نشده است. ثبت مصرف از امروز شروع شده است."}
+                </div>
+              </>) : null}
+              {(vm.us?.has) ? (<>
+                <div style={{background: "#fff", border: "1px solid #e7e8e3", borderRadius: "20px", padding: "16px 18px", display: "flex", flexDirection: "column", gap: "12px"}}>
+                  <div style={{display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap"}}>
+                    <div style={{flex: "1", fontWeight: "800", fontSize: "15px"}}>
+                      {"هزینه روزانه به تفکیک بخش "}
+                      <span style={{fontSize: "12px", color: "#8b8e89", fontWeight: "500"}}>{"("}{vm.us?.range}{")"}</span>
+                    </div>
+                    <div style={{display: "flex", gap: "12px", flexWrap: "wrap", fontSize: "12px", color: "#55585c"}}>
+                      {(vm.us?.legend || []).map((g, __i11) => <React.Fragment key={__i11}>
+                        <span style={{display: "flex", alignItems: "center", gap: "6px"}}>
+                          <span style={{width: "10px", height: "10px", borderRadius: "3px", background: g?.dot}} />
+                          {g?.label}
+                        </span>
+                      </React.Fragment>)}
+                    </div>
+                  </div>
+                  <div style={{display: "flex", alignItems: "flex-end", gap: "4px", height: "210px", borderBottom: "1px solid #d9dad6", overflowX: "auto", padding: "0 2px"}}>
+                    {(vm.us?.chart || []).map((b, __i10) => <React.Fragment key={__i10}>
+                      <div title={b?.tip} style={{flex: "1 0 18px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "flex-end", height: "100%", gap: "3px"}}>
+                        {(b?.has) ? (<>
+                          <div style={{fontSize: "9px", color: "#55585c", whiteSpace: "nowrap", direction: "ltr"}}>{b?.total}</div>
+                        </>) : null}
+                        <div style={{display: "flex", flexDirection: "column-reverse", gap: "2px", width: "70%", maxWidth: "26px"}}>
+                          {(b?.segs || []).map((z, __i13) => <React.Fragment key={__i13}>
+                            <div style={{height: z?.h, background: z?.bg, borderRadius: "3px"}} />
+                          </React.Fragment>)}
+                        </div>
+                      </div>
+                    </React.Fragment>)}
+                  </div>
+                  <div style={{display: "flex", gap: "4px", padding: "0 2px", overflowX: "auto"}}>
+                    {(vm.us?.chart || []).map((b, __i10) => <React.Fragment key={__i10}>
+                      <div style={{flex: "1 0 18px", textAlign: "center", fontSize: "10px", color: "#6b6e72", lineHeight: "1.3"}}>
+                        {b?.label}
+                        <div style={{color: "#b9bbb6"}}>{b?.wd}</div>
+                      </div>
+                    </React.Fragment>)}
+                  </div>
+                </div>
+                <div style={{background: "#fff", border: "1px solid #e7e8e3", borderRadius: "20px", overflow: "hidden"}}>
+                  <div style={{padding: "14px 18px", fontWeight: "800", fontSize: "15px"}}>{"هزینه و توکن هر بخش"}</div>
+                  <div style={{overflowX: "auto"}}>
+                    <table style={{width: "100%", borderCollapse: "collapse"}}>
+                      <thead>
+                        <tr>
+                          <th style={{padding: "10px 12px", fontSize: "12px", color: "#6b6e72", fontWeight: "600", textAlign: "right", whiteSpace: "nowrap", borderBottom: "1px solid #eeefeb", background: "#fafaf8"}}>{"بخش"}</th>
+                          <th style={{padding: "10px 12px", fontSize: "12px", color: "#6b6e72", fontWeight: "600", textAlign: "right", whiteSpace: "nowrap", borderBottom: "1px solid #eeefeb", background: "#fafaf8"}}>{"درخواست"}</th>
+                          <th style={{padding: "10px 12px", fontSize: "12px", color: "#6b6e72", fontWeight: "600", textAlign: "right", whiteSpace: "nowrap", borderBottom: "1px solid #eeefeb", background: "#fafaf8"}}>{"تماس"}</th>
+                          <th style={{padding: "10px 12px", fontSize: "12px", color: "#6b6e72", fontWeight: "600", textAlign: "right", whiteSpace: "nowrap", borderBottom: "1px solid #eeefeb", background: "#fafaf8"}}>{"توکن ورودی"}</th>
+                          <th style={{padding: "10px 12px", fontSize: "12px", color: "#6b6e72", fontWeight: "600", textAlign: "right", whiteSpace: "nowrap", borderBottom: "1px solid #eeefeb", background: "#fafaf8"}}>{"توکن خروجی"}</th>
+                          <th style={{padding: "10px 12px", fontSize: "12px", color: "#6b6e72", fontWeight: "600", textAlign: "right", whiteSpace: "nowrap", borderBottom: "1px solid #eeefeb", background: "#fafaf8"}}>{"توکن صوت"}</th>
+                          <th style={{padding: "10px 12px", fontSize: "12px", color: "#6b6e72", fontWeight: "600", textAlign: "right", whiteSpace: "nowrap", borderBottom: "1px solid #eeefeb", background: "#fafaf8"}}>{"صوت تبدیل‌شده"}</th>
+                          <th style={{padding: "10px 12px", fontSize: "12px", color: "#6b6e72", fontWeight: "600", textAlign: "right", whiteSpace: "nowrap", borderBottom: "1px solid #eeefeb", background: "#fafaf8"}}>{"هزینه"}</th>
+                          <th style={{padding: "10px 12px", fontSize: "12px", color: "#6b6e72", fontWeight: "600", textAlign: "right", whiteSpace: "nowrap", borderBottom: "1px solid #eeefeb", background: "#fafaf8"}}>{"سهم"}</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {(vm.us?.features || []).map((r, __i12) => <React.Fragment key={__i12}>
+                          <tr>
+                            <td style={{padding: "10px 12px", fontSize: "13px", borderBottom: "1px solid #f1f2ee", whiteSpace: "nowrap", fontWeight: "700"}}>
+                              <span style={{display: "inline-block", width: "10px", height: "10px", borderRadius: "3px", background: r?.dot, marginLeft: "8px"}} />
+                              {r?.label}
+                            </td>
+                            <td style={{padding: "10px 12px", fontSize: "13px", borderBottom: "1px solid #f1f2ee", whiteSpace: "nowrap", direction: "ltr", textAlign: "right", fontVariantNumeric: "tabular-nums"}}>{r?.requests}</td>
+                            <td style={{padding: "10px 12px", fontSize: "13px", borderBottom: "1px solid #f1f2ee", whiteSpace: "nowrap", direction: "ltr", textAlign: "right", fontVariantNumeric: "tabular-nums"}}>{r?.calls}</td>
+                            <td style={{padding: "10px 12px", fontSize: "13px", borderBottom: "1px solid #f1f2ee", whiteSpace: "nowrap", direction: "ltr", textAlign: "right", fontVariantNumeric: "tabular-nums"}}>{r?.inTok}</td>
+                            <td style={{padding: "10px 12px", fontSize: "13px", borderBottom: "1px solid #f1f2ee", whiteSpace: "nowrap", direction: "ltr", textAlign: "right", fontVariantNumeric: "tabular-nums"}}>{r?.outTok}</td>
+                            <td style={{padding: "10px 12px", fontSize: "13px", borderBottom: "1px solid #f1f2ee", whiteSpace: "nowrap", direction: "ltr", textAlign: "right", fontVariantNumeric: "tabular-nums"}}>{r?.audio}</td>
+                            <td style={{padding: "10px 12px", fontSize: "13px", borderBottom: "1px solid #f1f2ee", whiteSpace: "nowrap"}}>{r?.minutes}</td>
+                            <td style={{padding: "10px 12px", fontSize: "13px", borderBottom: "1px solid #f1f2ee", whiteSpace: "nowrap", direction: "ltr", textAlign: "right", fontVariantNumeric: "tabular-nums", fontWeight: "800"}}>{r?.cost}</td>
+                            <td style={{padding: "10px 12px", fontSize: "13px", borderBottom: "1px solid #f1f2ee", whiteSpace: "nowrap", minWidth: "130px"}}>
+                              <div style={{display: "flex", alignItems: "center", gap: "8px"}}>
+                                <div style={{flex: "1", height: "6px", background: "#f0f1ec", borderRadius: "99px", overflow: "hidden"}}>
+                                  <div style={{height: "100%", width: r?.w, background: "#2E2F31", borderRadius: "99px"}} />
+                                </div>
+                                <span style={{fontSize: "12px", color: "#55585c"}}>{r?.share}</span>
+                              </div>
+                            </td>
+                          </tr>
+                        </React.Fragment>)}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+                <div style={{display: "flex", flexWrap: "wrap", gap: "14px", alignItems: "flex-start"}}>
+                  <div style={{background: "#fff", border: "1px solid #e7e8e3", borderRadius: "20px", overflow: "hidden", flex: "1 1 520px", minWidth: "0"}}>
+                    <div style={{padding: "14px 18px", fontWeight: "800", fontSize: "15px"}}>{"هزینه هر مدل"}</div>
+                    <div style={{overflowX: "auto"}}>
+                      <table style={{width: "100%", borderCollapse: "collapse"}}>
+                        <thead>
+                          <tr>
+                            <th style={{padding: "10px 12px", fontSize: "12px", color: "#6b6e72", fontWeight: "600", textAlign: "right", whiteSpace: "nowrap", borderBottom: "1px solid #eeefeb", background: "#fafaf8"}}>{"مدل"}</th>
+                            <th style={{padding: "10px 12px", fontSize: "12px", color: "#6b6e72", fontWeight: "600", textAlign: "right", whiteSpace: "nowrap", borderBottom: "1px solid #eeefeb", background: "#fafaf8"}}>{"نوع"}</th>
+                            <th style={{padding: "10px 12px", fontSize: "12px", color: "#6b6e72", fontWeight: "600", textAlign: "right", whiteSpace: "nowrap", borderBottom: "1px solid #eeefeb", background: "#fafaf8"}}>{"درخواست"}</th>
+                            <th style={{padding: "10px 12px", fontSize: "12px", color: "#6b6e72", fontWeight: "600", textAlign: "right", whiteSpace: "nowrap", borderBottom: "1px solid #eeefeb", background: "#fafaf8"}}>{"ورودی"}</th>
+                            <th style={{padding: "10px 12px", fontSize: "12px", color: "#6b6e72", fontWeight: "600", textAlign: "right", whiteSpace: "nowrap", borderBottom: "1px solid #eeefeb", background: "#fafaf8"}}>{"خروجی"}</th>
+                            <th style={{padding: "10px 12px", fontSize: "12px", color: "#6b6e72", fontWeight: "600", textAlign: "right", whiteSpace: "nowrap", borderBottom: "1px solid #eeefeb", background: "#fafaf8"}}>{"صوت"}</th>
+                            <th style={{padding: "10px 12px", fontSize: "12px", color: "#6b6e72", fontWeight: "600", textAlign: "right", whiteSpace: "nowrap", borderBottom: "1px solid #eeefeb", background: "#fafaf8"}}>{"دقیقه"}</th>
+                            <th style={{padding: "10px 12px", fontSize: "12px", color: "#6b6e72", fontWeight: "600", textAlign: "right", whiteSpace: "nowrap", borderBottom: "1px solid #eeefeb", background: "#fafaf8"}}>{"هزینه"}</th>
+                            <th style={{padding: "10px 12px", fontSize: "12px", color: "#6b6e72", fontWeight: "600", textAlign: "right", whiteSpace: "nowrap", borderBottom: "1px solid #eeefeb", background: "#fafaf8"}}>{"سهم"}</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {(vm.us?.models || []).map((r, __i13) => <React.Fragment key={__i13}>
+                            <tr>
+                              <td style={{padding: "10px 12px", fontSize: "13px", borderBottom: "1px solid #f1f2ee", whiteSpace: "nowrap", fontWeight: "700", direction: "ltr", textAlign: "right"}}>{r?.model}</td>
+                              <td style={{padding: "10px 12px", fontSize: "13px", borderBottom: "1px solid #f1f2ee", whiteSpace: "nowrap"}}>{r?.kind}</td>
+                              <td style={{padding: "10px 12px", fontSize: "13px", borderBottom: "1px solid #f1f2ee", whiteSpace: "nowrap", direction: "ltr", textAlign: "right", fontVariantNumeric: "tabular-nums"}}>{r?.requests}</td>
+                              <td style={{padding: "10px 12px", fontSize: "13px", borderBottom: "1px solid #f1f2ee", whiteSpace: "nowrap", direction: "ltr", textAlign: "right", fontVariantNumeric: "tabular-nums"}}>{r?.inTok}</td>
+                              <td style={{padding: "10px 12px", fontSize: "13px", borderBottom: "1px solid #f1f2ee", whiteSpace: "nowrap", direction: "ltr", textAlign: "right", fontVariantNumeric: "tabular-nums"}}>{r?.outTok}</td>
+                              <td style={{padding: "10px 12px", fontSize: "13px", borderBottom: "1px solid #f1f2ee", whiteSpace: "nowrap", direction: "ltr", textAlign: "right", fontVariantNumeric: "tabular-nums"}}>{r?.audio}</td>
+                              <td style={{padding: "10px 12px", fontSize: "13px", borderBottom: "1px solid #f1f2ee", whiteSpace: "nowrap"}}>{r?.minutes}</td>
+                              <td style={{padding: "10px 12px", fontSize: "13px", borderBottom: "1px solid #f1f2ee", whiteSpace: "nowrap", direction: "ltr", textAlign: "right", fontVariantNumeric: "tabular-nums", fontWeight: "800"}}>{r?.cost}</td>
+                              <td style={{padding: "10px 12px", fontSize: "13px", borderBottom: "1px solid #f1f2ee", whiteSpace: "nowrap", minWidth: "130px"}}>
+                                <div style={{display: "flex", alignItems: "center", gap: "8px"}}>
+                                  <div style={{flex: "1", height: "6px", background: "#f0f1ec", borderRadius: "99px", overflow: "hidden"}}>
+                                    <div style={{height: "100%", width: r?.w, background: "#2E2F31", borderRadius: "99px"}} />
+                                  </div>
+                                  <span style={{fontSize: "12px", color: "#55585c"}}>{r?.share}</span>
+                                </div>
+                              </td>
+                            </tr>
+                          </React.Fragment>)}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                  <div style={{background: "#fff", border: "1px solid #e7e8e3", borderRadius: "20px", overflow: "hidden", flex: "1 1 380px", minWidth: "0"}}>
+                    <div style={{padding: "14px 18px", fontWeight: "800", fontSize: "15px"}}>{"روزبه‌روز"}</div>
+                    <div style={{overflow: "auto", maxHeight: "420px"}}>
+                      <table style={{width: "100%", borderCollapse: "collapse"}}>
+                        <thead style={{position: "sticky", top: "0"}}>
+                          <tr>
+                            <th style={{padding: "10px 12px", fontSize: "12px", color: "#6b6e72", fontWeight: "600", textAlign: "right", whiteSpace: "nowrap", borderBottom: "1px solid #eeefeb", background: "#fafaf8"}}>{"تاریخ"}</th>
+                            <th style={{padding: "10px 12px", fontSize: "12px", color: "#6b6e72", fontWeight: "600", textAlign: "right", whiteSpace: "nowrap", borderBottom: "1px solid #eeefeb", background: "#fafaf8"}}>{"درخواست"}</th>
+                            <th style={{padding: "10px 12px", fontSize: "12px", color: "#6b6e72", fontWeight: "600", textAlign: "right", whiteSpace: "nowrap", borderBottom: "1px solid #eeefeb", background: "#fafaf8"}}>{"توکن متن"}</th>
+                            <th style={{padding: "10px 12px", fontSize: "12px", color: "#6b6e72", fontWeight: "600", textAlign: "right", whiteSpace: "nowrap", borderBottom: "1px solid #eeefeb", background: "#fafaf8"}}>{"صوت"}</th>
+                            <th style={{padding: "10px 12px", fontSize: "12px", color: "#6b6e72", fontWeight: "600", textAlign: "right", whiteSpace: "nowrap", borderBottom: "1px solid #eeefeb", background: "#fafaf8"}}>{"هزینه"}</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {(vm.us?.days || []).map((r, __i13) => <React.Fragment key={__i13}>
+                            <tr>
+                              <td style={{padding: "10px 12px", fontSize: "13px", borderBottom: "1px solid #f1f2ee", whiteSpace: "nowrap", fontWeight: "700"}}>
+                                {r?.date}{" "}
+                                <span style={{color: "#8b8e89", fontWeight: "500", fontSize: "12px"}}>{r?.wd}</span>
+                              </td>
+                              <td style={{padding: "10px 12px", fontSize: "13px", borderBottom: "1px solid #f1f2ee", whiteSpace: "nowrap", direction: "ltr", textAlign: "right", fontVariantNumeric: "tabular-nums"}}>{r?.requests}</td>
+                              <td style={{padding: "10px 12px", fontSize: "13px", borderBottom: "1px solid #f1f2ee", whiteSpace: "nowrap", direction: "ltr", textAlign: "right", fontVariantNumeric: "tabular-nums"}}>{r?.inTok}{" / "}{r?.outTok}</td>
+                              <td style={{padding: "10px 12px", fontSize: "13px", borderBottom: "1px solid #f1f2ee", whiteSpace: "nowrap"}}>{r?.minutes}</td>
+                              <td style={{padding: "10px 12px", fontSize: "13px", borderBottom: "1px solid #f1f2ee", whiteSpace: "nowrap", direction: "ltr", textAlign: "right", fontVariantNumeric: "tabular-nums", fontWeight: "800"}}>{r?.cost}</td>
+                            </tr>
+                          </React.Fragment>)}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+              </>) : null}
+              <div style={{background: "#fff", border: "1px solid #e7e8e3", borderRadius: "20px", overflow: "hidden"}}>
+                <div style={{padding: "14px 18px", display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap"}}>
+                  <div style={{flex: "1", minWidth: "240px"}}>
+                    <div style={{fontWeight: "800", fontSize: "15px"}}>{"جدول قیمت (دلار)"}</div>
+                    <div style={{fontSize: "12px", color: "#6b6e72", marginTop: "3px", lineHeight: "1.7"}}>
+                      {"قیمت هر یک میلیون توکن، یا قیمت هر دقیقه برای تبدیل گفتار. اگر OpenAI قیمت را عوض کرد، همین‌جا اصلاح کنید؛ همه هزینه‌های قبلی هم با قیمت جدید دوباره حساب می‌شوند."}
+                    </div>
+                  </div>
+                  {(vm.us?.pricesDirty) ? (<>
+                    <button onClick={vm.us?.savePrices} style={{background: "#8DC63F", color: "#1f2a10", border: "none", padding: "10px 16px", borderRadius: "12px", fontSize: "13px", fontWeight: "800", cursor: "pointer", fontFamily: "inherit"}}>{"ذخیره قیمت‌ها"}</button>
+                  </>) : null}
+                </div>
+                <div style={{overflowX: "auto"}}>
+                  <table style={{width: "100%", borderCollapse: "collapse"}}>
+                    <thead>
+                      <tr>
+                        <th style={{padding: "10px 12px", fontSize: "12px", color: "#6b6e72", fontWeight: "600", textAlign: "right", whiteSpace: "nowrap", borderBottom: "1px solid #eeefeb", background: "#fafaf8"}}>{"مدل"}</th>
+                        <th style={{padding: "10px 12px", fontSize: "12px", color: "#6b6e72", fontWeight: "600", textAlign: "right", whiteSpace: "nowrap", borderBottom: "1px solid #eeefeb", background: "#fafaf8"}}>{"هر دقیقه صوت"}</th>
+                        <th style={{padding: "10px 12px", fontSize: "12px", color: "#6b6e72", fontWeight: "600", textAlign: "right", whiteSpace: "nowrap", borderBottom: "1px solid #eeefeb", background: "#fafaf8"}}>{"ورودی متن"}</th>
+                        <th style={{padding: "10px 12px", fontSize: "12px", color: "#6b6e72", fontWeight: "600", textAlign: "right", whiteSpace: "nowrap", borderBottom: "1px solid #eeefeb", background: "#fafaf8"}}>{"ورودی کش‌شده"}</th>
+                        <th style={{padding: "10px 12px", fontSize: "12px", color: "#6b6e72", fontWeight: "600", textAlign: "right", whiteSpace: "nowrap", borderBottom: "1px solid #eeefeb", background: "#fafaf8"}}>{"خروجی متن"}</th>
+                        <th style={{padding: "10px 12px", fontSize: "12px", color: "#6b6e72", fontWeight: "600", textAlign: "right", whiteSpace: "nowrap", borderBottom: "1px solid #eeefeb", background: "#fafaf8"}}>{"ورودی صوت"}</th>
+                        <th style={{padding: "10px 12px", fontSize: "12px", color: "#6b6e72", fontWeight: "600", textAlign: "right", whiteSpace: "nowrap", borderBottom: "1px solid #eeefeb", background: "#fafaf8"}}>{"خروجی صوت"}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(vm.us?.priceRows || []).map((p, __i11) => <React.Fragment key={__i11}>
+                        <tr style={{opacity: p?.op}}>
+                          <td style={{padding: "10px 12px", fontSize: "13px", borderBottom: "1px solid #f1f2ee", whiteSpace: "nowrap", fontWeight: "700", direction: "ltr", textAlign: "right"}}>{p?.model}</td>
+                          <td style={{padding: "10px 12px", fontSize: "13px", borderBottom: "1px solid #f1f2ee", whiteSpace: "nowrap"}}>
+                            <input value={p?.perMin} onChange={p?.set?.perMin} style={{border: "1px solid #e1e3dc", borderRadius: "8px", padding: "6px 8px", fontSize: "12px", width: "78px", direction: "ltr", textAlign: "left", fontFamily: "inherit", outline: "none"}} />
+                          </td>
+                          <td style={{padding: "10px 12px", fontSize: "13px", borderBottom: "1px solid #f1f2ee", whiteSpace: "nowrap"}}>
+                            <input value={p?.in} onChange={p?.set?.in} style={{border: "1px solid #e1e3dc", borderRadius: "8px", padding: "6px 8px", fontSize: "12px", width: "78px", direction: "ltr", textAlign: "left", fontFamily: "inherit", outline: "none"}} />
+                          </td>
+                          <td style={{padding: "10px 12px", fontSize: "13px", borderBottom: "1px solid #f1f2ee", whiteSpace: "nowrap"}}>
+                            <input value={p?.cached} onChange={p?.set?.cached} style={{border: "1px solid #e1e3dc", borderRadius: "8px", padding: "6px 8px", fontSize: "12px", width: "78px", direction: "ltr", textAlign: "left", fontFamily: "inherit", outline: "none"}} />
+                          </td>
+                          <td style={{padding: "10px 12px", fontSize: "13px", borderBottom: "1px solid #f1f2ee", whiteSpace: "nowrap"}}>
+                            <input value={p?.out} onChange={p?.set?.out} style={{border: "1px solid #e1e3dc", borderRadius: "8px", padding: "6px 8px", fontSize: "12px", width: "78px", direction: "ltr", textAlign: "left", fontFamily: "inherit", outline: "none"}} />
+                          </td>
+                          <td style={{padding: "10px 12px", fontSize: "13px", borderBottom: "1px solid #f1f2ee", whiteSpace: "nowrap"}}>
+                            <input value={p?.audioIn} onChange={p?.set?.audioIn} style={{border: "1px solid #e1e3dc", borderRadius: "8px", padding: "6px 8px", fontSize: "12px", width: "78px", direction: "ltr", textAlign: "left", fontFamily: "inherit", outline: "none"}} />
+                          </td>
+                          <td style={{padding: "10px 12px", fontSize: "13px", borderBottom: "1px solid #f1f2ee", whiteSpace: "nowrap"}}>
+                            <input value={p?.audioOut} onChange={p?.set?.audioOut} style={{border: "1px solid #e1e3dc", borderRadius: "8px", padding: "6px 8px", fontSize: "12px", width: "78px", direction: "ltr", textAlign: "left", fontFamily: "inherit", outline: "none"}} />
+                          </td>
+                        </tr>
+                      </React.Fragment>)}
+                    </tbody>
+                  </table>
+                </div>
+                <div style={{padding: "10px 18px", fontSize: "11px", color: "#8b8e89", borderTop: "1px solid #f1f2ee"}}>
+                  {"مدل‌های کم‌رنگ در این بازه استفاده نشده‌اند. قیمت‌های پیش‌فرض از منابع عمومی برداشته شده‌اند؛ برای دقت کامل با صورت‌حساب OpenAI مقایسه کنید."}
                 </div>
               </div>
             </>) : null}

@@ -7,6 +7,7 @@ import { BadRequestException, Body, Controller, Get, Injectable, Logger, Post, P
 import * as fs from 'fs';
 import { CurrentUser, Me, Roles } from './auth';
 import { Bus } from './bus';
+import { UsageService, usageCtx, wavSeconds } from './usage';
 import { PrismaService } from './prisma.service';
 
 export const CATEGORIES = [
@@ -147,7 +148,7 @@ export class AiService implements OnModuleInit {
   private cache: AiSettings | null = null;
   private q: string[] = [];
   private busy = false;
-  constructor(private db: PrismaService, private bus: Bus) {}
+  constructor(private db: PrismaService, private bus: Bus, private usage: UsageService) {}
 
   /** The queue lives in memory: after a restart, put back what was waiting and clear what never will be analysed. */
   onModuleInit() {
@@ -212,7 +213,8 @@ export class AiService implements OnModuleInit {
   async transcribe(file: string, s: AiSettings): Promise<{ text: string; conf: number | null }> {
     if (s.sttProvider === 'none') throw new Error('سرویس تبدیل گفتار به متن خاموش است');
     const fd = new FormData();
-    fd.append('file', new Blob([fs.readFileSync(file)], { type: 'audio/wav' }), 'audio.wav');
+    const audio = fs.readFileSync(file);
+    fd.append('file', new Blob([audio], { type: 'audio/wav' }), 'audio.wav');
     const headers: Record<string, string> = {};
     let url = s.sttUrl;
     if (s.sttProvider === 'openai') {
@@ -233,6 +235,8 @@ export class AiService implements OnModuleInit {
     const r = await fetch(url, { method: 'POST', headers, body: fd, signal: AbortSignal.timeout(300e3) });
     if (!r.ok) throw new Error(`سرویس تبدیل گفتار: خطای ${r.status} ${(await r.text().catch(() => '')).slice(0, 160)}`);
     const d: any = await r.json();
+    // billed per minute of audio (token counts kept when the service reports them)
+    this.usage.record({ kind: 'stt', model: s.sttProvider === 'openai' ? s.sttModel : 'custom-stt', seconds: wavSeconds(audio), inTok: d.usage?.input_tokens, outTok: d.usage?.output_tokens });
     const text = String(d.text || '').trim();
     // confidence: explicit value, or the mean segment log-probability returned by Whisper-style APIs
     let conf: number | null = typeof d.confidence === 'number' ? Math.round(d.confidence <= 1 ? d.confidence * 100 : d.confidence) : null;
@@ -267,6 +271,8 @@ export class AiService implements OnModuleInit {
         output_config: { effort: 'low', format: { type: 'json_schema', schema } },
         ...(useFallback ? { betas: ['server-side-fallback-2026-07-01'], fallbacks: 'default' as const } : {}),
       });
+      const u: any = res.usage || {};
+      this.usage.record({ kind: 'llm', model: (res as any).model || s.llmModel, inTok: (u.input_tokens || 0) + (u.cache_read_input_tokens || 0) + (u.cache_creation_input_tokens || 0), cached: u.cache_read_input_tokens, outTok: u.output_tokens });
       if (res.stop_reason === 'refusal') throw new Error('مدل از تحلیل این متن خودداری کرد');
       const block = res.content.find(b => b.type === 'text');
       if (!block || block.type !== 'text') throw new Error('پاسخ مدل خالی بود');
@@ -288,6 +294,7 @@ export class AiService implements OnModuleInit {
     });
     if (!r.ok) throw new Error(`سرویس تحلیل: خطای ${r.status} ${(await r.text().catch(() => '')).slice(0, 160)}`);
     const d: any = await r.json();
+    this.usage.record({ kind: 'llm', model: s.llmModel, inTok: d.usage?.prompt_tokens, cached: d.usage?.prompt_tokens_details?.cached_tokens, outTok: d.usage?.completion_tokens });
     return JSON.parse(String(d.choices?.[0]?.message?.content || '{}'));
   }
 
@@ -346,7 +353,11 @@ export class AiService implements OnModuleInit {
   }
 
   /** Manager's summary of a patient's conversation with the AI receptionist. */
-  async summarizeConversation(id: string, lines: any[]) {
+  summarizeConversation(id: string, lines: any[]) {
+    return usageCtx.run({ feature: 'agent_summary', callId: id }, () => this.summarizeConversationNow(id, lines));
+  }
+
+  private async summarizeConversationNow(id: string, lines: any[]) {
     const ACT: Record<string, string> = {
       verify_surgery_by_national_code: 'استعلام جراحی با کد ملی', confirm_postoperative_identity: 'تأیید هویت بیمار',
       send_application_link: 'ارسال پیامک لینک نوبت‌دهی', send_emergency_sms: 'ارسال پیامک اورژانس', transfer_to_doctor: 'انتقال به پزشک',
@@ -371,7 +382,7 @@ export class AiService implements OnModuleInit {
 
   /** Low-score survey voice comment → text in survey.comment (when speech-to-text is configured). */
   transcribeSurvey(id: string) {
-    (async () => {
+    usageCtx.run({ feature: 'survey', callId: id }, async () => {
       const s = await this.effectiveStt();
       if (!s.enabled || s.sttProvider === 'none' || (!s.sttKey && s.sttProvider === 'openai')) return;
       const c = await this.db.call.findUnique({ where: { id } });
@@ -381,7 +392,7 @@ export class AiService implements OnModuleInit {
       if (!text) return;
       await this.db.call.update({ where: { id }, data: { survey: { ...sv, comment: text } } });
       this.bus.emit('calls', { id });
-    })().catch(e => this.log.warn(`survey ${id}: ${e.message}`));
+    }).catch(e => this.log.warn(`survey ${id}: ${e.message}`));
   }
 
   // ---------------- queue
@@ -416,7 +427,7 @@ export class AiService implements OnModuleInit {
     if (this.busy || !this.q.length) return;
     this.busy = true;
     const id = this.q.shift()!;
-    try { await this.process(id); }
+    try { await usageCtx.run({ feature: 'call', callId: id }, () => this.process(id)); }
     catch (e: any) {
       this.log.warn(`${id}: ${e.message}`);
       await this.db.call.update({ where: { id }, data: { aiState: 'failed', aiError: String(e.message).slice(0, 300) } }).catch(() => {});
@@ -429,6 +440,8 @@ export class AiService implements OnModuleInit {
     const [st, llm] = await Promise.all([this.effectiveStt(), this.effectiveLlm()]);
     const c = await this.db.call.findUnique({ where: { id } });
     if (!c || !c.recPath || !fs.existsSync(c.recPath)) throw new Error('فایل صوتی پیدا نشد');
+    const uc = usageCtx.getStore();
+    if (uc) uc.feature = c.st === 'voicemail' ? 'voicemail' : 'call';
     let ai: any;
     if (c.st === 'voicemail') {
       const { text, conf } = await this.transcribe(c.recPath, st);
@@ -472,7 +485,11 @@ export class AiService implements OnModuleInit {
   }
 
   /** Settings test: analyse a sample sentence, and optionally transcribe the latest eligible recording. */
-  async test(text: string, withStt: boolean) {
+  test(text: string, withStt: boolean) {
+    return usageCtx.run({ feature: 'test' }, () => this.testNow(text, withStt));
+  }
+
+  private async testNow(text: string, withStt: boolean) {
     const s = await this.settings();
     const out: any = {};
     const t0 = Date.now();

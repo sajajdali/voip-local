@@ -815,5 +815,22 @@ class TranscriptTests(unittest.TestCase):
             self.assertEqual([(x["role"], x["text"]) for x in session.transcript], [("caller", "سلام خوبید"), ("assistant", "بفرمایید")])
 
 
+class UsageTests(unittest.TestCase):
+    def test_realtime_and_transcription_usage_are_summed_and_written(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            config = bridge.Config(api_key="t", transcript_dir=temp, keep_transcript=False, appointments_db=os.path.join(temp, "a.db"))
+            session = bridge.CallSession(mock.Mock(), config, b"")
+            session.call_id = str(uuid.uuid4())
+            session.add_usage({"input_token_details": {"text_tokens": 100, "audio_tokens": 400, "cached_tokens": 50}, "output_token_details": {"text_tokens": 20, "audio_tokens": 300}})
+            session.add_usage({"input_token_details": {"text_tokens": 10, "audio_tokens": 40}, "output_token_details": {"audio_tokens": 30}})
+            session.add_transcribe_usage({"type": "duration", "seconds": 4.5})
+            session.note("caller", "not kept")
+            session.write_transcript(9)
+            data = json.loads((bridge.Path(temp) / f"{session.call_id}.json").read_text(encoding="utf-8"))
+            self.assertEqual(data["transcript"], [])
+            self.assertEqual(data["usage"]["realtime"], {"text_in": 110, "audio_in": 440, "cached": 50, "text_out": 20, "audio_out": 330, "responses": 2})
+            self.assertEqual(data["usage"]["transcribe"]["seconds"], 4.5)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

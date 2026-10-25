@@ -6,6 +6,7 @@ import * as net from 'net';
 import * as path from 'path';
 import { CurrentUser, Me, Roles } from './auth';
 import { AiService } from './ai';
+import { UsageService } from './usage';
 import { Bus } from './bus';
 import { ConfigStore } from './config';
 import { PatientsService, daysSince } from './patients';
@@ -41,12 +42,29 @@ const envLine = (k: string, v: string | number) => `${k}=${String(v).replace(/[\
 @Injectable()
 export class AiAgentService implements OnModuleInit {
   private log = new Logger('AiAgent');
-  constructor(private db: PrismaService, private store: ConfigStore, private patients: PatientsService, private bus: Bus, private ai: AiService) {}
+  constructor(private db: PrismaService, private store: ConfigStore, private patients: PatientsService, private bus: Bus, private ai: AiService, private usage: UsageService) {}
 
   async onModuleInit() {
     // the CRM password lives in the patient-system settings; keep the bridge's copy in step
     this.bus.on('crm-saved', () => this.writeEnv().catch(e => this.log.warn(e.message)));
     await this.writeEnv().catch(e => this.log.warn('AI agent env not written: ' + e.message));
+    // calls that never reach the call log (code 33 from a desk phone): still count their usage
+    setInterval(() => this.sweep(), 300e3).unref();
+  }
+
+  private sweep() {
+    const dir = path.join(AI_STATE, 'transcripts');
+    let names: string[] = [];
+    try { names = fs.readdirSync(dir).filter(n => n.endsWith('.json')); } catch { return; }
+    for (const n of names) {
+      const file = path.join(dir, n);
+      try {
+        if (Date.now() - fs.statSync(file).mtimeMs < 180e3) continue;
+        const d = JSON.parse(fs.readFileSync(file, 'utf8'));
+        fs.rmSync(file, { force: true });
+        this.recordUsage(null, d);
+      } catch (e) { this.log.warn('sweep ' + n + ': ' + (e as Error).message); }
+    }
   }
 
   async settings(): Promise<AiAgentSettings> {
@@ -129,7 +147,9 @@ export class AiAgentService implements OnModuleInit {
       envLine('ASTERISK_AI_TRANSFER_DIR', path.join(AI_STATE, 'transfers')),
       envLine('ASTERISK_AI_CALLER_METADATA_DIR', path.join(AI_STATE, 'callers')),
       envLine('CRM_CONFIG_PATH', path.join(AI_DIR, 'crm.env')),
-      envLine('ASTERISK_AI_TRANSCRIPT_DIR', s.keepTranscript ? path.join(AI_STATE, 'transcripts') : ''),
+      // the call file always comes back (it carries the usage); the spoken lines only when kept
+      envLine('ASTERISK_AI_TRANSCRIPT_DIR', path.join(AI_STATE, 'transcripts')),
+      envLine('ASTERISK_AI_KEEP_TRANSCRIPT', s.keepTranscript ? '1' : '0'),
       envLine('ASTERISK_AI_TRANSCRIBE_MODEL', s.transcribeModel),
     ]);
   }
@@ -162,12 +182,28 @@ export class AiAgentService implements OnModuleInit {
       if (!fs.existsSync(file)) { await this.db.call.update({ where: { id: callId }, data: { aiState: 'none' } }).catch(() => {}); return; }
       const d = JSON.parse(fs.readFileSync(file, 'utf8'));
       fs.rmSync(file, { force: true });
+      this.recordUsage(callId, d);
       const lines = (Array.isArray(d.transcript) ? d.transcript : []).slice(0, 2000);
       const conv = { provider: String(d.provider || ''), model: String(d.model || ''), duration: +d.duration || 0, endReason: String(d.end_reason || ''), lines };
       await this.db.call.update({ where: { id: callId }, data: { aiConv: conv as any } });
       this.bus.emit('calls', { id: callId });
       await this.ai.summarizeConversation(callId, lines);
     })().catch(e => this.log.warn(`conversation ${callId}: ${e.message}`));
+  }
+
+  /** What the live conversation cost, as the provider reported it to the bridge. */
+  private recordUsage(callId: string | null, d: any) {
+    const u = d.usage || {}, r = u.realtime || {}, t = u.transcribe || {};
+    const s = { openaiModel: String(d.model || '') };
+    if (r.responses || r.audio_in || r.audio_out) {
+      this.usage.record({ feature: 'agent_voice', callId, kind: 'realtime', model: s.openaiModel || 'realtime',
+        inTok: (r.text_in || 0), cached: r.cached, outTok: r.text_out, audioIn: r.audio_in, audioOut: r.audio_out });
+    }
+    if (t.count) {
+      // billed per minute; when only tokens are reported, ~10 audio tokens make one second
+      const seconds = t.seconds || (t.audio_tokens ? t.audio_tokens / 10 : 0);
+      this.settings().then(st => this.usage.record({ feature: 'agent_voice', callId, kind: 'stt', model: st.transcribeModel, seconds, inTok: t.in_tokens, outTok: t.out_tokens })).catch(() => {});
+    }
   }
 
   /** Is the bridge listening? */

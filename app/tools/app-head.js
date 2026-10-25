@@ -123,6 +123,7 @@ class LiveApp extends React.Component {
     if (s.page === 'vbackup' && prev.page !== 'vbackup') this.loadBackups();
     if (s.page === 'vai' && prev.page !== 'vai') this.loadAi();
     if (s.page === 'vcrm' && prev.page !== 'vcrm') this.loadCrm();
+    if (s.page === 'usage' && (prev.page !== 'usage' || prev.uF2 !== s.uF2)) this.loadUsage();
     if (s.page === 'sys' && prev.page !== 'sys') { this.loadSys(); clearInterval(this.sysT); this.sysT = setInterval(() => { if (this.state.page === 'sys') this.loadSys(); else clearInterval(this.sysT); }, 5000); }
     if (s.page === 'vagent' && prev.page !== 'vagent') this.loadAgent();
     if (s.page === 'settings' && prev.page !== 'settings') { this.loadAi(); this.loadApi(); this.loadBackups(); this.loadCrm(); this.loadAgent(); }
@@ -1179,6 +1180,90 @@ class LiveApp extends React.Component {
       const live = (/\/assets\/index-[^"']+\.js/.exec(html) || [])[0];
       if (live && !mine.endsWith(live)) this.setState({ newVersion: true });
     } catch (e) { /* offline: try again later */ }
+  }
+
+  // ---- «مصرف توکن»
+  async loadUsage() {
+    const f = this.state.uF2 || { from: jAdd(-29), to: TODAY };
+    this.setState({ usLoading: true });
+    try { const d = await api('/usage?from=' + encodeURIComponent(f.from) + '&to=' + encodeURIComponent(f.to)); this.setState({ usData: d, usLoading: false, usPrices: null }); }
+    catch (e) { this.setState({ usLoading: false }); this.toast('بارگذاری مصرف توکن ناموفق بود: ' + e.message); }
+  }
+
+  usageVals(s) {
+    const fa = n => String(n).replace(/\d/g, x => '۰۱۲۳۴۵۶۷۸۹'[x]);
+    const usd = v => { v = +v || 0; return '$' + (v === 0 ? '0' : v < 0.01 ? v.toFixed(4) : v < 100 ? v.toFixed(2) : Math.round(v).toLocaleString('en')); };
+    const tok = n => { n = +n || 0; return n >= 1e6 ? fa((n / 1e6).toFixed(2)) + 'M' : n >= 1e4 ? fa((n / 1e3).toFixed(1)) + 'K' : fa(Math.round(n).toLocaleString('en')); };
+    const mins = sec => { sec = +sec || 0; return sec >= 60 ? fa((sec / 60).toFixed(1)) + ' دقیقه' : fa(Math.round(sec)) + ' ثانیه'; };
+    const f = s.uF2 || { from: jAdd(-29), to: TODAY };
+    const setF = o => this.setState({ uF2: { ...f, ...o } });
+    const thisWeek = (() => { const d = new Date(); const w = (d.getDay() + 1) % 7; return jAdd(-w); })();
+    const prevMonthEnd = jAdd(-1, jToDate(MONTH_START)), prevMonthStart = prevMonthEnd.slice(0, 8) + '01';
+    const pill = on => ({ bg: on ? '#2E2F31' : '#fff', fg: on ? '#fff' : '#3a3b3d', bd: on ? '#2E2F31' : '#e1e3dc' });
+    const QD = [['امروز', TODAY, TODAY], ['دیروز', jAdd(-1), jAdd(-1)], ['این هفته', thisWeek, TODAY], ['۷ روز اخیر', jAdd(-6), TODAY], ['این ماه', MONTH_START, TODAY], ['ماه قبل', prevMonthStart, prevMonthEnd], ['۳۰ روز اخیر', jAdd(-29), TODAY], ['۹۰ روز اخیر', jAdd(-89), TODAY]];
+    const base = { from: f.from, to: f.to, pick: { from: x => setF({ from: x }), to: x => setF({ to: x }) }, quick: QD.map(([label, a, b]) => ({ label, onClick: () => setF({ from: a, to: b }), ...pill(f.from === a && f.to === b) })), refresh: () => this.loadUsage() };
+    const d = s.usData;
+    if (!d) return { us: { ...base, ready: false, loading: true } };
+    // fixed colours per part (validated categorical palette), never re-assigned by rank
+    const COL = { call: '#2a78d6', agent_voice: '#eb6834', agent_summary: '#1baf7a', voicemail: '#eda100', survey: '#e87ba4', test: '#6250d6', other: '#9a9d97' };
+    const T = d.total, days = d.byDay;
+    const nDays = Math.max(1, Math.round((jToDate(d.to) - jToDate(d.from)) / 864e5) + 1);
+    const daily = T.cost / nDays;
+    const todayRow = days.find(x => x.date === d.today);
+    const callF = d.byFeature.find(x => x.key === 'call');
+    const audioTok = T.audioIn + T.audioOut;
+    const keys = Object.keys(COL).filter(k => d.byFeature.some(x => x.key === k));
+    const maxDay = Math.max(1e-9, ...days.map(x => x.cost));
+    // every day of the range on the chart, even those without usage
+    const allDays = [];
+    for (let x = d.from, i = 0; x <= d.to && i < 400; x = jAdd(1, jToDate(x)), i++) allDays.push(x);
+    const byDate = Object.fromEntries(days.map(x => [x.date, x]));
+    const WD = ['ش', 'ی', 'د', 'س', 'چ', 'پ', 'ج'];
+    const chart = allDays.map(x => {
+      const r = byDate[x];
+      const segs = keys.map(k => ({ h: r && r.features[k] ? Math.max(2, r.features[k] / maxDay * 170) + 'px' : '0px', bg: COL[k], show: !!(r && r.features[k]) }));
+      return { label: fa(x.slice(8)), wd: WD[jWeekday(jToDate(x))], total: r ? usd(r.cost) : '', has: !!r && r.cost > 0, segs: segs.filter(z => z.show),
+        tip: x + ' · ' + (r ? usd(r.cost) + ' · ' + fa(r.requests) + ' درخواست · ' + keys.filter(k => r.features[k]).map(k => d.features[k] + ': ' + usd(r.features[k])).join(' · ') : 'بدون مصرف') };
+    });
+    const share = c => (T.cost ? Math.round(c / T.cost * 100) : 0);
+    const prices = s.usPrices || d.prices;
+    const models = [...new Set([...Object.keys(d.prices), ...d.byModel.map(m => m.model)])].sort((a, b) => (d.byModel.find(m => m.model === b) ? 1 : 0) - (d.byModel.find(m => m.model === a) ? 1 : 0) || a.localeCompare(b));
+    const setPrice = (m, k) => e => { const v = e.target.value; this.setState({ usPrices: { ...prices, [m]: { ...(prices[m] || {}), [k]: v === '' ? undefined : v } } }); };
+    const kpis = [
+      { label: 'هزینه کل بازه', value: usd(T.cost), sub: fa(T.requests.toLocaleString('en')) + ' درخواست', strong: true },
+      { label: 'هزینه امروز', value: usd(todayRow ? todayRow.cost : 0), sub: todayRow ? fa(todayRow.requests) + ' درخواست' : 'بدون مصرف' },
+      { label: 'میانگین روزانه', value: usd(daily), sub: 'در ' + fa(nDays) + ' روز' },
+      { label: 'پیش‌بینی ماهانه', value: usd(daily * 30), sub: 'با همین روند' },
+      { label: 'توکن متن (ورودی / خروجی)', value: tok(T.inTok) + ' / ' + tok(T.outTok), sub: T.cached ? tok(T.cached) + ' از ورودی‌ها کش‌شده' : 'بدون کش' },
+      { label: 'توکن صوت (ورودی / خروجی)', value: tok(T.audioIn) + ' / ' + tok(T.audioOut), sub: 'مکالمه زنده دستیار' },
+      { label: 'صوت تبدیل‌شده به متن', value: mins(T.seconds), sub: 'فایل‌های ضبط و پیام صوتی' },
+      { label: 'هزینه هر تماس تحلیل‌شده', value: callF && callF.calls ? usd(callF.cost / callF.calls) : '—', sub: callF ? fa(callF.calls) + ' تماس اپراتور' : '—' },
+    ];
+    const tableRow = x => ({ requests: fa(x.requests.toLocaleString('en')), inTok: tok(x.inTok), outTok: tok(x.outTok), audio: tok(x.audioIn + x.audioOut), minutes: x.seconds ? mins(x.seconds) : '—', cost: usd(x.cost), share: fa(share(x.cost)) + '٪', w: share(x.cost) + '%' });
+    const exportX = () => this.exportDays({
+      title: 'مصرف توکن هوش مصنوعی', from: d.from, to: d.to, filters: ['هزینه‌ها به دلار، بر اساس جدول قیمت پنل'],
+      kpis: kpis.map(k => ({ label: k.label, value: k.value + ' (' + k.sub + ')' })),
+      sheets: [
+        { name: 'بخش‌ها', headers: ['بخش', 'درخواست', 'تماس', 'توکن ورودی', 'توکن خروجی', 'توکن صوت', 'صوت تبدیل‌شده', 'هزینه (دلار)', 'سهم'], rows: d.byFeature.map(x => { const r = tableRow(x); return [x.label, r.requests, fa(x.calls || 0), r.inTok, r.outTok, r.audio, r.minutes, r.cost, r.share]; }) },
+        { name: 'مدل‌ها', headers: ['مدل', 'نوع', 'درخواست', 'توکن ورودی', 'توکن خروجی', 'توکن صوت', 'صوت تبدیل‌شده', 'هزینه (دلار)', 'سهم'], rows: d.byModel.map(x => { const r = tableRow(x); return [x.model, ({ stt: 'تبدیل گفتار', llm: 'تحلیل متن', realtime: 'مکالمه زنده' })[x.kind] || x.kind, r.requests, r.inTok, r.outTok, r.audio, r.minutes, r.cost, r.share]; }) },
+        { name: 'روزانه', headers: ['تاریخ', 'درخواست', 'توکن ورودی', 'توکن خروجی', 'توکن صوت', 'صوت تبدیل‌شده', 'هزینه (دلار)', ...keys.map(k => d.features[k])], rows: [...days].reverse().map(x => { const r = tableRow(x); return [fa(x.date), r.requests, r.inTok, r.outTok, r.audio, r.minutes, r.cost, ...keys.map(k => usd(x.features[k] || 0))]; }) },
+      ],
+    });
+    return { us: {
+      ...base, ready: true, loading: false, busy: !!s.usLoading, empty: !T.requests, has: T.requests > 0,
+      range: f.from === f.to ? fa(f.from) : fa(f.from) + ' تا ' + fa(f.to),
+      kpis, chart, legend: keys.map(k => ({ label: d.features[k], dot: COL[k] })),
+      features: d.byFeature.map(x => ({ ...tableRow(x), label: x.label, dot: COL[x.key] || '#9a9d97', calls: x.calls ? fa(x.calls) : '—' })),
+      models: d.byModel.map(x => ({ ...tableRow(x), model: x.model, kind: ({ stt: 'تبدیل گفتار', llm: 'تحلیل متن', realtime: 'مکالمه زنده' })[x.kind] || x.kind, unpriced: d.unpriced.includes(x.model) })),
+      days: [...days].reverse().map(x => ({ ...tableRow(x), date: fa(x.date), wd: WD_NAMES[jWeekday(jToDate(x.date))] })),
+      unpriced: d.unpriced.join('، '), hasUnpriced: d.unpriced.length > 0,
+      priceRows: models.map(m => { const p = prices[m] || {}; const v = k => (p[k] === undefined || p[k] === null ? '' : String(p[k])); const used = d.byModel.some(x => x.model === m);
+        return { model: m, used, op: used ? 1 : 0.6, perMin: v('perMin'), in: v('in'), cached: v('cached'), out: v('out'), audioIn: v('audioIn'), audioOut: v('audioOut'), isPerMin: p.perMin !== undefined && p.perMin !== '',
+          set: { perMin: setPrice(m, 'perMin'), in: setPrice(m, 'in'), cached: setPrice(m, 'cached'), out: setPrice(m, 'out'), audioIn: setPrice(m, 'audioIn'), audioOut: setPrice(m, 'audioOut') } }; }),
+      pricesDirty: !!s.usPrices,
+      savePrices: async () => { try { await api('/usage/prices', s.usPrices || prices, 'PUT'); this.toast('قیمت‌ها ذخیره شد؛ هزینه‌ها دوباره محاسبه شد'); this.loadUsage(); } catch (e) { this.toast('ذخیره قیمت‌ها ناموفق بود: ' + e.message); } },
+      export: exportX,
+    } };
   }
 
   // ---- call view
