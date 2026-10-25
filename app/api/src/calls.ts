@@ -145,7 +145,8 @@ export class CallsService {
     const data = {
       startedAt: at, date: jalaliDate(at), time: hhmm(at), phone, dir, st, queue: q.queue || (dir === 'out' ? 'تماس خروجی' : '—'), opExt,
       dur, wait, did: digits(q.did) || null, recPath, survey: survey as any, callback: !!q.orig, summary: orig?.note || null, wave: info.wave as any,
-      aiState: recPath || q.aiuuid ? 'queued' : 'none',
+      // «queued» is set by the AI queue itself when the call is really going to be analysed
+      aiState: q.aiuuid ? 'queued' : 'none',
     };
     await this.db.call.upsert({ where: { id }, create: { id, ...data }, update: data });
     if (q.orig) {

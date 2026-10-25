@@ -3,7 +3,7 @@
 //   speech-to-text: OpenAI-compatible /audio/transcriptions, a custom HTTP endpoint, or off
 //   analysis:       Claude (Anthropic SDK, structured JSON output), an OpenAI-compatible chat API, or built-in keywords
 import Anthropic from '@anthropic-ai/sdk';
-import { BadRequestException, Body, Controller, Get, Injectable, Logger, Post, Put, Param } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Get, Injectable, Logger, Post, Put, Param, OnModuleInit } from '@nestjs/common';
 import * as fs from 'fs';
 import { CurrentUser, Me, Roles } from './auth';
 import { Bus } from './bus';
@@ -123,12 +123,31 @@ export function keywordAnalysis(t: string) {
 }
 
 @Injectable()
-export class AiService {
+export class AiService implements OnModuleInit {
   private log = new Logger('AI');
   private cache: AiSettings | null = null;
   private q: string[] = [];
   private busy = false;
   constructor(private db: PrismaService, private bus: Bus) {}
+
+  /** The queue lives in memory: after a restart, put back what was waiting and clear what never will be analysed. */
+  onModuleInit() {
+    setTimeout(() => this.recover().catch(e => this.log.warn('recover: ' + e.message)), 15e3).unref();
+  }
+
+  private async recover() {
+    const s = await this.settings();
+    const recent = new Date(Date.now() - 12 * 3600e3);
+    const stuck = await this.db.call.findMany({ where: { aiState: 'queued' }, select: { id: true, st: true, recPath: true, dur: true, startedAt: true, queue: true }, orderBy: { startedAt: 'asc' } });
+    let again = 0, cleared = 0;
+    for (const c of stuck) {
+      if (c.queue === 'دستیار هوشمند') { if (c.startedAt < new Date(Date.now() - 600e3)) { await this.db.call.update({ where: { id: c.id }, data: { aiState: 'none' } }); cleared++; } continue; }
+      if (c.startedAt >= recent && (await this.eligible(c, s))) { if (!this.q.includes(c.id)) this.q.push(c.id); again++; }
+      else { await this.db.call.update({ where: { id: c.id }, data: { aiState: 'none' } }); cleared++; }
+    }
+    if (again || cleared) this.log.log(`queue recovered: ${again} re-queued, ${cleared} cleared`);
+    this.next();
+  }
 
   async settings(): Promise<AiSettings> {
     if (!this.cache) {
