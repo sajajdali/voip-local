@@ -434,8 +434,8 @@ export class CallsController {
   }
 
   /** One call's AI result in full (chat turns, transcript) for the call view. */
-  /** Permanent bulk delete (list / report builder). The panel walks the user through three confirmations;
-   *  the server re-checks the two that matter: the typed count and the user's own password. */
+  /** Permanent delete. One call: a plain confirmation in the panel. Several (list / report builder): three
+   *  confirmations, and the server re-checks the two that matter: the typed count and the user's own password. */
   @Perm('calls', 'delete')
   @Post('calls/delete')
   async remove(@Body() b: { ids: string[]; count: number; password: string }, @CurrentUser() me: Me) {
@@ -444,7 +444,7 @@ export class CallsController {
     if (ids.length > 50000) throw new BadRequestException('در هر بار حداکثر ۵۰٬۰۰۰ تماس قابل حذف است');
     if (+b.count !== ids.length) throw new BadRequestException('تعداد واردشده با تعداد تماس‌های انتخاب‌شده یکی نیست');
     const u = await this.db.user.findUnique({ where: { id: me.id } });
-    if (!u || !(await bcrypt.compare(String(b.password || ''), u.password))) throw new BadRequestException('رمز عبور اشتباه است');
+    if (ids.length > 1 && (!u || !(await bcrypt.compare(String(b.password || ''), u.password)))) throw new BadRequestException('رمز عبور اشتباه است');
     const rows = await this.db.call.findMany({ where: { id: { in: ids } }, select: { id: true, date: true, recPath: true, survey: true } });
     if (!rows.length) throw new BadRequestException('این تماس‌ها قبلاً حذف شده‌اند');
     const found = rows.map(r => r.id);

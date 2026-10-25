@@ -186,6 +186,7 @@ sub("vapi:nv('vapi',''),settings:nv('settings',''),", "vapi:nv('vapi',''),settin
 sub("'vagent','aiconv','days','live','sys','usage','file'].forEach", "'vagent','aiconv','days','live','sys','usage','users','file'].forEach")
 sub("...this.usageVals(s),", "...this.usageVals(s),...this.canVals(s),...this.usersVals(s),...this.delVals(s),")
 # --- permanent delete of calls (list and report builder)
+sub("rowBg:cur?'#f7fbf1':'transparent'}};", "rowBg:cur?'#f7fbf1':'transparent',canDel:CAN('calls','delete'),onDel:()=>this.askDelete([c],'یک تماس')}};")
 sub("const cl={exportAll:", "const cl={canDel:CAN('calls','delete'),del:()=>this.askDelete(cf,'لیست تماس‌ها با فیلترهای فعلی'),delText:'حذف '+cf.length.toLocaleString('fa-IR')+' تماس',exportAll:")
 sub("const rp={pick:{", "const rp={canDel:CAN('calls','delete'),del:()=>this.askDelete(dl,r.drill?'گزارش‌ساز · '+GL[r.group]+': '+r.drill:'گزارش‌ساز · همه نتایج گزارش'),delText:'حذف '+dl.length.toLocaleString('fa-IR')+' تماس'+(r.drill?' ('+r.drill+')':''),pick:{")
 head = (root / 'tools/app-head.js').read_text(encoding='utf-8')

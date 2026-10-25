@@ -464,6 +464,13 @@ export default function AppView({ vm }) {
                           {(row?.noVoice) ? (<>
                             <span style={{color: "#b9bbb6", fontSize: "12px"}}>{"—"}</span>
                           </>) : null}
+                          {(row?.canDel) ? (<>
+                            <button onClick={row?.onDel} title="حذف تماس" style={{width: "32px", height: "32px", marginRight: "6px", borderRadius: "10px", border: "1px solid #f1c9c4", background: "#fff", color: "#b42318", display: "inline-grid", placeItems: "center", cursor: "pointer", verticalAlign: "middle"}}>
+                              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3" />
+                              </svg>
+                            </button>
+                          </>) : null}
                         </td>
                       </tr>
                     </React.Fragment>)}
@@ -770,6 +777,13 @@ export default function AppView({ vm }) {
                           </>) : null}
                           {(row?.noVoice) ? (<>
                             <span style={{color: "#b9bbb6", fontSize: "12px"}}>{"—"}</span>
+                          </>) : null}
+                          {(row?.canDel) ? (<>
+                            <button onClick={row?.onDel} title="حذف تماس" style={{width: "32px", height: "32px", marginRight: "6px", borderRadius: "10px", border: "1px solid #f1c9c4", background: "#fff", color: "#b42318", display: "inline-grid", placeItems: "center", cursor: "pointer", verticalAlign: "middle"}}>
+                              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3" />
+                              </svg>
+                            </button>
                           </>) : null}
                         </td>
                       </tr>
@@ -5699,55 +5713,83 @@ export default function AppView({ vm }) {
           <div style={{background: "#fdf1ef", padding: "18px 22px", display: "flex", alignItems: "center", gap: "12px", borderBottom: "1px solid #f6d9d4"}}>
             <div style={{width: "42px", height: "42px", borderRadius: "12px", background: "#b42318", color: "#fff", display: "grid", placeItems: "center", fontSize: "20px", fontWeight: "800"}}>{"!"}</div>
             <div style={{flex: "1"}}>
-              <div style={{fontWeight: "800", fontSize: "16px", color: "#7a1a10"}}>{"حذف دائمی "}{vm.dm?.n}{" تماس"}</div>
-              <div style={{fontSize: "12px", color: "#9a4a40", marginTop: "2px"}}>{vm.dm?.stepText}</div>
+              <div style={{fontWeight: "800", fontSize: "16px", color: "#7a1a10"}}>{vm.dm?.title}</div>
+              {(vm.dm?.multi) ? (<>
+                <div style={{fontSize: "12px", color: "#9a4a40", marginTop: "2px"}}>{vm.dm?.stepText}</div>
+              </>) : null}
             </div>
             <button onClick={vm.dm?.close} style={{width: "34px", height: "34px", borderRadius: "10px", border: "1px solid #f1c9c4", background: "#fff", cursor: "pointer", color: "#7a1a10"}}>{"✕"}</button>
           </div>
           <div style={{padding: "20px 22px", display: "flex", flexDirection: "column", gap: "14px", fontSize: "13px", lineHeight: "1.9", color: "#3a3b3d"}}>
-            {(vm.dm?.step1) ? (<>
+            {(vm.dm?.single) ? (<>
               <div style={{background: "#f7f8f5", borderRadius: "14px", padding: "12px 14px", display: "grid", gridTemplateColumns: "auto 1fr", gap: "4px 14px"}}>
-                <span style={{color: "#6b6e72"}}>{"انتخاب"}</span>
-                <b>{vm.dm?.label}</b>
-                <span style={{color: "#6b6e72"}}>{"تعداد تماس"}</span>
-                <b>{vm.dm?.n}</b>
-                <span style={{color: "#6b6e72"}}>{"بازه تاریخ"}</span>
-                <b>{vm.dm?.range}</b>
-                <span style={{color: "#6b6e72"}}>{"پاسخ‌داده"}</span>
-                <b>{vm.dm?.ans}</b>
-                <span style={{color: "#6b6e72"}}>{"دارای ضبط"}</span>
-                <b>{vm.dm?.rec}</b>
+                <span style={{color: "#6b6e72"}}>{"تماس"}</span>
+                <b style={{direction: "ltr", textAlign: "right"}}>{vm.dm?.one?.who}</b>
+                <span style={{color: "#6b6e72"}}>{"زمان"}</span>
+                <b>{vm.dm?.one?.when}</b>
+                <span style={{color: "#6b6e72"}}>{"وضعیت"}</span>
+                <b>{vm.dm?.one?.st}</b>
               </div>
-              <div>
-                {"این تماس‌ها همراه با "}
-                <b>{"فایل‌های ضبط، یادداشت‌ها، پیگیری‌ها، نظرسنجی و تحلیل هوش مصنوعی"}</b>
-                {" برای همیشه پاک می‌شوند و از گزارش‌ها هم حذف می‌شوند. "}
+              <div style={{display: "flex", flexDirection: "column", gap: "2px"}}>
+                <div>{"مطمئن هستید می‌خواهید این تماس را حذف کنید؟"}</div>
+                {(vm.dm?.oneRec) ? (<>
+                  <div>
+                    <b>{"فایل ضبط مکالمه"}</b>
+                    {" هم پاک می‌شود."}
+                  </div>
+                </>) : null}
                 <b style={{color: "#b42318"}}>{"این کار برگشت‌پذیر نیست."}</b>
               </div>
               <div style={{display: "flex", gap: "8px", justifyContent: "flex-end"}}>
                 <button onClick={vm.dm?.close} style={{border: "none", padding: "12px 16px", borderRadius: "12px", fontSize: "13px", fontWeight: "800", cursor: "pointer", fontFamily: "inherit", background: "#fff", border: "1px solid #e1e3dc", color: "#2E2F31"}}>{"انصراف"}</button>
-                <button onClick={vm.dm?.next1} style={{border: "none", padding: "12px 16px", borderRadius: "12px", fontSize: "13px", fontWeight: "800", cursor: "pointer", fontFamily: "inherit", background: "#2E2F31", color: "#fff"}}>{"متوجه شدم، ادامه"}</button>
+                <button onClick={vm.dm?.run} style={{border: "none", padding: "12px 16px", borderRadius: "12px", fontSize: "13px", fontWeight: "800", cursor: "pointer", fontFamily: "inherit", background: "#b42318", color: "#fff"}}>{vm.dm?.oneGo}</button>
               </div>
             </>) : null}
-            {(vm.dm?.step2) ? (<>
-              <div>
-                {"برای اطمینان، تعداد تماس‌هایی که حذف می‌شوند ("}
-                <b>{vm.dm?.n}</b>
-                {") را بنویسید:"}
-              </div>
-              <input value={vm.dm?.typed} onChange={vm.dm?.setTyped} inputmode="numeric" placeholder="تعداد تماس‌ها" style={{width: "100%", boxSizing: "border-box", border: "1px solid #e1e3dc", borderRadius: "12px", padding: "12px", fontSize: "15px", fontFamily: "inherit", outline: "none", background: "#fff", textAlign: "center", letterSpacing: "2px"}} />
-              <div style={{display: "flex", gap: "8px", justifyContent: "space-between"}}>
-                <button onClick={vm.dm?.back} style={{border: "none", padding: "12px 16px", borderRadius: "12px", fontSize: "13px", fontWeight: "800", cursor: "pointer", fontFamily: "inherit", background: "#fff", border: "1px solid #e1e3dc", color: "#2E2F31"}}>{"قبلی"}</button>
-                <button onClick={vm.dm?.next2} style={{border: "none", padding: "12px 16px", borderRadius: "12px", fontSize: "13px", fontWeight: "800", cursor: "pointer", fontFamily: "inherit", background: "#2E2F31", color: "#fff", opacity: vm.dm?.op2}}>{"ادامه"}</button>
-              </div>
-            </>) : null}
-            {(vm.dm?.step3) ? (<>
-              <div>{"مرحله آخر: رمز عبور حساب خودتان را وارد کنید."}</div>
-              <input type="password" value={vm.dm?.pw} onChange={vm.dm?.setPw} onKeyDown={vm.dm?.pwKey} autoComplete="current-password" placeholder="رمز عبور" style={{width: "100%", boxSizing: "border-box", border: "1px solid #e1e3dc", borderRadius: "12px", padding: "12px", fontSize: "15px", fontFamily: "inherit", outline: "none", background: "#fff"}} />
-              <div style={{display: "flex", gap: "8px", justifyContent: "space-between"}}>
-                <button onClick={vm.dm?.back} style={{border: "none", padding: "12px 16px", borderRadius: "12px", fontSize: "13px", fontWeight: "800", cursor: "pointer", fontFamily: "inherit", background: "#fff", border: "1px solid #e1e3dc", color: "#2E2F31"}}>{"قبلی"}</button>
-                <button onClick={vm.dm?.run} style={{border: "none", padding: "12px 16px", borderRadius: "12px", fontSize: "13px", fontWeight: "800", cursor: "pointer", fontFamily: "inherit", background: "#b42318", color: "#fff", opacity: vm.dm?.op3}}>{vm.dm?.goText}</button>
-              </div>
+            {(vm.dm?.multi) ? (<>
+              {(vm.dm?.step1) ? (<>
+                <div style={{background: "#f7f8f5", borderRadius: "14px", padding: "12px 14px", display: "grid", gridTemplateColumns: "auto 1fr", gap: "4px 14px"}}>
+                  <span style={{color: "#6b6e72"}}>{"انتخاب"}</span>
+                  <b>{vm.dm?.label}</b>
+                  <span style={{color: "#6b6e72"}}>{"تعداد تماس"}</span>
+                  <b>{vm.dm?.n}</b>
+                  <span style={{color: "#6b6e72"}}>{"بازه تاریخ"}</span>
+                  <b>{vm.dm?.range}</b>
+                  <span style={{color: "#6b6e72"}}>{"پاسخ‌داده"}</span>
+                  <b>{vm.dm?.ans}</b>
+                  <span style={{color: "#6b6e72"}}>{"دارای ضبط"}</span>
+                  <b>{vm.dm?.rec}</b>
+                </div>
+                <div>
+                  {"این تماس‌ها همراه با "}
+                  <b>{"فایل‌های ضبط، یادداشت‌ها، پیگیری‌ها، نظرسنجی و تحلیل هوش مصنوعی"}</b>
+                  {" برای همیشه پاک می‌شوند و از گزارش‌ها هم حذف می‌شوند. "}
+                  <b style={{color: "#b42318"}}>{"این کار برگشت‌پذیر نیست."}</b>
+                </div>
+                <div style={{display: "flex", gap: "8px", justifyContent: "flex-end"}}>
+                  <button onClick={vm.dm?.close} style={{border: "none", padding: "12px 16px", borderRadius: "12px", fontSize: "13px", fontWeight: "800", cursor: "pointer", fontFamily: "inherit", background: "#fff", border: "1px solid #e1e3dc", color: "#2E2F31"}}>{"انصراف"}</button>
+                  <button onClick={vm.dm?.next1} style={{border: "none", padding: "12px 16px", borderRadius: "12px", fontSize: "13px", fontWeight: "800", cursor: "pointer", fontFamily: "inherit", background: "#2E2F31", color: "#fff"}}>{"متوجه شدم، ادامه"}</button>
+                </div>
+              </>) : null}
+              {(vm.dm?.step2) ? (<>
+                <div>
+                  {"برای اطمینان، تعداد تماس‌هایی که حذف می‌شوند ("}
+                  <b>{vm.dm?.n}</b>
+                  {") را بنویسید:"}
+                </div>
+                <input value={vm.dm?.typed} onChange={vm.dm?.setTyped} inputmode="numeric" placeholder="تعداد تماس‌ها" style={{width: "100%", boxSizing: "border-box", border: "1px solid #e1e3dc", borderRadius: "12px", padding: "12px", fontSize: "15px", fontFamily: "inherit", outline: "none", background: "#fff", textAlign: "center", letterSpacing: "2px"}} />
+                <div style={{display: "flex", gap: "8px", justifyContent: "space-between"}}>
+                  <button onClick={vm.dm?.back} style={{border: "none", padding: "12px 16px", borderRadius: "12px", fontSize: "13px", fontWeight: "800", cursor: "pointer", fontFamily: "inherit", background: "#fff", border: "1px solid #e1e3dc", color: "#2E2F31"}}>{"قبلی"}</button>
+                  <button onClick={vm.dm?.next2} style={{border: "none", padding: "12px 16px", borderRadius: "12px", fontSize: "13px", fontWeight: "800", cursor: "pointer", fontFamily: "inherit", background: "#2E2F31", color: "#fff", opacity: vm.dm?.op2}}>{"ادامه"}</button>
+                </div>
+              </>) : null}
+              {(vm.dm?.step3) ? (<>
+                <div>{"مرحله آخر: رمز عبور حساب خودتان را وارد کنید."}</div>
+                <input type="password" value={vm.dm?.pw} onChange={vm.dm?.setPw} onKeyDown={vm.dm?.pwKey} autoComplete="current-password" placeholder="رمز عبور" style={{width: "100%", boxSizing: "border-box", border: "1px solid #e1e3dc", borderRadius: "12px", padding: "12px", fontSize: "15px", fontFamily: "inherit", outline: "none", background: "#fff"}} />
+                <div style={{display: "flex", gap: "8px", justifyContent: "space-between"}}>
+                  <button onClick={vm.dm?.back} style={{border: "none", padding: "12px 16px", borderRadius: "12px", fontSize: "13px", fontWeight: "800", cursor: "pointer", fontFamily: "inherit", background: "#fff", border: "1px solid #e1e3dc", color: "#2E2F31"}}>{"قبلی"}</button>
+                  <button onClick={vm.dm?.run} style={{border: "none", padding: "12px 16px", borderRadius: "12px", fontSize: "13px", fontWeight: "800", cursor: "pointer", fontFamily: "inherit", background: "#b42318", color: "#fff", opacity: vm.dm?.op3}}>{vm.dm?.goText}</button>
+                </div>
+              </>) : null}
             </>) : null}
             {(vm.dm?.hasErr) ? (<>
               <div style={{background: "#fdf1ef", color: "#b42318", borderRadius: "10px", padding: "8px 12px", fontWeight: "700"}}>{vm.dm?.err}</div>
@@ -5764,6 +5806,13 @@ export default function AppView({ vm }) {
               <div onClick={vm.cvm?.openFile} style={{fontWeight: "800", fontSize: "17px", cursor: "pointer", textDecoration: "underline", textDecorationColor: "#cfe4ad", textUnderlineOffset: "5px"}}>{vm.cvm?.name}</div>
               <div style={{fontSize: "12px", color: "#6b6e72", direction: "ltr", textAlign: "right"}}>{vm.cvm?.phone}</div>
             </div>
+            {(vm.cvm?.canDel) ? (<>
+              <button onClick={vm.cvm?.del} title="حذف تماس" style={{width: "36px", height: "36px", borderRadius: "10px", border: "1px solid #f1c9c4", background: "#fff", cursor: "pointer", color: "#b42318", display: "grid", placeItems: "center"}}>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3" />
+                </svg>
+              </button>
+            </>) : null}
             <button onClick={vm.cvm?.close} style={{width: "36px", height: "36px", borderRadius: "10px", border: "1px solid #e1e3dc", background: "#fff", cursor: "pointer", fontSize: "15px", color: "#55585c"}}>{"✕"}</button>
           </div>
           <div style={{flex: "1", minHeight: "0", overflow: "auto", padding: "16px 18px", display: "flex", flexDirection: "column", gap: "14px"}}>

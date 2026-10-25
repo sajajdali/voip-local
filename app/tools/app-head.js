@@ -1305,7 +1305,8 @@ class LiveApp extends React.Component {
   askDelete(list, label) {
     if (!CAN('calls', 'delete')) return;
     if (!list.length) { this.toast('تماسی برای حذف وجود ندارد'); return; }
-    this.setState({ del: { ids: list.map(c => c.id), label, step: 1, typed: '', pw: '', busy: false, err: '',
+    const one = list.length === 1 ? list[0] : null;
+    this.setState({ del: { ids: list.map(c => c.id), label, step: 1, one: one && { who: one.name && one.name !== one.phone ? one.name + ' · ' + one.phone : one.phone, when: one.date + ' ساعت ' + one.time, st: one.status ? one.status.label : '', rec: !!one.hasVoice }, typed: '', pw: '', busy: false, err: '',
       dates: list.map(c => c.date).sort(), rec: list.filter(c => c.hasRec).length, ans: list.filter(c => c.st === 'answered' || c.st === 'transferred').length } });
   }
 
@@ -1317,17 +1318,18 @@ class LiveApp extends React.Component {
     const n = d.ids.length, set = o => this.setState({ del: { ...d, err: '', ...o } });
     const typedOk = +en(d.typed) === n;
     const run = async () => {
-      if (d.busy || !d.pw) return;
+      if (d.busy || (!d.one && !d.pw)) return;
       set({ busy: true });
       try {
         const r = await api('/calls/delete', { ids: d.ids, count: n, password: d.pw });
-        this.setState({ del: null });
-        this.toast(fa(r.deleted) + ' تماس و ' + fa(r.files) + ' فایل ضبط برای همیشه حذف شد');
+        this.setState(d.one ? { del: null, cvId: null } : { del: null });
+        this.toast(d.one ? 'تماس' + (r.files ? ' و فایل مکالمه آن' : '') + ' حذف شد' : fa(r.deleted) + ' تماس و ' + fa(r.files) + ' فایل ضبط برای همیشه حذف شد');
         this.reloadCalls();
       } catch (e) { set({ busy: false, err: e.message }); }
     };
     return { dm: {
-      show: true, step1: d.step === 1, step2: d.step === 2, step3: d.step === 3, stepText: 'مرحله ' + fa(d.step) + ' از ۳',
+      show: true, single: !!d.one, multi: !d.one, one: d.one || {}, oneRec: !!(d.one && d.one.rec), oneGo: d.busy ? 'در حال حذف…' : 'بله، حذف شود', title: d.one ? 'حذف این تماس' : 'حذف دائمی ' + fa(n) + ' تماس',
+      step1: d.step === 1, step2: d.step === 2, step3: d.step === 3, stepText: 'مرحله ' + fa(d.step) + ' از ۳',
       n: fa(n), label: d.label, range: d.dates.length ? (d.dates[0] === d.dates[n - 1] ? fa(d.dates[0]) : fa(d.dates[0]) + ' تا ' + fa(d.dates[n - 1])) : '—',
       rec: fa(d.rec), ans: fa(d.ans), typed: d.typed, pw: d.pw, err: d.err, hasErr: !!d.err,
       setTyped: e => set({ typed: e.target.value }), setPw: e => set({ pw: e.target.value }),
@@ -1430,6 +1432,7 @@ class LiveApp extends React.Component {
     const isAdmin = CAN('ai', 'edit');
     return { upd, cvm: {
       show: true, barOk: false, close: () => this.setState({ cvId: null }),
+      canDel: CAN('calls', 'delete'), del: () => this.askDelete([c], 'یک تماس'),
       isCur: s.pid === c.id, notCur: s.pid !== c.id,
       name: c.name, phone: c.phone, ini: c.ini, when: c.date + ' · ' + c.time, dir: c.dirLabel, queue: c.queue,
       op: c.op ? c.op.name + ' · داخلی ' + c.op.ext : 'بدون اپراتور', dur: c.durText, status: c.status,
