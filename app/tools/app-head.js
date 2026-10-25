@@ -1064,6 +1064,10 @@ class LiveApp extends React.Component {
     const lsCall = L.find(c => c.id === s.lsId);
     return { lv: {
       time: fa(String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0') + ':' + String(d.getSeconds()).padStart(2, '0')), date: jLong(d),
+      hm: fa(String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0')), sec: fa(String(d.getSeconds()).padStart(2, '0')),
+      // analog clock (hands as SVG rotations around the centre 50,50)
+      hDeg: ((d.getHours() % 12) * 30 + d.getMinutes() * 0.5).toFixed(1), mDeg: (d.getMinutes() * 6 + d.getSeconds() * 0.1).toFixed(1), sDeg: String(d.getSeconds() * 6),
+      ticks: this._clockTicks || (this._clockTicks = Array.from({ length: 60 }, (_, i) => ({ r: String(i * 6), y2: i % 5 ? '8.5' : '11', w: i % 5 ? '0.8' : '2', c: i % 5 ? '#d3d5cf' : '#2E2F31' }))),
       total: fa(L.length),
       kpis: [
         { label: 'در حال مکالمه', value: fa(cnt('talk')), accent: '#8DC63F' }, { label: 'در صف انتظار', value: fa(cnt('queue')), accent: '#e0a83a' },

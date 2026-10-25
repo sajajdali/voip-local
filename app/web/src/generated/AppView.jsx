@@ -2212,11 +2212,30 @@ export default function AppView({ vm }) {
                 <h1 style={{margin: "0", fontSize: "28px", fontWeight: "800"}}>{"تماس‌های زنده"}</h1>
                 <div style={{fontSize: "14px", color: "#6b6e72", marginTop: "6px"}}>{vm.lv?.subtitle}</div>
               </div>
-              <div style={{display: "flex", alignItems: "center", gap: "8px", border: "1px solid #e1e3dc", background: "#fff", padding: "9px 14px", borderRadius: "12px", fontSize: "13px", color: "#3a3b3d"}}>
-                <span style={{width: "8px", height: "8px", borderRadius: "50%", background: "#8DC63F", animation: "cc-pulse 2s infinite"}} />
-                {"به‌روزرسانی زنده"}
-                <span style={{color: "#b9bbb6"}}>{"|"}</span>
-                <span style={{fontWeight: "700", direction: "ltr"}}>{vm.lv?.time}</span>
+              <div style={{display: "flex", alignItems: "center", gap: "16px", background: "#fff", border: "1px solid #e7e8e3", borderRadius: "22px", padding: "12px 18px 12px 14px", boxShadow: "0 1px 2px rgba(0,0,0,.04),0 8px 24px rgba(46,47,49,.06)"}}>
+                <svg width="88" height="88" viewBox="0 0 100 100" style={{flexShrink: "0"}}>
+                  <circle cx="50" cy="50" r="48" fill="#fff" stroke="#e1e3dc" strokeWidth="1.5" />
+                  <circle cx="50" cy="50" r="43.5" fill="#fafaf8" stroke="#f0f1ec" strokeWidth="1" />
+                  {(vm.lv?.ticks || []).map((t, __i9) => <React.Fragment key={__i9}>
+                    <line x1="50" y1="5.5" x2="50" y2={t?.y2} stroke={t?.c} strokeWidth={t?.w} strokeLinecap="round" transform={`rotate(${t?.r} 50 50)`} />
+                  </React.Fragment>)}
+                  <line x1="50" y1="53" x2="50" y2="27" stroke="#2E2F31" strokeWidth="3.4" strokeLinecap="round" transform={`rotate(${vm.lv?.hDeg} 50 50)`} />
+                  <line x1="50" y1="54" x2="50" y2="15" stroke="#2E2F31" strokeWidth="2.2" strokeLinecap="round" transform={`rotate(${vm.lv?.mDeg} 50 50)`} />
+                  <line x1="50" y1="60" x2="50" y2="11" stroke="#8DC63F" strokeWidth="1.1" strokeLinecap="round" transform={`rotate(${vm.lv?.sDeg} 50 50)`} />
+                  <circle cx="50" cy="50" r="3.4" fill="#2E2F31" />
+                  <circle cx="50" cy="50" r="1.5" fill="#8DC63F" />
+                </svg>
+                <div style={{display: "flex", flexDirection: "column", gap: "4px", minWidth: "130px"}}>
+                  <span style={{alignSelf: "flex-start", display: "inline-flex", alignItems: "center", gap: "6px", fontSize: "11px", fontWeight: "700", color: "#3d6a0c", background: "#f2f8ea", border: "1px solid #dcebc6", padding: "3px 10px", borderRadius: "999px"}}>
+                    <span style={{width: "7px", height: "7px", borderRadius: "50%", background: "#8DC63F", animation: "cc-pulse 2s infinite"}} />
+                    {"زنده"}
+                  </span>
+                  <div style={{display: "flex", alignItems: "baseline", gap: "6px", direction: "ltr", justifyContent: "flex-end"}}>
+                    <span style={{fontSize: "13px", fontWeight: "700", color: "#9a9d97"}}>{vm.lv?.sec}</span>
+                    <span style={{fontSize: "30px", fontWeight: "800", color: "#232425", letterSpacing: ".5px", lineHeight: "1.1"}}>{vm.lv?.hm}</span>
+                  </div>
+                  <div style={{fontSize: "12px", color: "#6b6e72"}}>{vm.lv?.date}</div>
+                </div>
               </div>
             </div>
             <div style={{display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(170px,1fr))", gap: "14px"}}>
