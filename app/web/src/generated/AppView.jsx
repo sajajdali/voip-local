@@ -2212,7 +2212,7 @@ export default function AppView({ vm }) {
                 <h1 style={{margin: "0", fontSize: "28px", fontWeight: "800"}}>{"تماس‌های زنده"}</h1>
                 <div style={{fontSize: "14px", color: "#6b6e72", marginTop: "6px"}}>{vm.lv?.subtitle}</div>
               </div>
-              <div style={{display: "flex", alignItems: "center", gap: "16px", background: "#fff", border: "1px solid #e7e8e3", borderRadius: "22px", padding: "12px 18px 12px 14px", boxShadow: "0 1px 2px rgba(0,0,0,.04),0 8px 24px rgba(46,47,49,.06)"}}>
+              <div style={{display: "flex", alignItems: "center", gap: "22px", background: "#fff", border: "1px solid #e7e8e3", borderRadius: "22px", padding: "12px 20px 12px 14px", boxShadow: "0 1px 2px rgba(0,0,0,.04),0 8px 24px rgba(46,47,49,.06)"}}>
                 <svg width="88" height="88" viewBox="0 0 100 100" style={{flexShrink: "0"}}>
                   <circle cx="50" cy="50" r="48" fill="#fff" stroke="#e1e3dc" strokeWidth="1.5" />
                   <circle cx="50" cy="50" r="43.5" fill="#fafaf8" stroke="#f0f1ec" strokeWidth="1" />
@@ -2225,8 +2225,9 @@ export default function AppView({ vm }) {
                   <circle cx="50" cy="50" r="3.4" fill="#2E2F31" />
                   <circle cx="50" cy="50" r="1.5" fill="#8DC63F" />
                 </svg>
-                <div style={{display: "flex", flexDirection: "column", gap: "4px", minWidth: "130px"}}>
-                  <span style={{alignSelf: "flex-start", display: "inline-flex", alignItems: "center", gap: "6px", fontSize: "11px", fontWeight: "700", color: "#3d6a0c", background: "#f2f8ea", border: "1px solid #dcebc6", padding: "3px 10px", borderRadius: "999px"}}>
+                <span style={{width: "1px", alignSelf: "stretch", margin: "6px 0", background: "#ecedea"}} />
+                <div style={{display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "6px", minWidth: "120px"}}>
+                  <span style={{display: "inline-flex", alignItems: "center", gap: "6px", fontSize: "11px", fontWeight: "700", color: "#3d6a0c", background: "#f2f8ea", border: "1px solid #dcebc6", padding: "3px 10px", borderRadius: "999px"}}>
                     <span style={{width: "7px", height: "7px", borderRadius: "50%", background: "#8DC63F", animation: "cc-pulse 2s infinite"}} />
                     {"زنده"}
                   </span>

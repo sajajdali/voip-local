@@ -852,7 +852,7 @@
   <!-- ===== LIVE CALLS ===== -->
   <sc-if value="{{ is.live }}">
   <div style="display:flex;flex-direction:column;gap:18px">
-    <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap"><div><h1 style="margin:0;font-size:28px;font-weight:800">تماس‌های زنده</h1><div style="font-size:14px;color:#6b6e72;margin-top:6px">{{ lv.subtitle }}</div></div><div style="display:flex;align-items:center;gap:16px;background:#fff;border:1px solid #e7e8e3;border-radius:22px;padding:12px 18px 12px 14px;box-shadow:0 1px 2px rgba(0,0,0,.04),0 8px 24px rgba(46,47,49,.06)">
+    <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap"><div><h1 style="margin:0;font-size:28px;font-weight:800">تماس‌های زنده</h1><div style="font-size:14px;color:#6b6e72;margin-top:6px">{{ lv.subtitle }}</div></div><div style="display:flex;align-items:center;gap:22px;background:#fff;border:1px solid #e7e8e3;border-radius:22px;padding:12px 20px 12px 14px;box-shadow:0 1px 2px rgba(0,0,0,.04),0 8px 24px rgba(46,47,49,.06)">
         <svg width="88" height="88" sc-camel-view-box="0 0 100 100" style="flex-shrink:0">
           <circle cx="50" cy="50" r="48" fill="#fff" stroke="#e1e3dc" stroke-width="1.5"></circle>
           <circle cx="50" cy="50" r="43.5" fill="#fafaf8" stroke="#f0f1ec" stroke-width="1"></circle>
@@ -863,8 +863,9 @@
           <circle cx="50" cy="50" r="3.4" fill="#2E2F31"></circle>
           <circle cx="50" cy="50" r="1.5" fill="#8DC63F"></circle>
         </svg>
-        <div style="display:flex;flex-direction:column;gap:4px;min-width:130px">
-          <span style="align-self:flex-start;display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;color:#3d6a0c;background:#f2f8ea;border:1px solid #dcebc6;padding:3px 10px;border-radius:999px"><span style="width:7px;height:7px;border-radius:50%;background:#8DC63F;animation:cc-pulse 2s infinite"></span>زنده</span>
+        <span style="width:1px;align-self:stretch;margin:6px 0;background:#ecedea"></span>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;min-width:120px">
+          <span style="display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;color:#3d6a0c;background:#f2f8ea;border:1px solid #dcebc6;padding:3px 10px;border-radius:999px"><span style="width:7px;height:7px;border-radius:50%;background:#8DC63F;animation:cc-pulse 2s infinite"></span>زنده</span>
           <div style="display:flex;align-items:baseline;gap:6px;direction:ltr;justify-content:flex-end"><span style="font-size:30px;font-weight:800;color:#232425;letter-spacing:.5px;line-height:1.1">{{ lv.hm }}</span><span style="font-size:13px;font-weight:700;color:#9a9d97">{{ lv.sec }}</span></div>
         </div>
       </div></div>
