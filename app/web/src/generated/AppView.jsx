@@ -2249,24 +2249,7 @@ export default function AppView({ vm }) {
                 </div>
               </React.Fragment>)}
             </div>
-            <div style={{background: "#fff", border: "1px solid #e7e8e3", borderRadius: "20px", padding: "16px 18px", display: "flex", alignItems: "center", gap: "18px", flexWrap: "wrap"}}>
-              <div style={{fontWeight: "700", fontSize: "14px", minWidth: "90px"}}>{"اپراتورها"}</div>
-              <div style={{flex: "1", minWidth: "200px", display: "flex", height: "6px", borderRadius: "99px", overflow: "hidden", background: "#f2f3ef", gap: "2px"}}>
-                {(vm.lv?.cap || []).map((c, __i8) => <React.Fragment key={__i8}>
-                  <div style={{width: c?.w, background: c?.bg, transition: "width .6s"}} />
-                </React.Fragment>)}
-              </div>
-              <div style={{display: "flex", gap: "16px", fontSize: "12px", color: "#6b6e72", flexWrap: "wrap"}}>
-                {(vm.lv?.capLegend || []).map((g, __i8) => <React.Fragment key={__i8}>
-                  <span style={{display: "flex", alignItems: "center", gap: "6px"}}>
-                    <span style={{width: "8px", height: "8px", borderRadius: "50%", background: g?.bg}} />
-                    {g?.label}{" "}
-                    <b style={{color: "#232425"}}>{g?.n}</b>
-                  </span>
-                </React.Fragment>)}
-              </div>
-            </div>
-            <div style={{fontSize: "12px", color: "#8b8e89", marginTop: "-6px", padding: "0 4px"}}>
+            <div style={{fontSize: "12px", color: "#8b8e89", padding: "0 4px"}}>
               {"شنود فقط شنیدنی است و طرفین متوجه نمی‌شوند؛ هر شنود با نام شما در لاگ ثبت می‌شود."}
             </div>
             {(vm.lv?.listening) ? (<>
@@ -2371,16 +2354,70 @@ export default function AppView({ vm }) {
                 </React.Fragment>)}
               </div>
             </>) : null}
-            <div style={{background: "#fff", border: "1px solid #e7e8e3", borderRadius: "22px", padding: "16px 18px", display: "flex", flexDirection: "column", gap: "12px"}}>
-              <div style={{fontWeight: "800", fontSize: "15px"}}>{"داخلی‌ها"}</div>
-              <div style={{display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(150px,1fr))", gap: "10px"}}>
-                {(vm.lv?.exts || []).map((e, __i8) => <React.Fragment key={__i8}>
-                  <div style={{background: e?.bg, border: `1px solid ${e?.bd}`, borderRadius: "16px", padding: "12px", display: "flex", alignItems: "center", gap: "10px", opacity: e?.op}}>
-                    <span style={{width: "10px", height: "10px", borderRadius: "50%", background: e?.dot, flexShrink: "0", animation: e?.anim}} />
-                    <div style={{minWidth: "0"}}>
-                      <div style={{fontWeight: "800", fontSize: "15px"}}>{e?.n}</div>
-                      <div style={{fontSize: "11px", color: "#6b6e72", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap"}}>{e?.name}{" · "}{e?.label}</div>
+            <div style={{display: "flex", flexDirection: "column", gap: "12px"}}>
+              <div style={{display: "flex", alignItems: "center", gap: "14px", flexWrap: "wrap"}}>
+                <div style={{fontWeight: "800", fontSize: "18px"}}>{"اپراتورها"}</div>
+                <div style={{display: "flex", gap: "14px", flexWrap: "wrap", fontSize: "12px", color: "#6b6e72"}}>
+                  {(vm.lv?.opSum || []).map((g, __i9) => <React.Fragment key={__i9}>
+                    <span style={{display: "flex", alignItems: "center", gap: "6px"}}>
+                      <span style={{width: "8px", height: "8px", borderRadius: "50%", background: g?.dot}} />
+                      {g?.label}{" "}
+                      <b style={{color: "#232425"}}>{g?.n}</b>
+                    </span>
+                  </React.Fragment>)}
+                </div>
+              </div>
+              <div style={{display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(250px,1fr))", gap: "12px"}}>
+                {(vm.lv?.ops || []).map((o, __i8) => <React.Fragment key={__i8}>
+                  <div style={{background: o?.bg, border: `1px solid ${o?.bd}`, borderRadius: "20px", padding: "14px 16px", display: "flex", flexDirection: "column", gap: "12px", opacity: o?.op}}>
+                    <div style={{display: "flex", alignItems: "center", gap: "12px"}}>
+                      <div style={{position: "relative", flexShrink: "0"}}>
+                        <div style={{width: "42px", height: "42px", borderRadius: "50%", background: "#f2f3ef", color: "#2E2F31", display: "grid", placeItems: "center", fontWeight: "800", fontSize: "13px"}}>{o?.ini}</div>
+                        <span style={{position: "absolute", bottom: "0", left: "0", width: "12px", height: "12px", borderRadius: "50%", background: o?.dot, border: "2px solid #fff"}} />
+                      </div>
+                      <div style={{flex: "1", minWidth: "0"}}>
+                        <div style={{fontWeight: "800", fontSize: "14px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap"}}>{o?.name}</div>
+                        {(o?.hasSub) ? (<>
+                          <div style={{fontSize: "12px", color: "#6b6e72"}}>{o?.sub}</div>
+                        </>) : null}
+                      </div>
+                      <span style={{fontSize: "11px", fontWeight: "700", color: "#3a3b3d", background: "#fff", border: `1px solid ${o?.bd}`, padding: "3px 9px", borderRadius: "999px", whiteSpace: "nowrap"}}>{o?.label}</span>
                     </div>
+                    {(o?.hasCall) ? (<>
+                      <div style={{display: "flex", alignItems: "center", gap: "10px", background: "#fff", border: "1px solid #f0e2c4", borderRadius: "14px", padding: "8px 10px"}}>
+                        <div style={{flex: "1", minWidth: "0"}}>
+                          <div style={{fontSize: "11px", color: "#8a5a00"}}>{"در حال صحبت با"}</div>
+                          <div style={{fontSize: "13px", fontWeight: "700", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap"}}>{o?.callWho}</div>
+                        </div>
+                        <span style={{fontSize: "15px", fontWeight: "800", direction: "ltr"}}>{o?.callTimer}</span>
+                        <button onClick={o?.listen} style={{background: o?.listenBg, color: "#fff", border: "none", padding: "7px 11px", borderRadius: "10px", fontSize: "12px", fontWeight: "700", cursor: "pointer", fontFamily: "inherit"}}>{o?.listenLabel}</button>
+                      </div>
+                    </>) : null}
+                    {(o?.isRing) ? (<>
+                      <div style={{fontSize: "12px", color: "#1d5a85", background: "#fff", border: "1px solid #cfe0ef", borderRadius: "12px", padding: "7px 10px"}}>{"تماس در حال زنگ خوردن"}{o?.ringWho}</div>
+                    </>) : null}
+                    <div style={{display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: "6px", textAlign: "center", borderTop: "1px solid #f1f2ee", paddingTop: "10px"}}>
+                      <div>
+                        <div style={{fontSize: "15px", fontWeight: "800"}}>{o?.ans}</div>
+                        <div style={{fontSize: "10px", color: "#8b8e89"}}>{"پاسخ امروز"}</div>
+                      </div>
+                      <div>
+                        <div style={{fontSize: "15px", fontWeight: "800", direction: "ltr"}}>{o?.talk}</div>
+                        <div style={{fontSize: "10px", color: "#8b8e89"}}>{"مکالمه امروز"}</div>
+                      </div>
+                      <div>
+                        <div style={{fontSize: "15px", fontWeight: "800"}}>{o?.last}</div>
+                        <div style={{fontSize: "10px", color: "#8b8e89"}}>{"آخرین تماس"}</div>
+                      </div>
+                    </div>
+                    {(o?.hasDev) ? (<>
+                      <div style={{fontSize: "11px", color: "#9a9d97", display: "flex", alignItems: "center", gap: "6px"}}>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                          <path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2" />
+                        </svg>
+                        {o?.dev}
+                      </div>
+                    </>) : null}
                   </div>
                 </React.Fragment>)}
               </div>

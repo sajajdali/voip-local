@@ -19,6 +19,7 @@ const SILENCE = Buffer.alloc(320); // 20 ms of 8 kHz 16-bit silence
 export interface LiveCall {
   id: string; dir: 'in' | 'out' | 'internal'; phone: string; name: string; state: string; stateKey: string;
   with: string; queue: string; since: number; talkSince: number | null; channel: string;
+  ext: string; ringExts: string[]; // the operator on the call, and extensions ringing for it
 }
 
 interface Spy { uuid: string; ws: Socket; me: Me; callId: string; tcp?: net.Socket; keep?: NodeJS.Timeout; started: number }
@@ -76,6 +77,8 @@ export class LiveCallsService implements OnModuleInit {
       const qid = (/^cc-([A-Za-z0-9_-]+)/.exec(String(caller.ApplicationData || '')) || [])[1];
       const queue = app === 'Queue' && qid ? (cfg.vqs.find(q => q.id === qid) || { name: qid }).name : '';
       let stateKey = 'other', state = 'در حال برقراری', withWhom = '';
+      const agentExt = dir === 'in' ? extOf(bridged ? bridged.Channel : '') : extOf(ch) || (bridged ? extOf(bridged.Channel) : '');
+      const ringExts = l.filter(c => c !== caller && extOf(c.Channel) && !c.BridgeId).map(c => extOf(c.Channel));
       if (bridged) {
         stateKey = 'talk'; withWhom = dir === 'in' ? peerOf(bridged) : dir === 'out' ? peerOf(caller) || peerOf(bridged) : peerOf(bridged);
         state = withWhom === 'دستیار هوشمند' ? 'در گفتگو با دستیار هوشمند' : 'در حال مکالمه';
@@ -89,7 +92,7 @@ export class LiveCallsService implements OnModuleInit {
       }
       if (stateKey === 'talk') { if (!this.talkSince.has(id)) this.talkSince.set(id, now); } else this.talkSince.delete(id);
       out.push({
-        id, dir, phone, name: '', state, stateKey, with: withWhom, queue, channel: ch,
+        id, dir, phone, name: '', state, stateKey, with: withWhom, queue, channel: ch, ext: bridged ? agentExt : '', ringExts,
         since: now - hms(caller.Duration) * 1000, talkSince: this.talkSince.get(id) || null,
       });
     }
@@ -97,7 +100,7 @@ export class LiveCallsService implements OnModuleInit {
     await this.fillNames(out);
     out.sort((a, b) => a.since - b.since);
     this.calls = out;
-    const j = JSON.stringify(out.map(c => [c.id, c.stateKey, c.with, c.name, c.talkSince]));
+    const j = JSON.stringify(out.map(c => [c.id, c.stateKey, c.with, c.name, c.talkSince, c.ext, c.ringExts]));
     if (j !== this.last) { this.last = j; this.bus.emit('livecalls', out); }
     // a listened call ended: tell the listener
     for (const s of this.spies.values()) if (!groups.has(s.callId)) this.stop(s.uuid, 'تماس تمام شد');

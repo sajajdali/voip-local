@@ -7,7 +7,7 @@ import { env } from '../env';
 import { Ami } from './ami';
 import { generate, VoipConfig } from './generator';
 
-export interface Live { exts: Record<string, { st: string; dev?: string }>; queues: Record<string, { waiting: number; sla: number }>; trunks: Record<string, { reg: boolean; used: number }> }
+export interface Live { exts: Record<string, { st: string; dev?: string; ring?: boolean }>; queues: Record<string, { waiting: number; sla: number }>; trunks: Record<string, { reg: boolean; used: number }> }
 
 @Injectable()
 export class AsteriskService extends EventEmitter implements OnModuleInit {
@@ -72,7 +72,7 @@ export class AsteriskService extends EventEmitter implements OnModuleInit {
     for (const e of cfg.exts) {
       const s = devState[e.n] || 'UNAVAILABLE';
       const st = /INUSE|BUSY|RINGINUSE|ONHOLD/.test(s) && s !== 'NOT_INUSE' ? 'busy' : s === 'NOT_INUSE' || s === 'RINGING' ? 'online' : 'offline';
-      exts[e.n] = { st, ...(ua[e.n] ? { dev: ua[e.n].slice(0, 40) } : {}) };
+      exts[e.n] = { st, ring: /RINGING|RINGINUSE/.test(s), ...(ua[e.n] ? { dev: ua[e.n].slice(0, 40) } : {}) };
     }
     const queues: Live['queues'] = {};
     const qs = await this.ami.action({ Action: 'QueueStatus' }, true).catch(() => ({ events: [] }));

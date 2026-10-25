@@ -1053,6 +1053,34 @@ class LiveApp extends React.Component {
         vu: on ? Array.from({ length: 18 }, (_, i) => { const v = hist[hist.length - 18 + i] || 0; return { h: Math.max(3, Math.round(v * 26)) + 'px' }; }) : [],
       };
     });
+    // operators: live state + current call + today's numbers
+    const OPS = {
+      talk: { label: 'در مکالمه', dot: '#e0a83a', bg: '#fffaf0', bd: '#f0d9a8', order: 0 },
+      ring: { label: 'در حال زنگ', dot: '#5b9bd0', bg: '#f5f9fd', bd: '#cfe0ef', order: 1 },
+      ready: { label: 'آماده', dot: '#8DC63F', bg: '#fff', bd: '#dcebc6', order: 2 },
+      off: { label: 'آفلاین · ثبت‌نشده', dot: '#c9cbc6', bg: '#fafaf8', bd: '#ecedea', order: 3 },
+    };
+    const today = this.calls.filter(c => c.date === TODAY && c.op);
+    const devName = ua => { const u = String(ua || '').replace(/^Z (\d)/, 'Zoiper $1'); const m = /(Yealink|Grandstream|Panasonic|Cisco|Fanvil|Snom|Polycom|Zoiper|MicroSIP|Linphone|Bria|GS Wave|Telephone)/i.exec(u); return m ? (u.slice(u.indexOf(m[1])).split(/[\s/]/).slice(0, 2).join(' ')) : u.split(/[\s/]/)[0] || ''; };
+    const ops = (s.exts || []).map(e => {
+      const call = L.find(c => c.ext === e.n && c.stateKey === 'talk');
+      const ringFor = L.find(c => (c.ringExts || []).includes(e.n));
+      const key = call ? 'talk' : e.ring || ringFor ? 'ring' : e.st === 'busy' ? 'talk' : e.st === 'online' ? 'ready' : 'off';
+      const st = OPS[key], mine = today.filter(c => c.op.ext === e.n), ans = mine.filter(c => c.st === 'answered' || c.st === 'transferred');
+      const talkSec = ans.reduce((n, c) => n + (c.dur || 0), 0), last = mine.map(c => c.time).sort().pop();
+      const who = c => c.name || (anon(c.phone) ? 'شماره ناشناس' : c.phone);
+      const on = call && s.lsId === call.id;
+      return {
+        key, order: st.order, n: e.n, nFa: fa(e.n), ...st,
+        // generic names («داخلی 101», «1003») show the number instead of initials
+        ...(e.name && !/^(داخلی\s*)?\d+$/.test(e.name.trim()) ? { name: e.name, ini: ini(e.name) || fa(String(e.n).slice(-3)), sub: 'داخلی ' + fa(e.n), hasSub: true } : { name: 'داخلی ' + fa(e.n), ini: fa(String(e.n).slice(-3)), sub: '', hasSub: false }),
+        isTalk: key === 'talk', isRing: key === 'ring', isOff: key === 'off', hasCall: !!call, op: key === 'off' ? 0.6 : 1,
+        callWho: call ? who(call) : '', callTimer: call && call.talkSince ? clock(now - call.talkSince) : '', ringWho: ringFor ? ' از ' + who(ringFor) : '',
+        listen: () => call && this.startListen(call), listenLabel: on ? 'قطع شنود' : 'گوش بده', listenBg: on ? '#e0574a' : '#2E2F31',
+        ans: fa(ans.length), talk: talkSec ? clock(talkSec * 1000) : '—', last: last ? fa(last) : '—',
+        dev: devName(e.dev), hasDev: !!e.dev,
+      };
+    }).sort((a, b) => a.order - b.order || String(a.n).localeCompare(String(b.n), undefined, { numeric: true }));
     const ex = (s.exts || []).map(e => {
       const busy = e.st === 'busy', on = e.st === 'online';
       return { n: fa(e.n), name: e.name || '', label: busy ? 'در مکالمه' : on ? 'آزاد' : 'آفلاین', dot: busy ? '#e0a83a' : on ? '#7FB536' : '#c9cbc6',
@@ -1078,7 +1106,8 @@ class LiveApp extends React.Component {
       capLegend: [{ label: 'در مکالمه', n: fa(busyN), bg: '#e0a83a' }, { label: 'آزاد', n: fa(freeN), bg: '#8DC63F' }, { label: 'آفلاین', n: fa(offN), bg: '#d9dad6' }],
       subtitle: L.length ? fa(L.length) + ' تماس در جریان · ' + fa(freeN) + ' اپراتور آزاد' : 'در حال حاضر تماسی در جریان نیست · ' + fa(freeN) + ' اپراتور آزاد',
       capText: fa(busyN) + ' در مکالمه · ' + fa(freeN) + ' آزاد · ' + fa(offN) + ' آفلاین',
-      cards, empty: !cards.length, has: cards.length > 0, exts: ex,
+      cards, empty: !cards.length, has: cards.length > 0, exts: ex, ops,
+      opSum: ['talk', 'ring', 'ready', 'off'].map(k => ({ label: OPS[k].label, dot: OPS[k].dot, n: fa(ops.filter(o => o.key === k).length) })),
       listening: !!s.lsId, lsOn: !!s.lsOn, lsWho: s.lsWho || '', lsState: lsCall ? lsCall.state : '', lsTime: s.lsAt ? clock(now - s.lsAt) : '',
       vu: Array.from({ length: 28 }, (_, i) => { const v = hist[hist.length - 28 + i] || 0; return { h: Math.max(3, Math.round(v * 34)) + 'px', bg: v > 0.7 ? '#e0a83a' : '#7FB536' }; }),
       stop: () => this.stopListen(), vol: String(vol), setVol: e => { const v = +e.target.value; this.setState({ lsVol: v }); if (this.lgain) this.lgain.gain.value = v; },
