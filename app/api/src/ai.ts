@@ -70,6 +70,35 @@ const CHAT_SCHEMA = {
   additionalProperties: false,
 };
 
+const COACH_SYSTEM = `تو سرپرست باتجربه مرکز تماس مطب دکتر افلاکی (جراح بینی) هستی و مکالمه یک اپراتور با بیمار را برای مدیر ارزیابی می‌کنی.
+منصف و دقیق باش؛ فقط بر اساس همین مکالمه نظر بده و چیزی از خودت نساز.
+- score: نمره کلی ۱ تا ۱۰.
+- verdict: یک جمله کوتاه درباره عملکرد کلی.
+- criteria: برای هر معیار نمره ۱ تا ۵ و یک توضیح کوتاه:
+  politeness (ادب و احترام)، tone (لحن و همدلی با بیمار)، clarity (وضوح و درستی پاسخ‌ها)، listening (گوش دادن و قطع نکردن حرف بیمار)، resolution (پیگیری و به نتیجه رساندن).
+- strengths: نکات مثبت (حداکثر ۴).
+- improvements: اشکال‌ها (حداکثر ۵). برای هر کدام: issue (اشکال)، quote (جمله‌ای که اپراتور واقعاً گفت؛ اگر به جمله خاصی مربوط نیست خالی)، suggestion (بهتر بود چه می‌گفت یا چه می‌کرد، به شکل جمله پیشنهادی).
+اگر اشکالی نبود improvements را خالی بگذار.`;
+
+const COACH_SCHEMA = {
+  type: 'object',
+  properties: {
+    score: { type: 'integer' },
+    verdict: { type: 'string' },
+    criteria: {
+      type: 'array',
+      items: { type: 'object', properties: { key: { type: 'string', enum: ['politeness', 'tone', 'clarity', 'listening', 'resolution'] }, score: { type: 'integer' }, note: { type: 'string' } }, required: ['key', 'score', 'note'], additionalProperties: false },
+    },
+    strengths: { type: 'array', items: { type: 'string' } },
+    improvements: {
+      type: 'array',
+      items: { type: 'object', properties: { issue: { type: 'string' }, quote: { type: 'string' }, suggestion: { type: 'string' } }, required: ['issue', 'quote', 'suggestion'], additionalProperties: false },
+    },
+  },
+  required: ['score', 'verdict', 'criteria', 'strengths', 'improvements'],
+  additionalProperties: false,
+};
+
 // ---- built-in keyword analysis (no external service)
 const RULES: { cat: string; kw: string[] }[] = [
   { cat: 'postop', kw: ['جراحی', 'عمل', 'بخیه', 'چسب', 'ورم', 'درد', 'کبودی', 'پانسمان', 'آتل'] },
@@ -252,6 +281,17 @@ export class AiService {
     return { turns, text, conf: mixed.conf };
   }
 
+  private cleanCoach(r: any) {
+    const n = (v: any, max: number) => Math.min(max, Math.max(1, Math.round(+v || 1)));
+    const str = (v: any) => String(v || '').trim();
+    return {
+      score: n(r.score, 10), verdict: str(r.verdict),
+      criteria: (Array.isArray(r.criteria) ? r.criteria : []).filter((c: any) => ['politeness', 'tone', 'clarity', 'listening', 'resolution'].includes(c.key)).map((c: any) => ({ key: c.key, score: n(c.score, 5), note: str(c.note) })),
+      strengths: (Array.isArray(r.strengths) ? r.strengths : []).map(str).filter(Boolean).slice(0, 4),
+      improvements: (Array.isArray(r.improvements) ? r.improvements : []).map((x: any) => ({ issue: str(x.issue), quote: str(x.quote), suggestion: str(x.suggestion) })).filter((x: any) => x.issue).slice(0, 5),
+    };
+  }
+
   /** Normalise any provider's answer into the shape the panel uses. */
   private toAi(a: any, text: string, conf: number | null) {
     const cat = CATEGORIES.some(c => c.id === a.category) ? a.category : 'consult';
@@ -369,6 +409,11 @@ export class AiService {
       const { turns, text, conf } = await this.callChat({ recPath: c.recPath }, st, llm);
       const prompt = 'نوع تماس: مکالمه تلفنی اپراتور کلینیک با بیمار (نه پیام صوتی). خلاصه را برای مدیر بنویس: بیمار چه می‌خواست، اپراتور چه پاسخی داد، نتیجه چه شد. در action بنویس چه پیگیری‌ای لازم است (یا «نیاز به پیگیری ندارد»).\n\n' + text;
       ai = { ...this.toAi(text ? await this.analyzeText(prompt, llm) : keywordAnalysis(''), text, conf), chat: turns };
+      // the operator's performance, for the manager (never blocks the summary if it fails)
+      if (turns.length >= 2 && llm.llmProvider !== 'keywords') {
+        try { ai.coach = this.cleanCoach(await this.llmJson(COACH_SYSTEM, 'مکالمه:\n' + text, COACH_SCHEMA, llm)); }
+        catch (e: any) { this.log.warn(`coach ${id}: ${e.message}`); }
+      }
     }
     await this.db.call.update({ where: { id }, data: { ai: ai as any, aiState: 'done', aiError: null } });
     this.bus.emit('calls', { id });

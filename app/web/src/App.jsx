@@ -1207,6 +1207,21 @@ class LiveApp extends React.Component {
       chat: chat.map(t => ({ text: t.text, who: t.who === 'operator' ? opName : (c.known ? c.name : 'بیمار'), side: t.who === 'operator' ? 'flex-end' : 'flex-start',
         bg: t.who === 'operator' ? '#2E2F31' : '#fff', fg: t.who === 'operator' ? '#f2f3ef' : '#232425', bd: t.who === 'operator' ? '#2E2F31' : '#e1e3dc' })),
       hasChat: chat.length > 0, plain: ai && !chat.length && ai.tx ? ai.tx : '', hasPlain: !!(ai && !chat.length && ai.tx),
+      ...(() => {
+        // operator assessment (managers only; the server leaves it out for other roles)
+        const k = ai && ai.coach;
+        if (!k) return { hasCoach: false };
+        const fa = n => String(n).replace(/\d/g, x => '۰۱۲۳۴۵۶۷۸۹'[x]);
+        const CR = { politeness: 'ادب و احترام', tone: 'لحن و همدلی', clarity: 'وضوح و درستی پاسخ', listening: 'گوش دادن', resolution: 'پیگیری و نتیجه' };
+        const tone = (v, max) => (v / max >= 0.8 ? '#8DC63F' : v / max >= 0.6 ? '#e0a83a' : '#e0574a');
+        return {
+          hasCoach: true, coachScore: fa(k.score), coachColor: tone(k.score, 10), coachVerdict: k.verdict, coachOp: c.op ? c.op.name : 'اپراتور',
+          criteria: (k.criteria || []).map(x => ({ label: CR[x.key] || x.key, score: fa(x.score), w: (x.score / 5 * 100) + '%', color: tone(x.score, 5), note: x.note })),
+          strengths: (k.strengths || []).map(x => ({ x })), hasStrengths: (k.strengths || []).length > 0,
+          improvements: (k.improvements || []).map(x => ({ issue: x.issue, quote: x.quote, hasQuote: !!x.quote, suggestion: x.suggestion, hasSuggestion: !!x.suggestion })),
+          hasImprovements: (k.improvements || []).length > 0,
+        };
+      })(),
     } };
   }
 

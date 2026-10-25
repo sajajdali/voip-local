@@ -24,7 +24,7 @@ const digits = (s: any) => String(s ?? '').replace(/\D/g, '');
 /** The call list carries the analysis but not the chat turns, and only the start of a long transcript. */
 function listAi(ai: any) {
   if (!ai) return ai;
-  const { chat, ...rest } = ai;
+  const { chat, coach, ...rest } = ai;
   return { ...rest, tx: typeof rest.tx === 'string' && rest.tx.length > 600 ? rest.tx.slice(0, 600) + '…' : rest.tx, hasChat: Array.isArray(chat) && chat.length > 0 };
 }
 
@@ -432,10 +432,12 @@ export class CallsController {
 
   /** One call's AI result in full (chat turns, transcript) for the call view. */
   @Get('calls/:id/insight')
-  async insight(@Param('id') id: string) {
+  async insight(@Param('id') id: string, @CurrentUser() me: Me) {
     const c = await this.db.call.findUnique({ where: { id }, select: { ai: true, aiState: true, aiError: true, recPath: true, st: true } });
     if (!c) throw new NotFoundException('تماس پیدا نشد');
-    return { ai: c.ai, aiState: c.aiState, aiError: c.aiError, hasRec: !!c.recPath };
+    // the operator assessment is for managers only
+    const ai: any = c.ai && me.role !== 'admin' ? { ...(c.ai as any), coach: undefined } : c.ai;
+    return { ai, aiState: c.aiState, aiError: c.aiError, hasRec: !!c.recPath };
   }
 
   /** Full AI receptionist conversation (transcript and actions) for the review page. */
