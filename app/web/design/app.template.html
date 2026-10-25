@@ -172,12 +172,12 @@
             <sc-for list="{{ cl.rows }}" as="row" hint-placeholder-count="8">
             <sc-raw-tr style="background:{{ row.rowBg }}">
               <sc-raw-td style="padding:11px 16px;border-top:1px solid #eeefeb"><div sc-camel-on-click="{{ row.openFile }}" title="مشاهده پرونده" style="display:flex;align-items:center;gap:10px;cursor:pointer"><div style="width:38px;height:38px;border-radius:12px;background:#eef5e3;color:#3d6a0c;display:grid;place-items:center;font-weight:700;font-size:13px;flex-shrink:0">{{ row.ini }}</div><div><div style="font-weight:600;font-size:14px;text-decoration:underline;text-decoration-color:#cfe4ad;text-underline-offset:5px">{{ row.name }}</div><div style="font-size:12px;color:#6b6e72;direction:ltr;text-align:right">{{ row.phone }}</div></div></div></sc-raw-td>
-              <sc-raw-td style="padding:11px 16px;border-top:1px solid #eeefeb;font-size:13px"><div style="font-weight:600">{{ row.dirLabel }}</div><div style="font-size:12px;color:#6b6e72">{{ row.queue }}</div></sc-raw-td>
-              <sc-raw-td style="padding:11px 16px;border-top:1px solid #eeefeb;font-size:13px"><div>{{ row.opName }}</div><div style="font-size:12px;color:#6b6e72">داخلی {{ row.ext }}</div></sc-raw-td>
-              <sc-raw-td style="padding:11px 16px;border-top:1px solid #eeefeb;font-size:13px"><div>{{ row.date }}</div><div style="font-size:12px;color:#6b6e72">{{ row.time }}</div></sc-raw-td>
-              <sc-raw-td style="padding:11px 16px;border-top:1px solid #eeefeb;font-size:13px;font-variant-numeric:tabular-nums">{{ row.durText }}</sc-raw-td>
-              <sc-raw-td style="padding:11px 16px;border-top:1px solid #eeefeb"><span style="display:inline-block;padding:4px 10px;border-radius:999px;font-size:12px;font-weight:600;background:{{ row.status.bg }};color:{{ row.status.fg }};white-space:nowrap">{{ row.status.label }}</span></sc-raw-td>
-              <sc-if value="{{ showAi }}"><sc-raw-td style="padding:11px 16px;border-top:1px solid #eeefeb"><sc-if value="{{ row.hasAi }}"><span style="display:inline-block;padding:4px 10px;border-radius:8px;font-size:12px;font-weight:600;background:{{ row.aiBg }};color:{{ row.aiFg }};white-space:nowrap">{{ row.aiName }}</span></sc-if><sc-if value="{{ row.noAi }}"><span style="color:#b9bbb6;font-size:12px">—</span></sc-if></sc-raw-td></sc-if>
+              <sc-raw-td sc-camel-on-click="{{ row.openCall }}" style="cursor:pointer;padding:11px 16px;border-top:1px solid #eeefeb;font-size:13px"><div style="font-weight:600">{{ row.dirLabel }}</div><div style="font-size:12px;color:#6b6e72">{{ row.queue }}</div></sc-raw-td>
+              <sc-raw-td sc-camel-on-click="{{ row.openCall }}" style="cursor:pointer;padding:11px 16px;border-top:1px solid #eeefeb;font-size:13px"><div>{{ row.opName }}</div><div style="font-size:12px;color:#6b6e72">داخلی {{ row.ext }}</div></sc-raw-td>
+              <sc-raw-td sc-camel-on-click="{{ row.openCall }}" style="cursor:pointer;padding:11px 16px;border-top:1px solid #eeefeb;font-size:13px"><div>{{ row.date }}</div><div style="font-size:12px;color:#6b6e72">{{ row.time }}</div></sc-raw-td>
+              <sc-raw-td sc-camel-on-click="{{ row.openCall }}" style="cursor:pointer;padding:11px 16px;border-top:1px solid #eeefeb;font-size:13px;font-variant-numeric:tabular-nums">{{ row.durText }}</sc-raw-td>
+              <sc-raw-td sc-camel-on-click="{{ row.openCall }}" style="cursor:pointer;padding:11px 16px;border-top:1px solid #eeefeb"><span style="display:inline-block;padding:4px 10px;border-radius:999px;font-size:12px;font-weight:600;background:{{ row.status.bg }};color:{{ row.status.fg }};white-space:nowrap">{{ row.status.label }}</span></sc-raw-td>
+              <sc-if value="{{ showAi }}"><sc-raw-td sc-camel-on-click="{{ row.openCall }}" style="cursor:pointer;padding:11px 16px;border-top:1px solid #eeefeb"><sc-if value="{{ row.hasAi }}"><span style="display:inline-block;padding:4px 10px;border-radius:8px;font-size:12px;font-weight:600;background:{{ row.aiBg }};color:{{ row.aiFg }};white-space:nowrap">{{ row.aiName }}</span></sc-if><sc-if value="{{ row.noAi }}"><span style="color:#b9bbb6;font-size:12px">—</span></sc-if></sc-raw-td></sc-if>
               <sc-raw-td style="padding:11px 16px;border-top:1px solid #eeefeb;text-align:center"><sc-if value="{{ row.hasVoice }}"><button sc-camel-on-click="{{ row.onPlay }}" title="پخش ضبط مکالمه" style="width:36px;height:36px;border-radius:50%;border:none;background:{{ row.playBg }};color:{{ row.playFg }};display:inline-grid;place-items:center;cursor:pointer"><sc-if value="{{ row.isPlaying }}"><svg width="15" height="15" sc-camel-view-box="0 0 24 24"><path d="M7 5h3v14H7zM14 5h3v14h-3z" fill="currentColor"></path></svg></sc-if><sc-if value="{{ row.notPlaying }}"><svg width="15" height="15" sc-camel-view-box="0 0 24 24"><path d="M8 5v14l11-7z" fill="currentColor"></path></svg></sc-if></button></sc-if><sc-if value="{{ row.noVoice }}"><span style="color:#b9bbb6;font-size:12px">—</span></sc-if></sc-raw-td>
             </sc-raw-tr>
             </sc-for>
@@ -305,12 +305,12 @@
             <sc-for list="{{ ib.rows }}" as="row" hint-placeholder-count="6">
             <sc-raw-tr style="background:{{ row.rowBg }}">
               <sc-raw-td style="padding:11px 16px;border-top:1px solid #eeefeb"><div sc-camel-on-click="{{ row.openFile }}" title="مشاهده پرونده" style="display:flex;align-items:center;gap:10px;cursor:pointer"><div style="width:38px;height:38px;border-radius:12px;background:#eef5e3;color:#3d6a0c;display:grid;place-items:center;font-weight:700;font-size:13px;flex-shrink:0">{{ row.ini }}</div><div><div style="font-weight:600;font-size:14px;text-decoration:underline;text-decoration-color:#cfe4ad;text-underline-offset:5px">{{ row.name }}</div><div style="font-size:12px;color:#6b6e72;direction:ltr;text-align:right">{{ row.phone }}</div></div></div></sc-raw-td>
-              <sc-raw-td style="padding:11px 16px;border-top:1px solid #eeefeb;font-size:13px">{{ row.queue }}</sc-raw-td>
-              <sc-raw-td style="padding:11px 16px;border-top:1px solid #eeefeb;font-size:13px"><div>{{ row.opName }}</div><div style="font-size:12px;color:#6b6e72">داخلی {{ row.ext }}</div></sc-raw-td>
-              <sc-raw-td style="padding:11px 16px;border-top:1px solid #eeefeb;font-size:13px"><div>{{ row.date }}</div><div style="font-size:12px;color:#6b6e72">{{ row.time }}</div></sc-raw-td>
-              <sc-raw-td style="padding:11px 16px;border-top:1px solid #eeefeb;font-size:13px">{{ row.waitText }}</sc-raw-td>
-              <sc-raw-td style="padding:11px 16px;border-top:1px solid #eeefeb;font-size:13px">{{ row.durText }}</sc-raw-td>
-              <sc-raw-td style="padding:11px 16px;border-top:1px solid #eeefeb"><span style="display:inline-block;padding:4px 10px;border-radius:999px;font-size:12px;font-weight:600;background:{{ row.status.bg }};color:{{ row.status.fg }};white-space:nowrap">{{ row.status.label }}</span></sc-raw-td>
+              <sc-raw-td sc-camel-on-click="{{ row.openCall }}" style="cursor:pointer;padding:11px 16px;border-top:1px solid #eeefeb;font-size:13px">{{ row.queue }}</sc-raw-td>
+              <sc-raw-td sc-camel-on-click="{{ row.openCall }}" style="cursor:pointer;padding:11px 16px;border-top:1px solid #eeefeb;font-size:13px"><div>{{ row.opName }}</div><div style="font-size:12px;color:#6b6e72">داخلی {{ row.ext }}</div></sc-raw-td>
+              <sc-raw-td sc-camel-on-click="{{ row.openCall }}" style="cursor:pointer;padding:11px 16px;border-top:1px solid #eeefeb;font-size:13px"><div>{{ row.date }}</div><div style="font-size:12px;color:#6b6e72">{{ row.time }}</div></sc-raw-td>
+              <sc-raw-td sc-camel-on-click="{{ row.openCall }}" style="cursor:pointer;padding:11px 16px;border-top:1px solid #eeefeb;font-size:13px">{{ row.waitText }}</sc-raw-td>
+              <sc-raw-td sc-camel-on-click="{{ row.openCall }}" style="cursor:pointer;padding:11px 16px;border-top:1px solid #eeefeb;font-size:13px">{{ row.durText }}</sc-raw-td>
+              <sc-raw-td sc-camel-on-click="{{ row.openCall }}" style="cursor:pointer;padding:11px 16px;border-top:1px solid #eeefeb"><span style="display:inline-block;padding:4px 10px;border-radius:999px;font-size:12px;font-weight:600;background:{{ row.status.bg }};color:{{ row.status.fg }};white-space:nowrap">{{ row.status.label }}</span></sc-raw-td>
               <sc-raw-td style="padding:11px 16px;border-top:1px solid #eeefeb;text-align:center"><sc-if value="{{ row.hasVoice }}"><button sc-camel-on-click="{{ row.onPlay }}" style="width:36px;height:36px;border-radius:50%;border:none;background:{{ row.playBg }};color:{{ row.playFg }};display:inline-grid;place-items:center;cursor:pointer"><sc-if value="{{ row.isPlaying }}"><svg width="15" height="15" sc-camel-view-box="0 0 24 24"><path d="M7 5h3v14H7zM14 5h3v14h-3z" fill="currentColor"></path></svg></sc-if><sc-if value="{{ row.notPlaying }}"><svg width="15" height="15" sc-camel-view-box="0 0 24 24"><path d="M8 5v14l11-7z" fill="currentColor"></path></svg></sc-if></button></sc-if><sc-if value="{{ row.noVoice }}"><span style="color:#b9bbb6;font-size:12px">—</span></sc-if></sc-raw-td>
             </sc-raw-tr>
             </sc-for>
@@ -1791,6 +1791,48 @@
       <sc-if value="{{ call.hasRecErr }}"><span style="font-size:12px;color:#e0a83a;line-height:1.8">{{ call.recErr }}</span></sc-if>
       <textarea value="{{ call.note }}" sc-camel-on-change="{{ call.setNote }}" placeholder="خلاصه مکالمه با بیمار…" style="width:100%;min-height:80px;border-radius:14px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.06);color:#fff;padding:12px;font-family:inherit;font-size:13px;outline:none;resize:vertical"></textarea>
       <button sc-camel-on-click="{{ call.end }}" style="width:100%;border:none;background:#e0574a;color:#fff;padding:13px;border-radius:14px;font-size:14px;font-weight:800;cursor:pointer;font-family:inherit">پایان تماس و ذخیره ضبط</button>
+    </sc-if>
+  </div>
+</div>
+</sc-if>
+<sc-if value="{{ cvm.show }}">
+<div sc-camel-on-click="{{ cvm.close }}" style="position:fixed;inset:0;background:rgba(20,21,22,.5);z-index:45"></div>
+<div style="position:fixed;top:0;bottom:0;left:0;width:min(560px,100%);background:#f4f5f1;z-index:46;box-shadow:24px 0 60px rgba(0,0,0,.18);display:flex;flex-direction:column">
+  <div style="background:#fff;border-bottom:1px solid #e7e8e3;padding:18px 20px;display:flex;align-items:center;gap:12px">
+    <div style="width:46px;height:46px;border-radius:14px;background:#eef5e3;color:#3d6a0c;display:grid;place-items:center;font-weight:800">{{ cvm.ini }}</div>
+    <div style="flex:1;min-width:0"><div sc-camel-on-click="{{ cvm.openFile }}" style="font-weight:800;font-size:17px;cursor:pointer;text-decoration:underline;text-decoration-color:#cfe4ad;text-underline-offset:5px">{{ cvm.name }}</div><div style="font-size:12px;color:#6b6e72;direction:ltr;text-align:right">{{ cvm.phone }}</div></div>
+    <button sc-camel-on-click="{{ cvm.close }}" style="width:36px;height:36px;border-radius:10px;border:1px solid #e1e3dc;background:#fff;cursor:pointer;font-size:15px;color:#55585c">✕</button>
+  </div>
+  <div style="flex:1;overflow:auto;padding:16px 18px;display:flex;flex-direction:column;gap:14px">
+    <div style="background:#fff;border:1px solid #e7e8e3;border-radius:18px;padding:14px 16px;display:grid;grid-template-columns:1fr 1fr;gap:10px 16px;font-size:13px">
+      <div><div style="font-size:11px;color:#8b8e89">زمان</div><b>{{ cvm.when }}</b></div>
+      <div><div style="font-size:11px;color:#8b8e89">وضعیت</div><span style="display:inline-block;padding:3px 10px;border-radius:999px;font-size:12px;font-weight:700;background:{{ cvm.status.bg }};color:{{ cvm.status.fg }}">{{ cvm.status.label }}</span></div>
+      <div><div style="font-size:11px;color:#8b8e89">پاسخ‌دهنده</div><b>{{ cvm.op }}</b></div>
+      <div><div style="font-size:11px;color:#8b8e89">مدت مکالمه</div><b>{{ cvm.dur }}</b></div>
+      <div style="grid-column:span 2"><div style="font-size:11px;color:#8b8e89">مسیر</div><b>{{ cvm.dir }} · {{ cvm.queue }}</b></div>
+    </div>
+    <sc-if value="{{ cvm.hasRec }}"><div style="display:flex;gap:8px"><button sc-camel-on-click="{{ cvm.play }}" style="flex:1;background:#2E2F31;color:#fff;border:none;padding:11px;border-radius:12px;font-size:13px;font-weight:800;cursor:pointer;font-family:inherit">{{ cvm.playLabel }}</button><button sc-camel-on-click="{{ cvm.download }}" style="background:#fff;border:1px solid #e1e3dc;color:#2E2F31;padding:11px 16px;border-radius:12px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">دانلود</button></div></sc-if>
+
+    <sc-if value="{{ cvm.loading }}"><div style="font-size:13px;color:#6b6e72;padding:8px">در حال بارگذاری…</div></sc-if>
+    <sc-if value="{{ cvm.queued }}"><div style="background:#fff;border:1px solid #e7e8e3;border-radius:18px;padding:16px;display:flex;align-items:center;gap:10px;font-size:13px;color:#55585c"><span style="width:9px;height:9px;border-radius:50%;background:#e0a83a;animation:cc-pulse 1.6s infinite"></span>هوش مصنوعی در حال تبدیل مکالمه به متن و خلاصه‌سازی است؛ چند لحظه دیگر همین‌جا نمایش داده می‌شود.</div></sc-if>
+    <sc-if value="{{ cvm.failed }}"><div style="background:#fdeceb;border:1px solid #f5c2bd;color:#b42318;border-radius:14px;padding:12px 14px;font-size:13px;line-height:1.8">تحلیل ناموفق بود: {{ cvm.err }}</div></sc-if>
+    <sc-if value="{{ cvm.none }}"><div style="background:#fff;border:1px dashed #d9dad6;border-radius:18px;padding:16px;font-size:13px;color:#6b6e72;line-height:1.8">این تماس هنوز با هوش مصنوعی تحلیل نشده است.</div></sc-if>
+    <sc-if value="{{ cvm.canRun }}"><sc-if value="{{ cvm.none }}"><button sc-camel-on-click="{{ cvm.run }}" style="background:#8DC63F;color:#1f2a10;border:none;padding:11px;border-radius:12px;font-size:13px;font-weight:800;cursor:pointer;font-family:inherit">تحلیل این تماس با هوش مصنوعی</button></sc-if><sc-if value="{{ cvm.failed }}"><button sc-camel-on-click="{{ cvm.run }}" style="background:#2E2F31;color:#fff;border:none;padding:11px;border-radius:12px;font-size:13px;font-weight:800;cursor:pointer;font-family:inherit">تلاش دوباره</button></sc-if></sc-if>
+    <sc-if value="{{ cvm.noRecNoAi }}"><div style="font-size:13px;color:#8b8e89;padding:4px 2px">برای این تماس ضبطی وجود ندارد.</div></sc-if>
+
+    <sc-if value="{{ cvm.done }}">
+    <div style="background:#fff;border:1px solid #e7e8e3;border-radius:18px;padding:16px;display:flex;flex-direction:column;gap:10px">
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><div style="font-weight:800;font-size:15px;flex:1">خلاصه مکالمه</div><span style="font-size:11px;font-weight:700;padding:3px 9px;border-radius:999px;background:#f2f3ef;color:#3a3b3d">{{ cvm.cat }}</span><span style="font-size:11px;font-weight:700;padding:3px 9px;border-radius:999px;background:{{ cvm.urgBg }};color:{{ cvm.urgFg }}">{{ cvm.urg }}</span><span style="font-size:11px;font-weight:700;padding:3px 9px;border-radius:999px;background:#f2f3ef;color:#3a3b3d">{{ cvm.sent }}</span></div>
+      <sc-for list="{{ cvm.sum }}" as="m"><div style="display:flex;gap:8px;font-size:13px;line-height:1.8"><span style="color:#8DC63F">●</span><span>{{ m.x }}</span></div></sc-for>
+      <sc-if value="{{ cvm.hasAction }}"><div style="background:#f4f9ec;border:1px solid #d6eabb;border-radius:12px;padding:9px 12px;font-size:13px;line-height:1.8"><b style="color:#3d6a0c">پیگیری لازم: </b>{{ cvm.action }}</div></sc-if>
+    </div>
+    <sc-if value="{{ cvm.hasChat }}">
+    <div style="background:#fff;border:1px solid #e7e8e3;border-radius:18px;padding:16px;display:flex;flex-direction:column;gap:8px">
+      <div style="font-weight:800;font-size:15px;margin-bottom:4px">متن گفتگو</div>
+      <sc-for list="{{ cvm.chat }}" as="l"><div style="display:flex;justify-content:{{ l.side }}"><div style="max-width:84%;background:{{ l.bg }};color:{{ l.fg }};border:1px solid {{ l.bd }};border-radius:14px;padding:8px 12px"><div style="font-size:11px;opacity:.65;margin-bottom:2px">{{ l.who }}</div><div style="font-size:13px;line-height:1.85;white-space:pre-wrap">{{ l.text }}</div></div></div></sc-for>
+    </div>
+    </sc-if>
+    <sc-if value="{{ cvm.hasPlain }}"><div style="background:#fff;border:1px solid #e7e8e3;border-radius:18px;padding:16px;display:flex;flex-direction:column;gap:8px"><div style="font-weight:800;font-size:15px">متن</div><div style="font-size:13px;line-height:1.9;white-space:pre-wrap">{{ cvm.plain }}</div></div></sc-if>
     </sc-if>
   </div>
 </div>

@@ -415,7 +415,8 @@ function dialplan(cfg: VoipConfig, opts: { hookUrl: string; hookSecret: string }
     ' same => n,GotoIf($["${CC_RECMODE}"="always"]?rec)',
     ' same => n,GotoIf($["${DB(ccrec/${CC_AEXT})}"="1"]?rec:done)',
     ' same => n(rec),Set(CC_RECF=cc/${STRFTIME(${EPOCH},,%Y%m%d)}-${FILTER(0-9.,${CHANNEL(linkedid)})}.wav)',
-    ' same => n,MixMonitor(${CC_RECF},b)',
+    // besides the mixed file, one track per side so the transcript knows who spoke
+    ' same => n,MixMonitor(${CC_RECF},br(${ASTSPOOLDIR}/monitor/${CC_RECF:0:-4}-op.wav)t(${ASTSPOOLDIR}/monitor/${CC_RECF:0:-4}-pt.wav))',
     ' same => n,Set(MASTER_CHANNEL(CC_REC)=${CC_RECF})',
     ' same => n(done),Return()',
   ]);
@@ -425,7 +426,7 @@ function dialplan(cfg: VoipConfig, opts: { hookUrl: string; hookSecret: string }
     ' same => n,' + hook('answer', 'orig=${CC_ORIG}&ext=${CC_OPEXT}'),
     ' same => n,GotoIf($["${CC_ORIG}"=""&"${DB(ccrec/${CC_OPEXT})}"!="1"]?done)',
     ' same => n,Set(CC_RECF=cc/${STRFTIME(${EPOCH},,%Y%m%d)}-${FILTER(0-9.,${CHANNEL(linkedid)})}.wav)',
-    ' same => n,MixMonitor(${CC_RECF},b)',
+    ' same => n,MixMonitor(${CC_RECF},br(${ASTSPOOLDIR}/monitor/${CC_RECF:0:-4}-pt.wav)t(${ASTSPOOLDIR}/monitor/${CC_RECF:0:-4}-op.wav))',
     ' same => n,Set(MASTER_CHANNEL(CC_REC)=${CC_RECF})',
     ' same => n(done),Return()',
   ]);

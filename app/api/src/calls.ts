@@ -21,6 +21,13 @@ import { WebhookService, publicSurvey } from './webhook';
 const run = promisify(execFile);
 const digits = (s: any) => String(s ?? '').replace(/\D/g, '');
 /** Operator delivers mobiles as 9…, 98… or 0098…; store them in the standard 0… form. */
+/** The call list carries the analysis but not the chat turns, and only the start of a long transcript. */
+function listAi(ai: any) {
+  if (!ai) return ai;
+  const { chat, ...rest } = ai;
+  return { ...rest, tx: typeof rest.tx === 'string' && rest.tx.length > 600 ? rest.tx.slice(0, 600) + '…' : rest.tx, hasChat: Array.isArray(chat) && chat.length > 0 };
+}
+
 /** List view of an AI conversation: what happened, without the full transcript. */
 function convBrief(c: any) {
   if (!c) return null;
@@ -99,7 +106,7 @@ export class CallsService {
       return {
         id: c.id, date: c.date, time: c.time, name: p ? p.name : 'شماره ناشناس', phone: fmtPhone(c.phone), phoneRaw: c.phone,
         nid: p && p.nid ? p.nid : '—', surgery: surgeryText(p?.surgery), known: !!p, dir: c.dir, st: short ? 'missed' : c.st, short, op, queue: c.queue,
-        dur: c.dur, wait: c.wait, hasRec: !!c.recPath, ai: c.ai, survey: publicSurvey(c.survey), aiConv: convBrief(c.aiConv), aiState: c.aiState, follow: c.st === 'voicemail' ? F.get(c.id) || 'new' : null,
+        dur: c.dur, wait: c.wait, hasRec: !!c.recPath, ai: listAi(c.ai), survey: publicSurvey(c.survey), aiConv: convBrief(c.aiConv), aiState: c.aiState, follow: c.st === 'voicemail' ? F.get(c.id) || 'new' : null,
         wave: c.wave, callback: c.callback, summary: c.summary || '',
       };
     });
@@ -421,6 +428,14 @@ export class CallsController {
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.setHeader('Content-Disposition', `attachment; filename="calls.xlsx"; filename*=UTF-8''${encodeURIComponent(title)}.xlsx`);
     res.send(Buffer.from(buf as ArrayBuffer));
+  }
+
+  /** One call's AI result in full (chat turns, transcript) for the call view. */
+  @Get('calls/:id/insight')
+  async insight(@Param('id') id: string) {
+    const c = await this.db.call.findUnique({ where: { id }, select: { ai: true, aiState: true, aiError: true, recPath: true, st: true } });
+    if (!c) throw new NotFoundException('تماس پیدا نشد');
+    return { ai: c.ai, aiState: c.aiState, aiError: c.aiError, hasRec: !!c.recPath };
   }
 
   /** Full AI receptionist conversation (transcript and actions) for the review page. */

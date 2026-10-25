@@ -165,6 +165,9 @@ sub("nav.voipBg=isV?'rgba(141,198,63,.12)':'transparent';", "nav.voipBg=isV?'rgb
 sub("vapi:nv('vapi',''),settings:nv('settings',''),", "vapi:nv('vapi',''),settings:nv('settings',''),sys:nv('sys',''),")
 sub("'settings','vai','vsurvey','vcrm','vagent','aiconv','days','live','file'].forEach", "'settings','vai','vsurvey','vcrm','vagent','aiconv','days','live','sys','file'].forEach")
 sub("...this.liveVals(s),", "...this.liveVals(s),...this.sysVals(s),")
+# --- call view: clicking a call shows recording, AI summary and the conversation as chat
+sub("openFile:()=>this.openFile(c),isPlaying:pl,", "openFile:()=>this.openFile(c),openCall:()=>this.openCall(c),isPlaying:pl,")
+sub("...this.sysVals(s),", "...this.sysVals(s),...this.callViewVals(s),")
 head = (root / 'tools/app-head.js').read_text(encoding='utf-8')
 src = src.replace("export default class App extends React.Component {", "export default class App extends LiveApp {")
 (root / 'web/src/App.jsx').write_text(head + '\n' + src.strip() + '\n', encoding='utf-8')

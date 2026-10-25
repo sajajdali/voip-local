@@ -365,24 +365,24 @@ export default function AppView({ vm }) {
                             </div>
                           </div>
                         </td>
-                        <td style={{padding: "11px 16px", borderTop: "1px solid #eeefeb", fontSize: "13px"}}>
+                        <td onClick={row?.openCall} style={{cursor: "pointer", padding: "11px 16px", borderTop: "1px solid #eeefeb", fontSize: "13px"}}>
                           <div style={{fontWeight: "600"}}>{row?.dirLabel}</div>
                           <div style={{fontSize: "12px", color: "#6b6e72"}}>{row?.queue}</div>
                         </td>
-                        <td style={{padding: "11px 16px", borderTop: "1px solid #eeefeb", fontSize: "13px"}}>
+                        <td onClick={row?.openCall} style={{cursor: "pointer", padding: "11px 16px", borderTop: "1px solid #eeefeb", fontSize: "13px"}}>
                           <div>{row?.opName}</div>
                           <div style={{fontSize: "12px", color: "#6b6e72"}}>{"داخلی "}{row?.ext}</div>
                         </td>
-                        <td style={{padding: "11px 16px", borderTop: "1px solid #eeefeb", fontSize: "13px"}}>
+                        <td onClick={row?.openCall} style={{cursor: "pointer", padding: "11px 16px", borderTop: "1px solid #eeefeb", fontSize: "13px"}}>
                           <div>{row?.date}</div>
                           <div style={{fontSize: "12px", color: "#6b6e72"}}>{row?.time}</div>
                         </td>
-                        <td style={{padding: "11px 16px", borderTop: "1px solid #eeefeb", fontSize: "13px", fontVariantNumeric: "tabular-nums"}}>{row?.durText}</td>
-                        <td style={{padding: "11px 16px", borderTop: "1px solid #eeefeb"}}>
+                        <td onClick={row?.openCall} style={{cursor: "pointer", padding: "11px 16px", borderTop: "1px solid #eeefeb", fontSize: "13px", fontVariantNumeric: "tabular-nums"}}>{row?.durText}</td>
+                        <td onClick={row?.openCall} style={{cursor: "pointer", padding: "11px 16px", borderTop: "1px solid #eeefeb"}}>
                           <span style={{display: "inline-block", padding: "4px 10px", borderRadius: "999px", fontSize: "12px", fontWeight: "600", background: row?.status?.bg, color: row?.status?.fg, whiteSpace: "nowrap"}}>{row?.status?.label}</span>
                         </td>
                         {(vm.showAi) ? (<>
-                          <td style={{padding: "11px 16px", borderTop: "1px solid #eeefeb"}}>
+                          <td onClick={row?.openCall} style={{cursor: "pointer", padding: "11px 16px", borderTop: "1px solid #eeefeb"}}>
                             {(row?.hasAi) ? (<>
                               <span style={{display: "inline-block", padding: "4px 10px", borderRadius: "8px", fontSize: "12px", fontWeight: "600", background: row?.aiBg, color: row?.aiFg, whiteSpace: "nowrap"}}>{row?.aiName}</span>
                             </>) : null}
@@ -684,18 +684,18 @@ export default function AppView({ vm }) {
                             </div>
                           </div>
                         </td>
-                        <td style={{padding: "11px 16px", borderTop: "1px solid #eeefeb", fontSize: "13px"}}>{row?.queue}</td>
-                        <td style={{padding: "11px 16px", borderTop: "1px solid #eeefeb", fontSize: "13px"}}>
+                        <td onClick={row?.openCall} style={{cursor: "pointer", padding: "11px 16px", borderTop: "1px solid #eeefeb", fontSize: "13px"}}>{row?.queue}</td>
+                        <td onClick={row?.openCall} style={{cursor: "pointer", padding: "11px 16px", borderTop: "1px solid #eeefeb", fontSize: "13px"}}>
                           <div>{row?.opName}</div>
                           <div style={{fontSize: "12px", color: "#6b6e72"}}>{"داخلی "}{row?.ext}</div>
                         </td>
-                        <td style={{padding: "11px 16px", borderTop: "1px solid #eeefeb", fontSize: "13px"}}>
+                        <td onClick={row?.openCall} style={{cursor: "pointer", padding: "11px 16px", borderTop: "1px solid #eeefeb", fontSize: "13px"}}>
                           <div>{row?.date}</div>
                           <div style={{fontSize: "12px", color: "#6b6e72"}}>{row?.time}</div>
                         </td>
-                        <td style={{padding: "11px 16px", borderTop: "1px solid #eeefeb", fontSize: "13px"}}>{row?.waitText}</td>
-                        <td style={{padding: "11px 16px", borderTop: "1px solid #eeefeb", fontSize: "13px"}}>{row?.durText}</td>
-                        <td style={{padding: "11px 16px", borderTop: "1px solid #eeefeb"}}>
+                        <td onClick={row?.openCall} style={{cursor: "pointer", padding: "11px 16px", borderTop: "1px solid #eeefeb", fontSize: "13px"}}>{row?.waitText}</td>
+                        <td onClick={row?.openCall} style={{cursor: "pointer", padding: "11px 16px", borderTop: "1px solid #eeefeb", fontSize: "13px"}}>{row?.durText}</td>
+                        <td onClick={row?.openCall} style={{cursor: "pointer", padding: "11px 16px", borderTop: "1px solid #eeefeb"}}>
                           <span style={{display: "inline-block", padding: "4px 10px", borderRadius: "999px", fontSize: "12px", fontWeight: "600", background: row?.status?.bg, color: row?.status?.fg, whiteSpace: "nowrap"}}>{row?.status?.label}</span>
                         </td>
                         <td style={{padding: "11px 16px", borderTop: "1px solid #eeefeb", textAlign: "center"}}>
@@ -5164,6 +5164,116 @@ export default function AppView({ vm }) {
               </>) : null}
               <textarea value={vm.call?.note} onChange={vm.call?.setNote} placeholder="خلاصه مکالمه با بیمار…" style={{width: "100%", minHeight: "80px", borderRadius: "14px", border: "1px solid rgba(255,255,255,.15)", background: "rgba(255,255,255,.06)", color: "#fff", padding: "12px", fontFamily: "inherit", fontSize: "13px", outline: "none", resize: "vertical"}} />
               <button onClick={vm.call?.end} style={{width: "100%", border: "none", background: "#e0574a", color: "#fff", padding: "13px", borderRadius: "14px", fontSize: "14px", fontWeight: "800", cursor: "pointer", fontFamily: "inherit"}}>{"پایان تماس و ذخیره ضبط"}</button>
+            </>) : null}
+          </div>
+        </div>
+      </>) : null}
+      {(vm.cvm?.show) ? (<>
+        <div onClick={vm.cvm?.close} style={{position: "fixed", inset: "0", background: "rgba(20,21,22,.5)", zIndex: "45"}} />
+        <div style={{position: "fixed", top: "0", bottom: "0", left: "0", width: "min(560px,100%)", background: "#f4f5f1", zIndex: "46", boxShadow: "24px 0 60px rgba(0,0,0,.18)", display: "flex", flexDirection: "column"}}>
+          <div style={{background: "#fff", borderBottom: "1px solid #e7e8e3", padding: "18px 20px", display: "flex", alignItems: "center", gap: "12px"}}>
+            <div style={{width: "46px", height: "46px", borderRadius: "14px", background: "#eef5e3", color: "#3d6a0c", display: "grid", placeItems: "center", fontWeight: "800"}}>{vm.cvm?.ini}</div>
+            <div style={{flex: "1", minWidth: "0"}}>
+              <div onClick={vm.cvm?.openFile} style={{fontWeight: "800", fontSize: "17px", cursor: "pointer", textDecoration: "underline", textDecorationColor: "#cfe4ad", textUnderlineOffset: "5px"}}>{vm.cvm?.name}</div>
+              <div style={{fontSize: "12px", color: "#6b6e72", direction: "ltr", textAlign: "right"}}>{vm.cvm?.phone}</div>
+            </div>
+            <button onClick={vm.cvm?.close} style={{width: "36px", height: "36px", borderRadius: "10px", border: "1px solid #e1e3dc", background: "#fff", cursor: "pointer", fontSize: "15px", color: "#55585c"}}>{"✕"}</button>
+          </div>
+          <div style={{flex: "1", overflow: "auto", padding: "16px 18px", display: "flex", flexDirection: "column", gap: "14px"}}>
+            <div style={{background: "#fff", border: "1px solid #e7e8e3", borderRadius: "18px", padding: "14px 16px", display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px 16px", fontSize: "13px"}}>
+              <div>
+                <div style={{fontSize: "11px", color: "#8b8e89"}}>{"زمان"}</div>
+                <b>{vm.cvm?.when}</b>
+              </div>
+              <div>
+                <div style={{fontSize: "11px", color: "#8b8e89"}}>{"وضعیت"}</div>
+                <span style={{display: "inline-block", padding: "3px 10px", borderRadius: "999px", fontSize: "12px", fontWeight: "700", background: vm.cvm?.status?.bg, color: vm.cvm?.status?.fg}}>{vm.cvm?.status?.label}</span>
+              </div>
+              <div>
+                <div style={{fontSize: "11px", color: "#8b8e89"}}>{"پاسخ‌دهنده"}</div>
+                <b>{vm.cvm?.op}</b>
+              </div>
+              <div>
+                <div style={{fontSize: "11px", color: "#8b8e89"}}>{"مدت مکالمه"}</div>
+                <b>{vm.cvm?.dur}</b>
+              </div>
+              <div style={{gridColumn: "span 2"}}>
+                <div style={{fontSize: "11px", color: "#8b8e89"}}>{"مسیر"}</div>
+                <b>{vm.cvm?.dir}{" · "}{vm.cvm?.queue}</b>
+              </div>
+            </div>
+            {(vm.cvm?.hasRec) ? (<>
+              <div style={{display: "flex", gap: "8px"}}>
+                <button onClick={vm.cvm?.play} style={{flex: "1", background: "#2E2F31", color: "#fff", border: "none", padding: "11px", borderRadius: "12px", fontSize: "13px", fontWeight: "800", cursor: "pointer", fontFamily: "inherit"}}>{vm.cvm?.playLabel}</button>
+                <button onClick={vm.cvm?.download} style={{background: "#fff", border: "1px solid #e1e3dc", color: "#2E2F31", padding: "11px 16px", borderRadius: "12px", fontSize: "13px", fontWeight: "700", cursor: "pointer", fontFamily: "inherit"}}>{"دانلود"}</button>
+              </div>
+            </>) : null}
+            {(vm.cvm?.loading) ? (<>
+              <div style={{fontSize: "13px", color: "#6b6e72", padding: "8px"}}>{"در حال بارگذاری…"}</div>
+            </>) : null}
+            {(vm.cvm?.queued) ? (<>
+              <div style={{background: "#fff", border: "1px solid #e7e8e3", borderRadius: "18px", padding: "16px", display: "flex", alignItems: "center", gap: "10px", fontSize: "13px", color: "#55585c"}}>
+                <span style={{width: "9px", height: "9px", borderRadius: "50%", background: "#e0a83a", animation: "cc-pulse 1.6s infinite"}} />
+                {"هوش مصنوعی در حال تبدیل مکالمه به متن و خلاصه‌سازی است؛ چند لحظه دیگر همین‌جا نمایش داده می‌شود."}
+              </div>
+            </>) : null}
+            {(vm.cvm?.failed) ? (<>
+              <div style={{background: "#fdeceb", border: "1px solid #f5c2bd", color: "#b42318", borderRadius: "14px", padding: "12px 14px", fontSize: "13px", lineHeight: "1.8"}}>{"تحلیل ناموفق بود: "}{vm.cvm?.err}</div>
+            </>) : null}
+            {(vm.cvm?.none) ? (<>
+              <div style={{background: "#fff", border: "1px dashed #d9dad6", borderRadius: "18px", padding: "16px", fontSize: "13px", color: "#6b6e72", lineHeight: "1.8"}}>{"این تماس هنوز با هوش مصنوعی تحلیل نشده است."}</div>
+            </>) : null}
+            {(vm.cvm?.canRun) ? (<>
+              {(vm.cvm?.none) ? (<>
+                <button onClick={vm.cvm?.run} style={{background: "#8DC63F", color: "#1f2a10", border: "none", padding: "11px", borderRadius: "12px", fontSize: "13px", fontWeight: "800", cursor: "pointer", fontFamily: "inherit"}}>{"تحلیل این تماس با هوش مصنوعی"}</button>
+              </>) : null}
+              {(vm.cvm?.failed) ? (<>
+                <button onClick={vm.cvm?.run} style={{background: "#2E2F31", color: "#fff", border: "none", padding: "11px", borderRadius: "12px", fontSize: "13px", fontWeight: "800", cursor: "pointer", fontFamily: "inherit"}}>{"تلاش دوباره"}</button>
+              </>) : null}
+            </>) : null}
+            {(vm.cvm?.noRecNoAi) ? (<>
+              <div style={{fontSize: "13px", color: "#8b8e89", padding: "4px 2px"}}>{"برای این تماس ضبطی وجود ندارد."}</div>
+            </>) : null}
+            {(vm.cvm?.done) ? (<>
+              <div style={{background: "#fff", border: "1px solid #e7e8e3", borderRadius: "18px", padding: "16px", display: "flex", flexDirection: "column", gap: "10px"}}>
+                <div style={{display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap"}}>
+                  <div style={{fontWeight: "800", fontSize: "15px", flex: "1"}}>{"خلاصه مکالمه"}</div>
+                  <span style={{fontSize: "11px", fontWeight: "700", padding: "3px 9px", borderRadius: "999px", background: "#f2f3ef", color: "#3a3b3d"}}>{vm.cvm?.cat}</span>
+                  <span style={{fontSize: "11px", fontWeight: "700", padding: "3px 9px", borderRadius: "999px", background: vm.cvm?.urgBg, color: vm.cvm?.urgFg}}>{vm.cvm?.urg}</span>
+                  <span style={{fontSize: "11px", fontWeight: "700", padding: "3px 9px", borderRadius: "999px", background: "#f2f3ef", color: "#3a3b3d"}}>{vm.cvm?.sent}</span>
+                </div>
+                {(vm.cvm?.sum || []).map((m, __i8) => <React.Fragment key={__i8}>
+                  <div style={{display: "flex", gap: "8px", fontSize: "13px", lineHeight: "1.8"}}>
+                    <span style={{color: "#8DC63F"}}>{"●"}</span>
+                    <span>{m?.x}</span>
+                  </div>
+                </React.Fragment>)}
+                {(vm.cvm?.hasAction) ? (<>
+                  <div style={{background: "#f4f9ec", border: "1px solid #d6eabb", borderRadius: "12px", padding: "9px 12px", fontSize: "13px", lineHeight: "1.8"}}>
+                    <b style={{color: "#3d6a0c"}}>{"پیگیری لازم: "}</b>
+                    {vm.cvm?.action}
+                  </div>
+                </>) : null}
+              </div>
+              {(vm.cvm?.hasChat) ? (<>
+                <div style={{background: "#fff", border: "1px solid #e7e8e3", borderRadius: "18px", padding: "16px", display: "flex", flexDirection: "column", gap: "8px"}}>
+                  <div style={{fontWeight: "800", fontSize: "15px", marginBottom: "4px"}}>{"متن گفتگو"}</div>
+                  {(vm.cvm?.chat || []).map((l, __i9) => <React.Fragment key={__i9}>
+                    <div style={{display: "flex", justifyContent: l?.side}}>
+                      <div style={{maxWidth: "84%", background: l?.bg, color: l?.fg, border: `1px solid ${l?.bd}`, borderRadius: "14px", padding: "8px 12px"}}>
+                        <div style={{fontSize: "11px", opacity: ".65", marginBottom: "2px"}}>{l?.who}</div>
+                        <div style={{fontSize: "13px", lineHeight: "1.85", whiteSpace: "pre-wrap"}}>{l?.text}</div>
+                      </div>
+                    </div>
+                  </React.Fragment>)}
+                </div>
+              </>) : null}
+              {(vm.cvm?.hasPlain) ? (<>
+                <div style={{background: "#fff", border: "1px solid #e7e8e3", borderRadius: "18px", padding: "16px", display: "flex", flexDirection: "column", gap: "8px"}}>
+                  <div style={{fontWeight: "800", fontSize: "15px"}}>{"متن"}</div>
+                  <div style={{fontSize: "13px", lineHeight: "1.9", whiteSpace: "pre-wrap"}}>{vm.cvm?.plain}</div>
+                </div>
+              </>) : null}
             </>) : null}
           </div>
         </div>

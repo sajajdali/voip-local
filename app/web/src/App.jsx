@@ -44,7 +44,7 @@ class LiveApp extends React.Component {
     }, 200);
     this.sock = socket();
     this.sock.on('live', l => this.applyLive(l));
-    this.sock.on('calls', () => this.reloadCalls());
+    this.sock.on('calls', x => { this.reloadCalls(); if (x && x.id && x.id === this.state.cvId) this.loadInsight(x.id); });
     this.sock.on('workflow', w => this.applyRemote(w));
     this.sock.on('config', c => { if (c.by !== ME.id) this.applyRemote({ [c.key]: c.data }); });
     this.sock.on('cb', e => this.onCallback(e));
@@ -1168,6 +1168,47 @@ class LiveApp extends React.Component {
     } };
   }
 
+  // ---- call view
+  openCall(c) {
+    this.setState({ cvId: c.id });
+    this.loadInsight(c.id);
+  }
+
+  async loadInsight(id) {
+    try { const d = await api('/calls/' + encodeURIComponent(id) + '/insight'); this.setState(st => ({ cvCache: { ...(st.cvCache || {}), [id]: d } })); }
+    catch (e) { this.setState(st => ({ cvCache: { ...(st.cvCache || {}), [id]: { error: e.message } } })); }
+  }
+
+  callViewVals(s) {
+    const c = s.cvId ? this.calls.find(x => x.id === s.cvId) : null;
+    if (!c) return { cvm: { show: false } };
+    const d = (s.cvCache || {})[c.id];
+    const ai = d && d.ai;
+    const state = d ? d.aiState : '';
+    const URG = { high: ['فوری', '#fdeceb', '#b42318'], mid: ['متوسط', '#fcf3e0', '#8a5a00'], low: ['عادی', '#f2f3ef', '#55585c'] };
+    const SEN = { pos: 'راضی', neu: 'خنثی', neg: 'ناراضی' };
+    const chat = ai && Array.isArray(ai.chat) ? ai.chat : [];
+    const opName = c.op ? c.op.name : 'اپراتور';
+    const playing = s.pid === c.id && !s.paused;
+    const u = ai ? URG[ai.urg] || URG.low : URG.low;
+    const isAdmin = ME && ME.role === 'admin';
+    return { cvm: {
+      show: true, close: () => this.setState({ cvId: null }),
+      name: c.name, phone: c.phone, ini: c.ini, when: c.date + ' · ' + c.time, dir: c.dirLabel, queue: c.queue,
+      op: c.op ? c.op.name + ' · داخلی ' + c.op.ext : 'بدون اپراتور', dur: c.durText, status: c.status,
+      hasRec: !!c.hasVoice, noRec: !c.hasVoice, playLabel: playing ? '❚❚ توقف' : '▶ پخش مکالمه', play: () => this.playCall(c.id), download: () => this.download(c),
+      openFile: () => { this.setState({ cvId: null }); this.openFile(c); },
+      loading: !d, done: !!(ai && state === 'done'), queued: state === 'queued', failed: state === 'failed', err: d && d.aiError ? d.aiError : '',
+      none: !!d && state !== 'done' && state !== 'queued' && state !== 'failed' && !!c.hasVoice, noRecNoAi: !!d && !c.hasVoice,
+      canRun: isAdmin && !!c.hasVoice, run: async () => { try { await api('/ai/analyze/' + encodeURIComponent(c.id), {}); this.loadInsight(c.id); this.toast('تماس در صف تحلیل قرار گرفت'); } catch (e) { this.toast(e.message); } },
+      sum: ai ? (ai.sum || []).map(x => ({ x })) : [], action: ai ? ai.action || '' : '', hasAction: !!(ai && ai.action),
+      cat: ai && ai.cat ? (CATS.find(x => x.id === ai.cat) || { name: ai.cat }).name : '', urg: u[0], urgBg: u[1], urgFg: u[2], sent: ai ? SEN[ai.sent] || '' : '',
+      chat: chat.map(t => ({ text: t.text, who: t.who === 'operator' ? opName : (c.known ? c.name : 'بیمار'), side: t.who === 'operator' ? 'flex-end' : 'flex-start',
+        bg: t.who === 'operator' ? '#2E2F31' : '#fff', fg: t.who === 'operator' ? '#f2f3ef' : '#232425', bd: t.who === 'operator' ? '#2E2F31' : '#e1e3dc' })),
+      hasChat: chat.length > 0, plain: ai && !chat.length && ai.tx ? ai.tx : '', hasPlain: !!(ai && !chat.length && ai.tx),
+    } };
+  }
+
   // ---- «هوش مصنوعی» settings page
   async loadAi() {
     try {
@@ -1615,7 +1656,7 @@ export default class App extends LiveApp {
  }
  renderVals(){
   const s=this.state,C=this.calls,showAi=this.props.showAiColumn??true,ps=this.props.rowsPerPage??12;
-  const R=c=>{const cur=s.pid===c.id||s.recPlay===c.id,pl=(s.pid===c.id&&!s.paused)||s.recPlay===c.id;return {...c,openFile:()=>this.openFile(c),isPlaying:pl,notPlaying:!pl,onPlay:()=>this.play(c.id),playBg:cur?'#8DC63F':'#eef5e3',playFg:cur?'#1f2021':'#3d6a0c',rowBg:cur?'#f7fbf1':'transparent'}};
+  const R=c=>{const cur=s.pid===c.id||s.recPlay===c.id,pl=(s.pid===c.id&&!s.paused)||s.recPlay===c.id;return {...c,openFile:()=>this.openFile(c),openCall:()=>this.openCall(c),isPlaying:pl,notPlaying:!pl,onPlay:()=>this.play(c.id),playBg:cur?'#8DC63F':'#eef5e3',playFg:cur?'#1f2021':'#3d6a0c',rowBg:cur?'#f7fbf1':'transparent'}};
   const fol=c=>s.follow[c.id]||c.follow;
   const vms=C.filter(c=>c.st==='voicemail'&&this.deptOk(c,s));const AI=C.filter(c=>c.ai&&!c.ai.pending);
   const nv=(p,count)=>({go:()=>this.setState({page:p}),bg:s.page===p?'#8DC63F':'transparent',fg:s.page===p?'#1f2021':'#d9dad6',count,cbg:s.page===p?'rgba(31,32,33,.15)':'rgba(255,255,255,.08)'});
@@ -1764,6 +1805,6 @@ export default class App extends LiveApp {
    seek:e=>{const b=e.currentTarget.getBoundingClientRect();this.setState({pos:Math.min(1,Math.max(0,(b.right-e.clientX)/b.width))*(this.audDur||pc.dur)});},
    pct:s.pos/(this.audDur||pc.dur)*100+'%',posText:fmt(s.pos),durText:fmt((this.audDur||pc.dur)),speedText:s.speed+'x',cycleSpeed:()=>this.setState({speed:SP[(SP.indexOf(s.speed)+1)%SP.length]}),download:()=>this.download(pc)}:{show:false};
 
-  return {...this.voip(s),...this.voip2(s),...this.voipOut(s),...this.apiVals(s),...this.backupVals(s),...this.settingsVals(s),...this.aiSettingsVals(s),...this.surveyVals(s),...this.crmVals(s),...this.agentVals(s),...this.aiConvVals(s),...this.daysVals(s),...this.liveVals(s),...this.sysVals(s),pf,call,toast,nav:{...nav,unreached:nv('unreached',urV.navCount)},is,ur:urV,cl,ib,vm,rp,sv,ai,player,showAi,dates:[],hours:HOURS,ops,queues:s.vqs.map(q=>q.name),statuses,cats,me:this.meVals(),todayLong:jLong(new Date())};
+  return {...this.voip(s),...this.voip2(s),...this.voipOut(s),...this.apiVals(s),...this.backupVals(s),...this.settingsVals(s),...this.aiSettingsVals(s),...this.surveyVals(s),...this.crmVals(s),...this.agentVals(s),...this.aiConvVals(s),...this.daysVals(s),...this.liveVals(s),...this.sysVals(s),...this.callViewVals(s),pf,call,toast,nav:{...nav,unreached:nv('unreached',urV.navCount)},is,ur:urV,cl,ib,vm,rp,sv,ai,player,showAi,dates:[],hours:HOURS,ops,queues:s.vqs.map(q=>q.name),statuses,cats,me:this.meVals(),todayLong:jLong(new Date())};
  }
 }
