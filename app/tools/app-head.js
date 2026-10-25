@@ -1616,12 +1616,49 @@ class LiveApp extends React.Component {
     this.setState(st => ({ trTest: { ...st.trTest, [t.id]: text } }));
   }
 
-  // ---- click-to-call: operator's phone rings first, then the patient is dialled (AMI Originate) ----
+  // ---- click-to-call: the chosen extension rings first, then the patient is dialled (AMI Originate) ----
   async originate(p) {
-    if (!ME.ext) { this.toast('برای کاربر شما داخلی تعریف نشده است'); return; }
-    this.setState({ call: { name: p.name, phone: p.phone, phoneRaw: p.phoneRaw, vmId: p.vmId || null, stage: 'dial', t0: 0, el: 0, rec: false, recErr: '', note: '' } });
+    if (this.state.call) { this.toast('یک تماس در حال برقراری است'); return; }
+    let last = '';
+    try { last = localStorage.getItem('cc.dialExt') || ''; } catch (e) { /* private mode */ }
+    this.setState({ dialPick: { p, list: null, sel: last || ME.ext || '', err: '' } });
     try {
-      const r = await api('/calls/originate', { phone: p.phoneRaw, name: p.name, vmId: p.vmId || null });
+      const r = await api('/calls/dial-exts');
+      this.setState(st => {
+        if (!st.dialPick) return null;
+        const ok = n => r.exts.some(e => e.n === n && e.st !== 'offline');
+        const sel = [st.dialPick.sel, r.mine].find(n => n && ok(n)) || (r.exts.find(e => e.st === 'online') || {}).n || '';
+        return { dialPick: { ...st.dialPick, list: r.exts, mine: r.mine, sel } };
+      });
+    } catch (e) { this.setState(st => st.dialPick ? { dialPick: { ...st.dialPick, list: [], err: e.message } } : null); }
+  }
+
+  dialVals(s) {
+    const d = s.dialPick;
+    if (!d) return { dp: { show: false } };
+    const fa = n => String(n).replace(/\d/g, x => '۰۱۲۳۴۵۶۷۸۹'[x]);
+    const ST = { online: ['آزاد', '#7FB536'], busy: ['در مکالمه', '#e0a83a'], offline: ['خاموش / ثبت‌نشده', '#c9cbc6'] };
+    const list = (d.list || []).map(e => {
+      const on = d.sel === e.n, off = e.st === 'offline', [label, dot] = ST[e.st] || ST.offline;
+      const generic = !e.name || /^(داخلی\s*)?\d+$/.test(e.name.trim());
+      return {
+        n: fa(e.n), name: generic ? 'داخلی ' + fa(e.n) : e.name, sub: (generic ? '' : 'داخلی ' + fa(e.n) + ' · ') + label + (e.n === d.mine ? ' · داخلی شما' : ''),
+        dot, op: off ? 0.5 : 1, cur: off ? 'not-allowed' : 'pointer', bd: on ? '#8DC63F' : '#e7e8e3', bg: on ? '#f4f9ec' : '#fff', mark: on ? '✓' : '',
+        pick: () => (off ? this.toast('گوشی داخلی ' + e.n + ' خاموش یا ثبت‌نشده است') : this.setState({ dialPick: { ...d, sel: e.n, err: '' } })),
+      };
+    });
+    const go = () => { if (d.sel) { try { localStorage.setItem('cc.dialExt', d.sel); } catch (e) { /* ignore */ } this.setState({ dialPick: null }); this.dial(d.p, d.sel); } };
+    return { dp: {
+      show: true, name: d.p.name, phone: d.p.phone, loading: !d.list, list, has: !!(d.list && d.list.length), empty: !!d.list && !d.list.length && !d.err,
+      err: d.err, hasErr: !!d.err, canGo: !!d.sel, goOp: d.sel ? 1 : 0.45, goText: d.sel ? 'تماس از داخلی ' + fa(d.sel) : 'یک داخلی انتخاب کنید',
+      go: () => d.sel && go(), close: () => this.setState({ dialPick: null }),
+    } };
+  }
+
+  async dial(p, ext) {
+    this.setState({ call: { name: p.name, phone: p.phone, phoneRaw: p.phoneRaw, vmId: p.vmId || null, ext, stage: 'dial', t0: 0, el: 0, rec: false, recErr: '', note: '' } });
+    try {
+      const r = await api('/calls/originate', { phone: p.phoneRaw, name: p.name, vmId: p.vmId || null, ext });
       this.setState(st => st.call ? { call: { ...st.call, origId: r.origId, rec: true } } : null);
     } catch (e) {
       this.setState({ call: null });

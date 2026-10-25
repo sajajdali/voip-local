@@ -208,16 +208,34 @@ export class CallsController {
   @Get('calls')
   async list(@Query('from') from?: string) { return { calls: await this.calls.list(from && /^\d{4}\/\d{2}\/\d{2}$/.test(from) ? from : undefined) }; }
 
+  /** Extensions the «تماس» button can ring first, with their live state (free / in a call / offline). */
+  @Perm('calls', 'edit')
+  @Get('calls/dial-exts')
+  async dialExts(@CurrentUser() me: Me) {
+    const cfg = await this.store.all();
+    const live = this.ast.live.exts;
+    return {
+      mine: me.ext || null,
+      exts: cfg.exts.map(e => ({ n: e.n, name: e.name || '', st: live[e.n]?.st || 'offline', dev: live[e.n]?.dev || '' }))
+        .sort((a, z) => String(a.n).localeCompare(String(z.n), undefined, { numeric: true })),
+    };
+  }
+
+  @Perm('calls', 'edit')
   @Post('calls/originate')
-  async originate(@Body() b: { phone: string; name: string; vmId?: string }, @CurrentUser() me: Me) {
+  async originate(@Body() b: { phone: string; name: string; vmId?: string; ext?: string }, @CurrentUser() me: Me) {
     const number = digits(b.phone);
-    if (!me.ext) throw new BadRequestException('برای کاربر شما داخلی تعریف نشده است');
+    // the extension to ring first: the one picked in the panel, otherwise the user's own
+    const ext = b.ext ? String(b.ext) : me.ext;
+    if (!ext) throw new BadRequestException('یک داخلی برای برقراری تماس انتخاب کنید');
+    if (!(await this.store.all()).exts.some(e => e.n === ext)) throw new BadRequestException('داخلی ' + ext + ' تعریف نشده است');
+    if (this.ast.live.exts[ext]?.st === 'offline') throw new BadRequestException('گوشی داخلی ' + ext + ' خاموش یا ثبت‌نشده است');
     if (number.length < 3) throw new BadRequestException('شماره نامعتبر است');
     if (!this.ast.ami.connected) throw new BadRequestException('اتصال به مرکز تلفن برقرار نیست');
     const origId = 'O' + Date.now() + Math.floor(Math.random() * 1000);
-    this.calls.origs.set(origId, { opExt: me.ext, number, name: String(b.name || number), vmId: b.vmId || null, userId: me.id, at: Date.now() });
-    await this.ast.originate(me.ext, number, origId, String(b.name || number), b.vmId || null);
-    await this.db.auditLog.create({ data: { userId: me.id, userName: me.name, action: 'call.originate', target: number, detail: { vmId: b.vmId || null } } });
+    this.calls.origs.set(origId, { opExt: ext, number, name: String(b.name || number), vmId: b.vmId || null, userId: me.id, at: Date.now() });
+    await this.ast.originate(ext, number, origId, String(b.name || number), b.vmId || null);
+    await this.db.auditLog.create({ data: { userId: me.id, userName: me.name, action: 'call.originate', target: number, detail: { vmId: b.vmId || null, ext } } });
     return { origId };
   }
 

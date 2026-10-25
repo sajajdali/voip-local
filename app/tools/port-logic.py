@@ -39,7 +39,7 @@ sub("nowText:'چهارشنبه '+TODAY", "nowText:WD_NAMES[jWeekday(new Date())]
 sub("'نگار احمدی'", "ME.name", count=0)
 sub("OPS[0].name", "ME.name", count=0)
 sub("op:OPS[0],opName:ME.name,ext:OPS[0].ext", "op:{id:ME.id,name:ME.name,ext:ME.ext},opName:ME.name,ext:ME.ext")
-sub("ext:OPS[0].ext,tel:", "ext:ME.ext||'—',tel:")
+sub("ext:OPS[0].ext,tel:", "ext:cs.ext||ME.ext||'—',tel:")
 sub("const QD=[['امروز',TODAY,TODAY],['دیروز','1405/07/14','1405/07/14'],['۷ روز اخیر','1405/07/09',TODAY],['این ماه','1405/07/01',TODAY]];",
     "const QD=[['امروز',TODAY,TODAY],['دیروز',jAdd(-1),jAdd(-1)],['۷ روز اخیر',jAdd(-6),TODAY],['این ماه',MONTH_START,TODAY]];")
 sub("dates:DATES,hours:HOURS,ops,queues:QUEUES,statuses,cats};",
@@ -186,6 +186,7 @@ sub("vapi:nv('vapi',''),settings:nv('settings',''),", "vapi:nv('vapi',''),settin
 sub("'vagent','aiconv','days','live','sys','usage','file'].forEach", "'vagent','aiconv','days','live','sys','usage','users','file'].forEach")
 sub("...this.usageVals(s),", "...this.usageVals(s),...this.canVals(s),...this.usersVals(s),...this.delVals(s),")
 # --- permanent delete of calls (list and report builder)
+sub("...this.delVals(s),", "...this.delVals(s),...this.dialVals(s),")
 sub("rowBg:cur?'#f7fbf1':'transparent'}};", "rowBg:cur?'#f7fbf1':'transparent',canDel:CAN('calls','delete'),onDel:()=>this.askDelete([c],'یک تماس')}};")
 sub("const cl={exportAll:", "const cl={canDel:CAN('calls','delete'),del:()=>this.askDelete(cf,'لیست تماس‌ها با فیلترهای فعلی'),delText:'حذف '+cf.length.toLocaleString('fa-IR')+' تماس',exportAll:")
 sub("const rp={pick:{", "const rp={canDel:CAN('calls','delete'),del:()=>this.askDelete(dl,r.drill?'گزارش‌ساز · '+GL[r.group]+': '+r.drill:'گزارش‌ساز · همه نتایج گزارش'),delText:'حذف '+dl.length.toLocaleString('fa-IR')+' تماس'+(r.drill?' ('+r.drill+')':''),pick:{")

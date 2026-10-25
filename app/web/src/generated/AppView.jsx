@@ -5707,6 +5707,51 @@ export default function AppView({ vm }) {
           </div>
         </div>
       </>) : null}
+      {(vm.dp?.show) ? (<>
+        <div onClick={vm.dp?.close} style={{position: "fixed", inset: "0", background: "rgba(20,21,22,.5)", zIndex: "60"}} />
+        <div style={{position: "fixed", top: "50%", left: "50%", transform: "translate(-50%,-50%)", width: "min(440px,calc(100% - 32px))", maxHeight: "calc(100vh - 48px)", background: "#fff", borderRadius: "22px", zIndex: "61", boxShadow: "0 30px 80px rgba(0,0,0,.25)", display: "flex", flexDirection: "column", overflow: "hidden"}}>
+          <div style={{padding: "18px 22px", display: "flex", alignItems: "center", gap: "12px", borderBottom: "1px solid #eeefeb"}}>
+            <div style={{width: "42px", height: "42px", borderRadius: "12px", background: "#eef5e3", color: "#3d6a0c", display: "grid", placeItems: "center"}}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8 9.8a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2z" />
+              </svg>
+            </div>
+            <div style={{flex: "1", minWidth: "0"}}>
+              <div style={{fontWeight: "800", fontSize: "16px"}}>{"تماس با "}{vm.dp?.name}</div>
+              <div style={{fontSize: "12px", color: "#6b6e72", direction: "ltr", textAlign: "right"}}>{vm.dp?.phone}</div>
+            </div>
+            <button onClick={vm.dp?.close} style={{width: "34px", height: "34px", borderRadius: "10px", border: "1px solid #e1e3dc", background: "#fff", cursor: "pointer", color: "#55585c"}}>{"✕"}</button>
+          </div>
+          <div style={{padding: "14px 22px 6px", fontSize: "13px", color: "#55585c"}}>
+            {"از کدام داخلی تماس گرفته شود؟ اول گوشی همان داخلی زنگ می‌خورد و با برداشتن گوشی، شماره بیمار گرفته می‌شود."}
+          </div>
+          <div style={{padding: "8px 22px", overflow: "auto", display: "flex", flexDirection: "column", gap: "8px", minHeight: "0"}}>
+            {(vm.dp?.loading) ? (<>
+              <div style={{padding: "24px", textAlign: "center", color: "#8b8e89", fontSize: "13px"}}>{"در حال دریافت وضعیت داخلی‌ها…"}</div>
+            </>) : null}
+            {(vm.dp?.empty) ? (<>
+              <div style={{padding: "24px", textAlign: "center", color: "#8b8e89", fontSize: "13px"}}>{"هیچ داخلی‌ای تعریف نشده است."}</div>
+            </>) : null}
+            {(vm.dp?.list || []).map((e, __i6) => <React.Fragment key={__i6}>
+              <div onClick={e?.pick} style={{display: "flex", alignItems: "center", gap: "12px", padding: "11px 14px", borderRadius: "14px", border: `1.5px solid ${e?.bd}`, background: e?.bg, cursor: e?.cur, opacity: e?.op}}>
+                <span style={{width: "10px", height: "10px", borderRadius: "50%", background: e?.dot, flexShrink: "0"}} />
+                <div style={{flex: "1", minWidth: "0"}}>
+                  <div style={{fontWeight: "700", fontSize: "14px"}}>{e?.name}</div>
+                  <div style={{fontSize: "12px", color: "#6b6e72"}}>{e?.sub}</div>
+                </div>
+                <span style={{fontWeight: "800", color: "#3d6a0c", fontSize: "16px"}}>{e?.mark}</span>
+              </div>
+            </React.Fragment>)}
+          </div>
+          {(vm.dp?.hasErr) ? (<>
+            <div style={{margin: "0 22px", background: "#fdf1ef", color: "#b42318", borderRadius: "10px", padding: "8px 12px", fontSize: "13px", fontWeight: "700"}}>{vm.dp?.err}</div>
+          </>) : null}
+          <div style={{padding: "14px 22px 18px", display: "flex", gap: "8px", justifyContent: "flex-end", borderTop: "1px solid #eeefeb", marginTop: "8px"}}>
+            <button onClick={vm.dp?.close} style={{border: "none", padding: "12px 16px", borderRadius: "12px", fontSize: "13px", fontWeight: "800", cursor: "pointer", fontFamily: "inherit", background: "#fff", border: "1px solid #e1e3dc", color: "#2E2F31"}}>{"انصراف"}</button>
+            <button onClick={vm.dp?.go} style={{border: "none", padding: "12px 16px", borderRadius: "12px", fontSize: "13px", fontWeight: "800", cursor: "pointer", fontFamily: "inherit", background: "#8DC63F", color: "#1f2021", opacity: vm.dp?.goOp}}>{vm.dp?.goText}</button>
+          </div>
+        </div>
+      </>) : null}
       {(vm.dm?.show) ? (<>
         <div onClick={vm.dm?.close} style={{position: "fixed", inset: "0", background: "rgba(20,21,22,.55)", zIndex: "60"}} />
         <div style={{position: "fixed", top: "50%", left: "50%", transform: "translate(-50%,-50%)", width: "min(460px,calc(100% - 32px))", background: "#fff", borderRadius: "22px", zIndex: "61", boxShadow: "0 30px 80px rgba(0,0,0,.25)", overflow: "hidden"}}>

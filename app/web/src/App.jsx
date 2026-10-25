@@ -1616,12 +1616,49 @@ class LiveApp extends React.Component {
     this.setState(st => ({ trTest: { ...st.trTest, [t.id]: text } }));
   }
 
-  // ---- click-to-call: operator's phone rings first, then the patient is dialled (AMI Originate) ----
+  // ---- click-to-call: the chosen extension rings first, then the patient is dialled (AMI Originate) ----
   async originate(p) {
-    if (!ME.ext) { this.toast('برای کاربر شما داخلی تعریف نشده است'); return; }
-    this.setState({ call: { name: p.name, phone: p.phone, phoneRaw: p.phoneRaw, vmId: p.vmId || null, stage: 'dial', t0: 0, el: 0, rec: false, recErr: '', note: '' } });
+    if (this.state.call) { this.toast('یک تماس در حال برقراری است'); return; }
+    let last = '';
+    try { last = localStorage.getItem('cc.dialExt') || ''; } catch (e) { /* private mode */ }
+    this.setState({ dialPick: { p, list: null, sel: last || ME.ext || '', err: '' } });
     try {
-      const r = await api('/calls/originate', { phone: p.phoneRaw, name: p.name, vmId: p.vmId || null });
+      const r = await api('/calls/dial-exts');
+      this.setState(st => {
+        if (!st.dialPick) return null;
+        const ok = n => r.exts.some(e => e.n === n && e.st !== 'offline');
+        const sel = [st.dialPick.sel, r.mine].find(n => n && ok(n)) || (r.exts.find(e => e.st === 'online') || {}).n || '';
+        return { dialPick: { ...st.dialPick, list: r.exts, mine: r.mine, sel } };
+      });
+    } catch (e) { this.setState(st => st.dialPick ? { dialPick: { ...st.dialPick, list: [], err: e.message } } : null); }
+  }
+
+  dialVals(s) {
+    const d = s.dialPick;
+    if (!d) return { dp: { show: false } };
+    const fa = n => String(n).replace(/\d/g, x => '۰۱۲۳۴۵۶۷۸۹'[x]);
+    const ST = { online: ['آزاد', '#7FB536'], busy: ['در مکالمه', '#e0a83a'], offline: ['خاموش / ثبت‌نشده', '#c9cbc6'] };
+    const list = (d.list || []).map(e => {
+      const on = d.sel === e.n, off = e.st === 'offline', [label, dot] = ST[e.st] || ST.offline;
+      const generic = !e.name || /^(داخلی\s*)?\d+$/.test(e.name.trim());
+      return {
+        n: fa(e.n), name: generic ? 'داخلی ' + fa(e.n) : e.name, sub: (generic ? '' : 'داخلی ' + fa(e.n) + ' · ') + label + (e.n === d.mine ? ' · داخلی شما' : ''),
+        dot, op: off ? 0.5 : 1, cur: off ? 'not-allowed' : 'pointer', bd: on ? '#8DC63F' : '#e7e8e3', bg: on ? '#f4f9ec' : '#fff', mark: on ? '✓' : '',
+        pick: () => (off ? this.toast('گوشی داخلی ' + e.n + ' خاموش یا ثبت‌نشده است') : this.setState({ dialPick: { ...d, sel: e.n, err: '' } })),
+      };
+    });
+    const go = () => { if (d.sel) { try { localStorage.setItem('cc.dialExt', d.sel); } catch (e) { /* ignore */ } this.setState({ dialPick: null }); this.dial(d.p, d.sel); } };
+    return { dp: {
+      show: true, name: d.p.name, phone: d.p.phone, loading: !d.list, list, has: !!(d.list && d.list.length), empty: !!d.list && !d.list.length && !d.err,
+      err: d.err, hasErr: !!d.err, canGo: !!d.sel, goOp: d.sel ? 1 : 0.45, goText: d.sel ? 'تماس از داخلی ' + fa(d.sel) : 'یک داخلی انتخاب کنید',
+      go: () => d.sel && go(), close: () => this.setState({ dialPick: null }),
+    } };
+  }
+
+  async dial(p, ext) {
+    this.setState({ call: { name: p.name, phone: p.phone, phoneRaw: p.phoneRaw, vmId: p.vmId || null, ext, stage: 'dial', t0: 0, el: 0, rec: false, recErr: '', note: '' } });
+    try {
+      const r = await api('/calls/originate', { phone: p.phoneRaw, name: p.name, vmId: p.vmId || null, ext });
       this.setState(st => st.call ? { call: { ...st.call, origId: r.origId, rec: true } } : null);
     } catch (e) {
       this.setState({ call: null });
@@ -2008,7 +2045,7 @@ export default class App extends LiveApp {
    svs:fsv.map(c=>{const sc=Math.round(c.survey.score);return {...c,starsOn:'★'.repeat(sc),starsOff:'★'.repeat(5-sc),...this.svComment(c)}})}:{has:false};
   const cs=s.call;
   const call=cs?{show:true,name:cs.name,phone:cs.phone,ini:ini(cs.name),isDial:cs.stage==='dial',isLive:cs.stage==='live',rec:cs.rec,recErr:cs.recErr,hasRecErr:!!cs.recErr,elText:fmt(cs.el),
-   stageLabel:cs.stage==='dial'?'در حال برقراری تماس…':'تماس برقرار است',ext:ME.ext||'—',tel:'tel:'+cs.phoneRaw,note:cs.note||'',
+   stageLabel:cs.stage==='dial'?'در حال برقراری تماس…':'تماس برقرار است',ext:cs.ext||ME.ext||'—',tel:'tel:'+cs.phoneRaw,note:cs.note||'',
    setNote:e=>{const v=e.target.value;this.setState(st=>({call:{...st.call,note:v}}));},connect:()=>this.connect(),noAnswer:()=>this.endCall(false),end:()=>this.endCall(true),cancel:()=>this.setState({call:null})}:{show:false};
   const toast={show:!!s.toast,text:s.toast||''};
 
@@ -2065,6 +2102,6 @@ export default class App extends LiveApp {
    seek:e=>{const b=e.currentTarget.getBoundingClientRect();this.setState({pos:Math.min(1,Math.max(0,(b.right-e.clientX)/b.width))*(this.audDur||pc.dur)});},
    pct:s.pos/(this.audDur||pc.dur)*100+'%',posText:fmt(s.pos),durText:fmt((this.audDur||pc.dur)),speedText:s.speed+'x',cycleSpeed:()=>this.setState({speed:SP[(SP.indexOf(s.speed)+1)%SP.length]}),download:()=>this.download(pc)}:{show:false};
 
-  return {...this.voip(s),...this.voip2(s),...this.voipOut(s),...this.apiVals(s),...this.backupVals(s),...this.settingsVals(s),...this.aiSettingsVals(s),...this.surveyVals(s),...this.crmVals(s),...this.agentVals(s),...this.aiConvVals(s),...this.daysVals(s),...this.liveVals(s),...this.sysVals(s),...this.callViewVals(s),...this.usageVals(s),...this.canVals(s),...this.usersVals(s),...this.delVals(s),pf,call,toast,nav:{...nav,unreached:nv('unreached',urV.navCount)},is,ur:urV,cl,ib,vm,rp,sv,ai,player,showAi,dates:[],hours:HOURS,ops,queues:s.vqs.map(q=>q.name),statuses,cats,me:this.meVals(),todayLong:jLong(new Date())};
+  return {...this.voip(s),...this.voip2(s),...this.voipOut(s),...this.apiVals(s),...this.backupVals(s),...this.settingsVals(s),...this.aiSettingsVals(s),...this.surveyVals(s),...this.crmVals(s),...this.agentVals(s),...this.aiConvVals(s),...this.daysVals(s),...this.liveVals(s),...this.sysVals(s),...this.callViewVals(s),...this.usageVals(s),...this.canVals(s),...this.usersVals(s),...this.delVals(s),...this.dialVals(s),pf,call,toast,nav:{...nav,unreached:nv('unreached',urV.navCount)},is,ur:urV,cl,ib,vm,rp,sv,ai,player,showAi,dates:[],hours:HOURS,ops,queues:s.vqs.map(q=>q.name),statuses,cats,me:this.meVals(),todayLong:jLong(new Date())};
  }
 }
