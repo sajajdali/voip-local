@@ -1170,7 +1170,7 @@ class LiveApp extends React.Component {
 
   // ---- call view
   openCall(c) {
-    this.setState({ cvId: c.id });
+    this.setState({ cvId: c.id, cvCoachOpen: false });
     this.loadInsight(c.id);
   }
 
@@ -1214,8 +1214,13 @@ class LiveApp extends React.Component {
         const fa = n => String(n).replace(/\d/g, x => '۰۱۲۳۴۵۶۷۸۹'[x]);
         const CR = { politeness: 'ادب و احترام', tone: 'لحن و همدلی', clarity: 'وضوح و درستی پاسخ', listening: 'گوش دادن', resolution: 'پیگیری و نتیجه' };
         const tone = (v, max) => (v / max >= 0.8 ? '#8DC63F' : v / max >= 0.6 ? '#e0a83a' : '#e0574a');
+        const C = 2 * Math.PI * 40, open = !!s.cvCoachOpen;
         return {
           hasCoach: true, coachScore: fa(k.score), coachColor: tone(k.score, 10), coachVerdict: k.verdict, coachOp: c.op ? c.op.name : 'اپراتور',
+          coachDash: C.toFixed(1), coachOff: (C * (1 - k.score / 10)).toFixed(1),
+          coachLabel: k.score >= 8 ? 'عالی' : k.score >= 6 ? 'خوب' : k.score >= 4 ? 'متوسط' : 'ضعیف',
+          coachOpen: open, coachClosed: !open, coachToggle: () => this.setState({ cvCoachOpen: !open }), coachChev: open ? 'rotate(180deg)' : 'none',
+          coachCounts: fa((k.strengths || []).length) + ' نقطه قوت · ' + fa((k.improvements || []).length) + ' پیشنهاد',
           criteria: (k.criteria || []).map(x => ({ label: CR[x.key] || x.key, score: fa(x.score), w: (x.score / 5 * 100) + '%', color: tone(x.score, 5), note: x.note })),
           strengths: (k.strengths || []).map(x => ({ x })), hasStrengths: (k.strengths || []).length > 0,
           improvements: (k.improvements || []).map(x => ({ issue: x.issue, quote: x.quote, hasQuote: !!x.quote, suggestion: x.suggestion, hasSuggestion: !!x.suggestion })),

@@ -5287,65 +5287,96 @@ export default function AppView({ vm }) {
                 </>) : null}
               </div>
               {(vm.cvm?.hasCoach) ? (<>
-                <div style={{background: "#fff", border: "1px solid #e7e8e3", borderRadius: "18px", padding: "16px", display: "flex", flexDirection: "column", gap: "14px"}}>
-                  <div style={{display: "flex", alignItems: "center", gap: "14px"}}>
-                    <div style={{width: "58px", height: "58px", borderRadius: "16px", border: `2px solid ${vm.cvm?.coachColor}`, display: "grid", placeItems: "center", flexShrink: "0"}}>
-                      <div style={{textAlign: "center", lineHeight: "1.1"}}>
-                        <div style={{fontSize: "20px", fontWeight: "800"}}>{vm.cvm?.coachScore}</div>
-                        <div style={{fontSize: "9px", color: "#8b8e89"}}>{"از ۱۰"}</div>
+                <div style={{background: "#fff", border: "1px solid #e7e8e3", borderRadius: "20px", overflow: "hidden"}}>
+                  <div onClick={vm.cvm?.coachToggle} style={{display: "flex", alignItems: "center", gap: "14px", padding: "14px 16px", cursor: "pointer"}}>
+                    <div style={{position: "relative", width: "64px", height: "64px", flexShrink: "0"}}>
+                      <svg width="64" height="64" viewBox="0 0 100 100" style={{transform: "rotate(-90deg)"}}>
+                        <circle cx="50" cy="50" r="40" fill="none" stroke="#f0f1ec" strokeWidth="10" />
+                        <circle cx="50" cy="50" r="40" fill="none" stroke={vm.cvm?.coachColor} strokeWidth="10" strokeLinecap="round" strokeDasharray={vm.cvm?.coachDash} strokeDashoffset={vm.cvm?.coachOff} />
+                      </svg>
+                      <div style={{position: "absolute", inset: "0", display: "grid", placeItems: "center"}}>
+                        <div style={{textAlign: "center", lineHeight: "1"}}>
+                          <div style={{fontSize: "19px", fontWeight: "800"}}>{vm.cvm?.coachScore}</div>
+                          <div style={{fontSize: "8px", color: "#8b8e89", marginTop: "2px"}}>{"از ۱۰"}</div>
+                        </div>
                       </div>
                     </div>
                     <div style={{flex: "1", minWidth: "0"}}>
-                      <div style={{fontWeight: "800", fontSize: "15px"}}>{"ارزیابی عملکرد "}{vm.cvm?.coachOp}</div>
-                      <div style={{fontSize: "11px", color: "#8b8e89", marginTop: "1px"}}>{"نظر هوش مصنوعی · فقط برای مدیر"}</div>
-                      <div style={{fontSize: "13px", color: "#3a3b3d", marginTop: "6px", lineHeight: "1.7"}}>{vm.cvm?.coachVerdict}</div>
-                    </div>
-                  </div>
-                  <div style={{display: "flex", flexDirection: "column", gap: "9px"}}>
-                    {(vm.cvm?.criteria || []).map((k, __i10) => <React.Fragment key={__i10}>
-                      <div>
-                        <div style={{display: "flex", justifyContent: "space-between", fontSize: "12px", marginBottom: "4px"}}>
-                          <b>{k?.label}</b>
-                          <span style={{color: "#6b6e72"}}>{k?.score}{" از ۵"}</span>
-                        </div>
-                        <div style={{height: "6px", background: "#f0f1ec", borderRadius: "99px", overflow: "hidden"}}>
-                          <div style={{height: "100%", width: k?.w, background: k?.color, borderRadius: "99px"}} />
-                        </div>
-                        <div style={{fontSize: "11px", color: "#6b6e72", marginTop: "4px", lineHeight: "1.7"}}>{k?.note}</div>
+                      <div style={{display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap"}}>
+                        <span style={{fontWeight: "800", fontSize: "15px"}}>{"ارزیابی عملکرد اپراتور"}</span>
+                        <span style={{fontSize: "11px", fontWeight: "800", color: "#fff", background: vm.cvm?.coachColor, padding: "2px 9px", borderRadius: "999px"}}>{vm.cvm?.coachLabel}</span>
                       </div>
-                    </React.Fragment>)}
+                      <div style={{fontSize: "12px", color: "#55585c", marginTop: "4px", lineHeight: "1.7", overflow: "hidden", textOverflow: "ellipsis", display: "-webkit-box", WebkitLineClamp: "2", WebkitBoxOrient: "vertical"}}>{vm.cvm?.coachVerdict}</div>
+                      <div style={{fontSize: "11px", color: "#9a9d97", marginTop: "4px"}}>{vm.cvm?.coachOp}{" · "}{vm.cvm?.coachCounts}{" · فقط برای مدیر"}</div>
+                    </div>
+                    <span style={{width: "30px", height: "30px", borderRadius: "50%", background: "#f4f5f1", display: "grid", placeItems: "center", flexShrink: "0"}}>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#55585c" strokeWidth="2.4" strokeLinecap="round" style={{transform: vm.cvm?.coachChev, transition: "transform .2s"}}><path d="M6 9l6 6 6-6" /></svg>
+                    </span>
                   </div>
-                  {(vm.cvm?.hasStrengths) ? (<>
-                    <div style={{display: "flex", flexDirection: "column", gap: "6px"}}>
-                      <div style={{fontSize: "12px", fontWeight: "800", color: "#3d6a0c"}}>{"نقاط قوت"}</div>
-                      {(vm.cvm?.strengths || []).map((m, __i11) => <React.Fragment key={__i11}>
-                        <div style={{display: "flex", gap: "8px", fontSize: "13px", lineHeight: "1.8"}}>
-                          <span style={{color: "#8DC63F", fontWeight: "800"}}>{"✓"}</span>
-                          <span>{m?.x}</span>
-                        </div>
+                  {(vm.cvm?.coachClosed) ? (<>
+                    <div style={{display: "flex", gap: "6px", padding: "0 16px 14px", flexWrap: "wrap"}}>
+                      {(vm.cvm?.criteria || []).map((k, __i11) => <React.Fragment key={__i11}>
+                        <span style={{display: "inline-flex", alignItems: "center", gap: "6px", fontSize: "11px", color: "#3a3b3d", background: "#f7f8f4", borderRadius: "999px", padding: "4px 10px"}}>
+                          <span style={{width: "7px", height: "7px", borderRadius: "50%", background: k?.color}} />
+                          {k?.label}{" "}
+                          <b>{k?.score}</b>
+                        </span>
                       </React.Fragment>)}
                     </div>
                   </>) : null}
-                  {(vm.cvm?.hasImprovements) ? (<>
-                    <div style={{display: "flex", flexDirection: "column", gap: "8px"}}>
-                      <div style={{fontSize: "12px", fontWeight: "800", color: "#8a5a00"}}>{"پیشنهاد برای بهتر شدن"}</div>
-                      {(vm.cvm?.improvements || []).map((x, __i11) => <React.Fragment key={__i11}>
-                        <div style={{border: "1px solid #f0d9a8", background: "#fffaf0", borderRadius: "14px", padding: "10px 12px", display: "flex", flexDirection: "column", gap: "6px", fontSize: "13px", lineHeight: "1.8"}}>
-                          <div style={{fontWeight: "700"}}>{x?.issue}</div>
-                          {(x?.hasQuote) ? (<>
-                            <div style={{fontSize: "12px", color: "#6b6e72"}}>
-                              {"گفته شد: "}
-                              <span style={{color: "#3a3b3d"}}>{"«"}{x?.quote}{"»"}</span>
+                  {(vm.cvm?.coachOpen) ? (<>
+                    <div style={{borderTop: "1px solid #f0f1ec", padding: "14px 16px 16px", display: "flex", flexDirection: "column", gap: "16px", background: "#fcfcfa"}}>
+                      <div style={{fontSize: "13px", color: "#3a3b3d", lineHeight: "1.8"}}>{vm.cvm?.coachVerdict}</div>
+                      <div style={{display: "grid", gridTemplateColumns: "1fr", gap: "10px"}}>
+                        {(vm.cvm?.criteria || []).map((k, __i12) => <React.Fragment key={__i12}>
+                          <div style={{background: "#fff", border: "1px solid #eef0ea", borderRadius: "14px", padding: "10px 12px"}}>
+                            <div style={{display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "12px", marginBottom: "6px"}}>
+                              <b>{k?.label}</b>
+                              <span style={{fontWeight: "800", color: k?.color}}>
+                                {k?.score}{" "}
+                                <span style={{color: "#9a9d97", fontWeight: "600"}}>{"از ۵"}</span>
+                              </span>
                             </div>
-                          </>) : null}
-                          {(x?.hasSuggestion) ? (<>
-                            <div style={{fontSize: "12px", background: "#fff", borderRadius: "10px", padding: "6px 10px", border: "1px solid #f0e2c4"}}>
-                              <b style={{color: "#3d6a0c"}}>{"بهتر بود: "}</b>
-                              {x?.suggestion}
+                            <div style={{height: "6px", background: "#f0f1ec", borderRadius: "99px", overflow: "hidden"}}>
+                              <div style={{height: "100%", width: k?.w, background: k?.color, borderRadius: "99px"}} />
                             </div>
-                          </>) : null}
+                            <div style={{fontSize: "12px", color: "#6b6e72", marginTop: "6px", lineHeight: "1.7"}}>{k?.note}</div>
+                          </div>
+                        </React.Fragment>)}
+                      </div>
+                      {(vm.cvm?.hasStrengths) ? (<>
+                        <div style={{display: "flex", flexDirection: "column", gap: "6px"}}>
+                          <div style={{fontSize: "12px", fontWeight: "800", color: "#3d6a0c"}}>{"نقاط قوت"}</div>
+                          {(vm.cvm?.strengths || []).map((m, __i13) => <React.Fragment key={__i13}>
+                            <div style={{display: "flex", gap: "8px", fontSize: "13px", lineHeight: "1.8", background: "#f4f9ec", borderRadius: "12px", padding: "7px 10px"}}>
+                              <span style={{color: "#8DC63F", fontWeight: "800"}}>{"✓"}</span>
+                              <span>{m?.x}</span>
+                            </div>
+                          </React.Fragment>)}
                         </div>
-                      </React.Fragment>)}
+                      </>) : null}
+                      {(vm.cvm?.hasImprovements) ? (<>
+                        <div style={{display: "flex", flexDirection: "column", gap: "8px"}}>
+                          <div style={{fontSize: "12px", fontWeight: "800", color: "#8a5a00"}}>{"پیشنهاد برای بهتر شدن"}</div>
+                          {(vm.cvm?.improvements || []).map((x, __i13) => <React.Fragment key={__i13}>
+                            <div style={{border: "1px solid #f0d9a8", background: "#fffaf0", borderRadius: "14px", padding: "10px 12px", display: "flex", flexDirection: "column", gap: "6px", fontSize: "13px", lineHeight: "1.8"}}>
+                              <div style={{fontWeight: "700"}}>{x?.issue}</div>
+                              {(x?.hasQuote) ? (<>
+                                <div style={{fontSize: "12px", color: "#6b6e72"}}>
+                                  {"گفته شد: "}
+                                  <span style={{color: "#3a3b3d"}}>{"«"}{x?.quote}{"»"}</span>
+                                </div>
+                              </>) : null}
+                              {(x?.hasSuggestion) ? (<>
+                                <div style={{fontSize: "12px", background: "#fff", borderRadius: "10px", padding: "6px 10px", border: "1px solid #f0e2c4"}}>
+                                  <b style={{color: "#3d6a0c"}}>{"بهتر بود: "}</b>
+                                  {x?.suggestion}
+                                </div>
+                              </>) : null}
+                            </div>
+                          </React.Fragment>)}
+                        </div>
+                      </>) : null}
                     </div>
                   </>) : null}
                 </div>
