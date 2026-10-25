@@ -30,6 +30,7 @@ export const SECTIONS: Section[] = [
   { key: 'vfollow', label: 'دنبال‌کردن تماس', group: 'تنظیمات VoIP', actions: ALL },
   { key: 'vblack', label: 'لیست سیاه', group: 'تنظیمات VoIP', actions: ALL },
   { key: 'vsurvey', label: 'نظرسنجی بعد از تماس', group: 'تنظیمات VoIP', actions: ['view', 'edit'] },
+  { key: 'vvm', label: 'صندوق پیام صوتی', group: 'تنظیمات VoIP', actions: ['view', 'edit'] },
   { key: 'vai', label: 'هوش مصنوعی (مدل و کلید)', group: 'تنظیمات سامانه', actions: ['view', 'edit'] },
   { key: 'vagent', label: 'دستیار هوشمند تلفنی', group: 'تنظیمات سامانه', actions: ['view', 'edit'] },
   { key: 'vcrm', label: 'سامانه بیماران', group: 'تنظیمات سامانه', actions: ['view', 'edit'] },
@@ -76,5 +77,5 @@ export function can(u: { role: string; perms?: Perms } | null | undefined, secti
 /** VoIP collections → the section that owns them. */
 export const CONFIG_SECTION: Record<string, string> = {
   exts: 'vext', trunks: 'vtrunk', vqs: 'vqueue', ivrs: 'vivr', snds: 'vsound', routes: 'vroute', oroutes: 'vout',
-  tgroups: 'vtime', tconds: 'vtime', holidays: 'vtime', rgroups: 'vring', fmes: 'vfollow', blist: 'vblack', bset: 'vblack', survey: 'vsurvey',
+  tgroups: 'vtime', tconds: 'vtime', holidays: 'vtime', rgroups: 'vring', fmes: 'vfollow', blist: 'vblack', bset: 'vblack', survey: 'vsurvey', vmbox: 'vvm',
 };

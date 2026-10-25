@@ -9,7 +9,7 @@ import { Bus } from './bus';
 import { PrismaService } from './prisma.service';
 
 export const ARRAY_KEYS = ['exts', 'trunks', 'vqs', 'ivrs', 'snds', 'routes', 'oroutes', 'tgroups', 'tconds', 'holidays', 'rgroups', 'blist'] as const;
-export const OBJECT_KEYS = ['fmes', 'bset', 'survey'] as const;
+export const OBJECT_KEYS = ['fmes', 'bset', 'survey', 'vmbox'] as const;
 
 /** Post-call survey: off until prompts are recorded. One 1..5 rating; a low score may leave a voice comment. */
 export const DEFAULT_SURVEY = {
@@ -17,6 +17,8 @@ export const DEFAULT_SURVEY = {
   qs: [{ label: 'رضایت از مکالمه', snd: '' }],
   comment: { on: true, max: 2, snd: '', maxSec: 60 },
 };
+/** «صندوق پیام»: greeting / closing prompts, how a message ends, and the key that opens it from every IVR. */
+export const DEFAULT_VMBOX = { on: false, key: '9', inIvr: true, greet: '', end: '', term: '*', beep: true, maxSec: 120, silence: 5 };
 export const KEYS = [...ARRAY_KEYS, ...OBJECT_KEYS] as string[];
 const LIVE: Record<string, string[]> = { exts: ['st'], vqs: ['waiting', 'sla'], trunks: ['reg', 'used'] };
 const ID: Record<string, string> = { exts: 'n', blist: 'num', holidays: 'date' };
@@ -32,7 +34,7 @@ export class ConfigStore {
     if (!this.cache) {
       const rows = await this.db.configEntry.findMany();
       const c: Record<string, any> = {};
-      for (const k of KEYS) c[k] = ARRAY_KEYS.includes(k as any) ? [] : k === 'bset' ? { anon: false, action: 'hang', sound: '' } : k === 'survey' ? DEFAULT_SURVEY : {};
+      for (const k of KEYS) c[k] = ARRAY_KEYS.includes(k as any) ? [] : k === 'bset' ? { anon: false, action: 'hang', sound: '' } : k === 'survey' ? DEFAULT_SURVEY : k === 'vmbox' ? DEFAULT_VMBOX : {};
       for (const r of rows) c[r.key] = r.data;
       this.cache = c;
     }

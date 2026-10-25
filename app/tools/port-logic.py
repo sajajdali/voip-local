@@ -196,6 +196,10 @@ sub("rowBg:cur?'#f7fbf1':'transparent'}};", "rowBg:cur?'#f7fbf1':'transparent',c
 sub("const cl={exportAll:", "const cl={canDel:CAN('calls','delete'),del:()=>this.askDelete(cf,'لیست تماس‌ها با فیلترهای فعلی'),delText:'حذف '+cf.length.toLocaleString('fa-IR')+' تماس',exportAll:")
 sub("const rp={pick:{", "const rp={canDel:CAN('calls','delete'),del:()=>this.askDelete(dl,r.drill?'گزارش‌ساز · '+GL[r.group]+': '+r.drill:'گزارش‌ساز · همه نتایج گزارش'),delText:'حذف '+dl.length.toLocaleString('fa-IR')+' تماس'+(r.drill?' ('+r.drill+')':''),pick:{")
 sub("onDel:()=>this.askDelete([c],'یک تماس')}};", "onDel:()=>this.askDelete([c],'یک تماس'),hasRep:c.rep>0,repText:(c.rep||0).toLocaleString('fa-IR')+' گزارش',canRep:CAN('calls','edit'),onRep:()=>this.setState({cvId:c.id,crForm:{callId:c.id,editId:null,cat:'',outcome:'',text:'',fu:''}})}};")
+# --- voice mailbox settings + redesigned voice messages page
+sub("creports:nv('creports',''),", "creports:nv('creports',''),vvm:nv('vvm',''),")
+sub("'vagent','aiconv','days','live','sys','usage','users','creports','file'].forEach", "'vagent','aiconv','days','live','sys','usage','users','creports','vvm','file'].forEach")
+sub("...this.creportsVals(s),", "...this.creportsVals(s),...this.vmboxVals(s),...this.voiceboxVals(s),")
 head = (root / 'tools/app-head.js').read_text(encoding='utf-8')
 src = src.replace("export default class App extends React.Component {", "export default class App extends LiveApp {")
 (root / 'web/src/App.jsx').write_text(head + '\n' + src.strip() + '\n', encoding='utf-8')

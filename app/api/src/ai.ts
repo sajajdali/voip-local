@@ -59,6 +59,35 @@ const SCHEMA = {
   additionalProperties: false,
 };
 
+// voice-mailbox messages: the same classification plus a title, the caller's state and an explicit emergency flag
+const VM_SYSTEM = `${SYSTEM}
+
+این متن یک «پیام صوتی» است که تماس‌گیرنده در صندوق پیام مطب گذاشته است. علاوه بر موارد بالا:
+- topic: موضوع پیام در یک عبارت کوتاه (حداکثر ۸ کلمه)، مثل «ورم و درد شدید روز سوم بعد از عمل».
+- mood: حال تماس‌گیرنده: calm (آرام)، worried (نگران)، upset (ناراحت/دلخور)، angry (عصبانی)، pain (درد یا ناخوشی جسمی)، unclear (قابل تشخیص نیست).
+- moodNote: یک جمله کوتاه درباره وضعیت و حال تماس‌گیرنده.
+- emergency: فقط وقتی true که نشانه خطر جدی و فوری باشد: خونریزی، تب، تنگی نفس، درد شدید و غیرعادی، تورم شدید ناگهانی، عفونت، ضربه به بینی بعد از عمل، یا هر وضعیتی که بیمار صریحاً فوری بودن یا اورژانسی بودن را بگوید. در غیر این صورت false.
+- emergencyReason: اگر emergency=true دلیل را در یک جمله بنویس؛ وگرنه رشته خالی.
+- callerName: اگر تماس‌گیرنده نام خود را گفته، همان نام؛ وگرنه رشته خالی.
+- callbackNumber: اگر شماره دیگری برای تماس گفته، ارقام آن؛ وگرنه رشته خالی.
+اگر emergency=true است urgency حتماً high باشد. اگر متن خالی یا نامفهوم است، topic را «پیام نامفهوم یا بدون صحبت» بگذار.`;
+
+const VM_SCHEMA = {
+  type: 'object',
+  properties: {
+    ...SCHEMA.properties,
+    topic: { type: 'string' },
+    mood: { type: 'string', enum: ['calm', 'worried', 'upset', 'angry', 'pain', 'unclear'] },
+    moodNote: { type: 'string' },
+    emergency: { type: 'boolean' },
+    emergencyReason: { type: 'string' },
+    callerName: { type: 'string' },
+    callbackNumber: { type: 'string' },
+  },
+  required: [...SCHEMA.required, 'topic', 'mood', 'moodNote', 'emergency', 'emergencyReason', 'callerName', 'callbackNumber'],
+  additionalProperties: false,
+};
+
 const CHAT_SYSTEM = `تو متن پیاده‌شده یک تماس تلفنی بین اپراتور مطب دکتر افلاکی (جراح بینی) و یک بیمار را به نوبت‌های گفتگو تقسیم می‌کنی.
 - ترتیب را از «متن کامل تماس» بگیر و هر نوبت را با گوینده‌اش (operator یا patient) برگردان.
 - اگر صحبت‌های جداگانه هر طرف داده شده، گوینده را از روی آن‌ها تشخیص بده؛ وگرنه از محتوا (اپراتور معمولاً سلام و معرفی مطب، نوبت و راهنمایی را می‌گوید).
@@ -328,6 +357,19 @@ export class AiService implements OnModuleInit {
     };
   }
 
+  /** Voice-mailbox extras: title, caller's state, emergency flag (keyword fallback when no model is set). */
+  private vmExtra(r: any, text: string) {
+    const str = (v: any, n: number) => String(v || '').trim().slice(0, n);
+    const kwEmg = /خونریزی|تب |تب$|تنگی نفس|نفسم|اورژانس|فوری|عفونت|درد شدید/.test(text);
+    const emg = typeof r.emergency === 'boolean' ? r.emergency : kwEmg;
+    return {
+      topic: str(r.topic, 120) || (text.trim() ? str(text, 60) + (text.length > 60 ? '…' : '') : 'پیام بدون صحبت'),
+      mood: ['calm', 'worried', 'upset', 'angry', 'pain', 'unclear'].includes(r.mood) ? r.mood : 'unclear',
+      moodNote: str(r.moodNote, 200), emg, emgWhy: emg ? str(r.emergencyReason, 200) || 'نشانه‌های اورژانسی در پیام' : '',
+      who: str(r.callerName, 60), cbNum: String(r.callbackNumber || '').replace(/\D/g, '').slice(0, 15),
+    };
+  }
+
   /** Normalise any provider's answer into the shape the panel uses. */
   private toAi(a: any, text: string, conf: number | null) {
     const cat = CATEGORIES.some(c => c.id === a.category) ? a.category : 'consult';
@@ -445,7 +487,9 @@ export class AiService implements OnModuleInit {
     let ai: any;
     if (c.st === 'voicemail') {
       const { text, conf } = await this.transcribe(c.recPath, st);
-      ai = this.toAi(await this.analyzeText(text, llm), text, conf);
+      const r = llm.llmProvider === 'keywords' || !text.trim() ? keywordAnalysis(text) : await this.llmJson(VM_SYSTEM, 'متن پیام صوتی:\n' + text, VM_SCHEMA, llm);
+      ai = { ...this.toAi(r, text, conf), ...this.vmExtra(r, text) };
+      if (ai.emg) ai.urg = 'high';
     } else {
       // operator conversation: chat turns plus a summary written for the manager
       // one model request returns the chat turns, the manager's summary and the operator assessment together
@@ -463,7 +507,8 @@ export class AiService implements OnModuleInit {
     }
     await this.db.call.update({ where: { id }, data: { ai: ai as any, aiState: 'done', aiError: null } });
     this.bus.emit('calls', { id });
-    if (ai.urg === 'high') this.bus.emit('notify', { role: '*', text: 'پیام فوری: ' + (ai.sum[0] || 'یک تماس با اولویت فوری تحلیل شد') });
+    if (ai.emg) this.bus.emit('notify', { role: '*', text: '🚨 پیام صوتی اورژانسی: ' + (ai.emgWhy || ai.topic || ai.sum[0] || '') });
+    else if (ai.urg === 'high') this.bus.emit('notify', { role: '*', text: 'پیام فوری: ' + (ai.sum[0] || 'یک تماس با اولویت فوری تحلیل شد') });
   }
 
   async status() {

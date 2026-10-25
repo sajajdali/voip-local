@@ -846,322 +846,399 @@ export default function AppView({ vm }) {
           </div>
         </>) : null}
         {(vm.is?.voice) ? (<>
-          <div style={{display: "flex", flexDirection: "column", gap: "22px"}}>
+          <div style={{display: "flex", flexDirection: "column", gap: "20px"}}>
             <div style={{display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: "16px", flexWrap: "wrap"}}>
               <div>
-                <h1 style={{margin: "0", fontSize: "28px", fontWeight: "800"}}>{"صندوق پیام‌های صوتی"}</h1>
-                <div style={{fontSize: "14px", color: "#6b6e72", marginTop: "6px"}}>{"پیام‌های IVR، پرونده بیمار، تماس‌های بی‌پاسخ و پیگیری‌ها در یک صفحه"}</div>
+                <h1 style={{margin: "0", fontSize: "28px", fontWeight: "800"}}>{"صندوق پیام صوتی"}</h1>
+                <div style={{fontSize: "14px", color: "#6b6e72", marginTop: "6px"}}>{"هر پیام با هوش مصنوعی خلاصه می‌شود؛ پیام‌های اورژانسی بالای فهرست می‌آیند"}</div>
               </div>
+              {(vm.vbx?.canSettings) ? (<>
+                <button onClick={vm.vbx?.goSettings} style={{display: "flex", alignItems: "center", gap: "8px", border: "1px solid #e1e3dc", background: "#fff", color: "#2E2F31", padding: "10px 16px", borderRadius: "12px", fontSize: "13px", fontWeight: "700", cursor: "pointer", fontFamily: "inherit"}}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round">
+                    <circle cx="12" cy="12" r="3" />
+                    <path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z" />
+                  </svg>
+                  {"تنظیمات صندوق پیام"}
+                </button>
+              </>) : null}
             </div>
-            <div style={{display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(200px,1fr))", gap: "16px"}}>
-              <div style={{background: "#fff", border: "1px solid #e7e8e3", borderRadius: "20px", padding: "20px 22px", display: "flex", justifyContent: "space-between", alignItems: "center", boxShadow: "0 1px 2px rgba(20,20,20,.03)"}}>
-                <div>
-                  <div style={{fontSize: "30px", fontWeight: "800", lineHeight: "1.1"}}>{vm.vm?.kpis[0]?.value}</div>
-                  <div style={{fontSize: "13px", color: "#6b6e72", marginTop: "6px"}}>{"پیام صوتی امروز"}</div>
+            {(vm.vbx?.hasEmg) ? (<>
+              <div style={{background: "linear-gradient(135deg,#b42318,#d92d20)", color: "#fff", borderRadius: "20px", padding: "16px 20px", display: "flex", alignItems: "center", gap: "14px", boxShadow: "0 12px 30px rgba(180,35,24,.25)", flexWrap: "wrap"}}>
+                <span style={{width: "44px", height: "44px", borderRadius: "14px", background: "rgba(255,255,255,.16)", display: "grid", placeItems: "center", flexShrink: "0", position: "relative"}}>
+                  <span style={{width: "14px", height: "14px", borderRadius: "50%", background: "#fff", animation: "cc-pulse-red 1.4s infinite"}} />
+                </span>
+                <div style={{flex: "1", minWidth: "200px"}}>
+                  <div style={{fontWeight: "800", fontSize: "16px"}}>{vm.vbx?.emgText}</div>
+                  <div style={{fontSize: "12px", opacity: ".9", marginTop: "3px", lineHeight: "1.7"}}>{vm.vbx?.emgWho}</div>
                 </div>
-                <div style={{width: "48px", height: "48px", borderRadius: "15px", background: "#e5eff7", color: "#1d5a85", display: "grid", placeItems: "center"}}>
-                  <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round">
-                    <rect x="9" y="3" width="6" height="11" rx="3" />
-                    <path d="M5 11a7 7 0 0 0 14 0M12 18v3" />
-                  </svg>
-                </div>
+                <button onClick={vm.vbx?.showEmg} style={{border: "none", borderRadius: "12px", fontSize: "13px", fontWeight: "800", cursor: "pointer", fontFamily: "inherit", background: "#fff", color: "#b42318", padding: "10px 16px"}}>{"نمایش پیام‌های اورژانسی"}</button>
               </div>
-              <div style={{background: "#fff", border: "1px solid #e7e8e3", borderRadius: "20px", padding: "20px 22px", display: "flex", justifyContent: "space-between", alignItems: "center", boxShadow: "0 1px 2px rgba(20,20,20,.03)"}}>
-                <div>
-                  <div style={{fontSize: "30px", fontWeight: "800", lineHeight: "1.1"}}>{vm.vm?.kpis[1]?.value}</div>
-                  <div style={{fontSize: "13px", color: "#6b6e72", marginTop: "6px"}}>{"نیازمند پیگیری"}</div>
+            </>) : null}
+            <div style={{display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(190px,1fr))", gap: "14px"}}>
+              {(vm.vbx?.kpis || []).map((k, __i7) => <React.Fragment key={__i7}>
+                <div style={{background: "#fff", border: "1px solid #e7e8e3", borderRadius: "20px", padding: "16px 18px", display: "flex", alignItems: "center", gap: "14px"}}>
+                  <span style={{width: "44px", height: "44px", borderRadius: "14px", background: k?.bg, display: "grid", placeItems: "center", flexShrink: "0"}}>
+                    <span style={{width: "12px", height: "12px", borderRadius: "50%", background: k?.color}} />
+                  </span>
+                  <div style={{minWidth: "0"}}>
+                    <div style={{fontSize: "26px", fontWeight: "800", lineHeight: "1.1", color: k?.color}}>{k?.value}</div>
+                    <div style={{fontSize: "13px", fontWeight: "700", marginTop: "3px"}}>{k?.label}</div>
+                    <div style={{fontSize: "11px", color: "#8b8e89", marginTop: "2px"}}>{k?.sub}</div>
+                  </div>
                 </div>
-                <div style={{width: "48px", height: "48px", borderRadius: "15px", background: "#fbf1dc", color: "#8a5a00", display: "grid", placeItems: "center"}}>
-                  <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round">
-                    <circle cx="12" cy="12" r="9" />
-                    <path d="M12 7v5l3 2" />
-                  </svg>
-                </div>
-              </div>
-              <div style={{background: "#fff", border: "1px solid #e7e8e3", borderRadius: "20px", padding: "20px 22px", display: "flex", justifyContent: "space-between", alignItems: "center", boxShadow: "0 1px 2px rgba(20,20,20,.03)"}}>
-                <div>
-                  <div style={{fontSize: "30px", fontWeight: "800", lineHeight: "1.1"}}>{vm.vm?.kpis[2]?.value}</div>
-                  <div style={{fontSize: "13px", color: "#6b6e72", marginTop: "6px"}}>{"پیگیری انجام‌شده"}</div>
-                </div>
-                <div style={{width: "48px", height: "48px", borderRadius: "15px", background: "#eaf4dc", color: "#3d6a0c", display: "grid", placeItems: "center"}}>
-                  <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5" /></svg>
-                </div>
-              </div>
-              <div style={{background: "#fff", border: "1px solid #e7e8e3", borderRadius: "20px", padding: "20px 22px", display: "flex", justifyContent: "space-between", alignItems: "center", boxShadow: "0 1px 2px rgba(20,20,20,.03)"}}>
-                <div>
-                  <div style={{fontSize: "30px", fontWeight: "800", lineHeight: "1.1"}}>{vm.vm?.kpis[3]?.value}</div>
-                  <div style={{fontSize: "13px", color: "#6b6e72", marginTop: "6px"}}>{"تماس بی‌پاسخ امروز"}</div>
-                </div>
-                <div style={{width: "48px", height: "48px", borderRadius: "15px", background: "#fdeceb", color: "#b42318", display: "grid", placeItems: "center"}}>
-                  <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2" />
-                    <path d="M15 3l6 6M21 3l-6 6" />
-                  </svg>
-                </div>
-              </div>
+              </React.Fragment>)}
             </div>
-            <div style={{display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,340px),1fr))", gap: "20px", alignItems: "start"}}>
-              <div style={{background: "#fff", border: "1px solid #e7e8e3", borderRadius: "22px", boxShadow: "0 1px 2px rgba(20,20,20,.03)"}}>
-                <div style={{padding: "18px", display: "flex", flexDirection: "column", gap: "12px", borderBottom: "1px solid #eeefeb"}}>
-                  <div style={{fontWeight: "800", fontSize: "15px"}}>{"پیام‌ها و تماس‌های نیازمند رسیدگی"}</div>
+            <div style={{display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,360px),1fr))", gap: "20px", alignItems: "start"}}>
+              <div style={{background: "#fff", border: "1px solid #e7e8e3", borderRadius: "22px", overflow: "hidden", boxShadow: "0 1px 2px rgba(20,20,20,.03)"}}>
+                <div style={{padding: "14px", display: "flex", flexDirection: "column", gap: "10px", borderBottom: "1px solid #eeefeb", background: "#fafbf8"}}>
                   <div style={{display: "flex", gap: "8px"}}>
-                    <div style={{flex: "1", display: "flex", alignItems: "center", gap: "6px", border: "1px solid #e1e3dc", borderRadius: "10px", padding: "0 10px", background: "#fff", minWidth: "0"}}>
+                    <div style={{flex: "1", display: "flex", alignItems: "center", gap: "6px", border: "1px solid #e1e3dc", borderRadius: "12px", padding: "0 10px", background: "#fff", minWidth: "0"}}>
                       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#6b6e72" strokeWidth="1.8">
                         <circle cx="11" cy="11" r="7" />
                         <path d="M20 20l-3.5-3.5" />
                       </svg>
-                      <input value={vm.vm?.q} onChange={vm.vm?.setQ} placeholder="نام یا شماره…" style={{border: "none", outline: "none", padding: "9px 0", fontSize: "13px", flex: "1", minWidth: "0", background: "transparent"}} />
+                      <input value={vm.vbx?.q} onChange={vm.vbx?.setQ} placeholder="نام، شماره یا موضوع پیام…" style={{border: "none", outline: "none", padding: "10px 0", fontSize: "13px", flex: "1", background: "transparent", minWidth: "0", fontFamily: "inherit"}} />
                     </div>
-                    <JalaliDatePicker value={vm.vm?.dateV} placeholder="همه تاریخ‌ها" clearable={true} onChange={vm.vm?.pickDate} style={{width: "170px", flexShrink: "0"}} />
+                    <button onClick={vm.vbx?.togEmg} style={{border: "1px solid #f1c9c4", background: vm.vbx?.emgBg, color: vm.vbx?.emgFg, padding: "0 12px", borderRadius: "12px", fontSize: "12px", fontWeight: "800", cursor: "pointer", whiteSpace: "nowrap", fontFamily: "inherit"}}>{"● اورژانسی"}</button>
                   </div>
-                  <div style={{display: "flex", gap: "4px", padding: "4px", background: "#f4f5f1", borderRadius: "12px"}}>
-                    {(vm.vm?.tabs || []).map((t, __i10) => <React.Fragment key={__i10}>
-                      <button onClick={t?.onClick} style={{flex: "1", border: "none", background: t?.bg, color: t?.fg, padding: "7px 6px", borderRadius: "9px", fontSize: "12px", fontWeight: "700", cursor: "pointer", whiteSpace: "nowrap"}}>
-                        {t?.label}{" "}
-                        <span style={{opacity: ".6"}}>{t?.count}</span>
+                  <div style={{display: "flex", gap: "6px", flexWrap: "wrap"}}>
+                    {(vm.vbx?.ranges || []).map((r, __i10) => <React.Fragment key={__i10}>
+                      <button onClick={r?.pick} style={{border: `1px solid ${r?.bd}`, background: r?.bg, color: r?.fg, padding: "5px 12px", borderRadius: "999px", fontSize: "12px", fontWeight: "700", cursor: "pointer", fontFamily: "inherit"}}>{r?.label}</button>
+                    </React.Fragment>)}
+                  </div>
+                  <div style={{display: "flex", gap: "4px", overflowX: "auto", paddingBottom: "2px"}}>
+                    {(vm.vbx?.tabs || []).map((t, __i10) => <React.Fragment key={__i10}>
+                      <button onClick={t?.pick} style={{display: "flex", alignItems: "center", gap: "6px", border: "none", background: t?.bg, color: t?.fg, padding: "7px 10px", borderRadius: "10px", fontSize: "12px", fontWeight: "700", cursor: "pointer", whiteSpace: "nowrap", fontFamily: "inherit"}}>
+                        {t?.label}
+                        <span style={{background: t?.nbg, borderRadius: "99px", padding: "0 7px", fontSize: "11px"}}>{t?.n}</span>
                       </button>
                     </React.Fragment>)}
                   </div>
                 </div>
-                <div style={{maxHeight: "760px", overflowY: "auto", borderRadius: "0 0 22px 22px"}}>
-                  {(vm.vm?.list || []).map((it, __i9) => <React.Fragment key={__i9}>
-                    <div onClick={it?.select} style={{display: "flex", gap: "12px", padding: "16px 18px", borderBottom: "1px solid #f1f2ee", cursor: "pointer", background: it?.selBg, boxShadow: `inset -3px 0 0 ${it?.selBd}`}}>
+                <div style={{maxHeight: "820px", overflowY: "auto", padding: "10px", display: "flex", flexDirection: "column", gap: "8px"}}>
+                  {(vm.vbx?.items || []).map((it, __i9) => <React.Fragment key={__i9}>
+                    <div onClick={it?.select} style={{position: "relative", display: "flex", gap: "12px", padding: "12px 14px 12px 12px", borderRadius: "16px", border: `1.5px solid ${it?.bd}`, background: it?.bg, cursor: "pointer", overflow: "hidden"}}>
+                      <span style={{position: "absolute", top: "0", bottom: "0", right: "0", width: "4px", background: it?.stripe}} />
                       <div style={{position: "relative", flexShrink: "0"}}>
-                        <div style={{width: "46px", height: "46px", borderRadius: "15px", background: "#eef5e3", color: "#3d6a0c", display: "grid", placeItems: "center", fontWeight: "800", fontSize: "14px"}}>{it?.ini}</div>
+                        <div style={{width: "42px", height: "42px", borderRadius: "13px", background: "#eef5e3", color: "#3d6a0c", display: "grid", placeItems: "center", fontWeight: "800", fontSize: "13px"}}>{it?.ini}</div>
                         {(it?.isNew) ? (<>
-                          <span style={{position: "absolute", top: "-2px", left: "-2px", width: "12px", height: "12px", borderRadius: "50%", background: "#e0574a", border: "2px solid #fff"}} />
+                          <span style={{position: "absolute", top: "-3px", left: "-3px", width: "12px", height: "12px", borderRadius: "50%", background: "#ea580c", border: "2px solid #fff"}} />
                         </>) : null}
                       </div>
-                      <div style={{flex: "1", minWidth: "0", display: "flex", flexDirection: "column", gap: "5px"}}>
+                      <div style={{flex: "1", minWidth: "0", display: "flex", flexDirection: "column", gap: "4px"}}>
                         <div style={{display: "flex", justifyContent: "space-between", gap: "8px", alignItems: "baseline"}}>
-                          <span style={{fontWeight: "700", fontSize: "14px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis"}}>{it?.name}</span>
-                          <span style={{fontSize: "12px", color: "#6b6e72", flexShrink: "0"}}>{it?.when}</span>
+                          <span style={{fontWeight: "800", fontSize: "13px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis"}}>{it?.title}</span>
+                          <span style={{fontSize: "11px", color: "#8b8e89", flexShrink: "0"}}>{it?.when}</span>
                         </div>
-                        <div style={{fontSize: "12px", color: "#6b6e72", display: "flex", gap: "6px", alignItems: "center"}}>
-                          <span style={{direction: "ltr"}}>{it?.phone}</span>
+                        <div style={{fontSize: "12px", color: "#6b6e72", display: "flex", gap: "6px", alignItems: "center", minWidth: "0"}}>
+                          <span style={{whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis"}}>{it?.name}</span>
                           <span>{"·"}</span>
-                          <span>{it?.durText}</span>
+                          <span style={{direction: "ltr", whiteSpace: "nowrap"}}>{it?.phone}</span>
+                          <span>{"·"}</span>
+                          <span>{it?.dur}</span>
                         </div>
-                        <div style={{fontSize: "12px", color: "#55585c", lineHeight: "1.7", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis"}}>{it?.snippet}</div>
-                        <div style={{display: "flex", gap: "6px", alignItems: "center", marginTop: "2px"}}>
-                          <span style={{padding: "3px 9px", borderRadius: "7px", fontSize: "11px", fontWeight: "700", background: it?.aiBg, color: it?.aiFg}}>{it?.aiName}</span>
-                          <span style={{padding: "3px 9px", borderRadius: "999px", fontSize: "11px", fontWeight: "700", background: it?.fol?.bg, color: it?.fol?.fg}}>{it?.fol?.label}</span>
-                          {(it?.hasCb) ? (<>
-                            <span style={{padding: "3px 9px", borderRadius: "999px", fontSize: "11px", fontWeight: "700", background: "#eef5e3", color: "#3d6a0c"}}>{it?.cbText}</span>
+                        <div style={{display: "flex", gap: "5px", flexWrap: "wrap", alignItems: "center", marginTop: "2px"}}>
+                          {(it?.emg) ? (<>
+                            <span style={{display: "inline-flex", alignItems: "center", gap: "5px", padding: "3px 9px", borderRadius: "999px", fontSize: "11px", fontWeight: "700", whiteSpace: "nowrap", background: "#b42318", color: "#fff"}}>{"● اورژانسی"}</span>
                           </>) : null}
-                          <button onClick={it?.onPlay} style={{marginRight: "auto", width: "30px", height: "30px", borderRadius: "50%", border: "none", background: it?.playBg, color: it?.playFg, display: "grid", placeItems: "center", cursor: "pointer"}}>
-                            {(it?.isPlaying) ? (<>
-                              <svg width="12" height="12" viewBox="0 0 24 24"><path d="M7 5h3v14H7zM14 5h3v14h-3z" fill="currentColor" /></svg>
-                            </>) : null}
-                            {(it?.notPlaying) ? (<>
-                              <svg width="12" height="12" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" fill="currentColor" /></svg>
-                            </>) : null}
-                          </button>
+                          <span style={{display: "inline-flex", alignItems: "center", gap: "5px", padding: "3px 9px", borderRadius: "999px", fontSize: "11px", fontWeight: "700", whiteSpace: "nowrap", background: it?.stBg, color: it?.stFg}}>
+                            <span style={{width: "6px", height: "6px", borderRadius: "50%", background: it?.stDot}} />
+                            {it?.st}
+                          </span>
+                          {(it?.hasMood) ? (<>
+                            <span style={{display: "inline-flex", alignItems: "center", gap: "5px", padding: "3px 9px", borderRadius: "999px", fontSize: "11px", fontWeight: "700", whiteSpace: "nowrap", background: it?.moodBg, color: it?.moodFg}}>{it?.mood}</span>
+                          </>) : null}
+                          {(it?.analyzing) ? (<>
+                            <span style={{display: "inline-flex", alignItems: "center", gap: "5px", padding: "3px 9px", borderRadius: "999px", fontSize: "11px", fontWeight: "700", whiteSpace: "nowrap", background: "#f0ebf8", color: "#6a4b9c"}}>{"✦ در حال تحلیل"}</span>
+                          </>) : null}
+                          {(it?.hasRep) ? (<>
+                            <span style={{display: "inline-flex", alignItems: "center", gap: "5px", padding: "3px 9px", borderRadius: "999px", fontSize: "11px", fontWeight: "700", whiteSpace: "nowrap", background: "#e5eff7", color: "#1d5a85"}}>{it?.rep}{" گزارش"}</span>
+                          </>) : null}
                         </div>
                       </div>
+                      <button onClick={it?.play} style={{alignSelf: "center", width: "34px", height: "34px", borderRadius: "50%", border: "none", background: "#2E2F31", color: "#8DC63F", display: "grid", placeItems: "center", cursor: "pointer", flexShrink: "0"}}>
+                        {(it?.playing) ? (<>
+                          <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
+                            <rect x="6" y="5" width="4" height="14" rx="1" />
+                            <rect x="14" y="5" width="4" height="14" rx="1" />
+                          </svg>
+                        </>) : null}
+                        {(it?.notPlaying) ? (<>
+                          <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z" /></svg>
+                        </>) : null}
+                      </button>
                     </div>
                   </React.Fragment>)}
-                  {(vm.vm?.empty) ? (<>
-                    <div style={{padding: "36px", textAlign: "center", color: "#6b6e72", fontSize: "13px"}}>{"پیامی با این فیلتر وجود ندارد."}</div>
+                  {(vm.vbx?.empty) ? (<>
+                    <div style={{padding: "40px 16px", textAlign: "center", color: "#8b8e89", fontSize: "13px", lineHeight: "1.9"}}>{"پیامی با این فیلترها نیست."}</div>
+                  </>) : null}
+                  {(vm.vbx?.more) ? (<>
+                    <button onClick={vm.vbx?.showMore} style={{border: "1px solid #e7e8e3", background: "#fff", padding: "9px", borderRadius: "12px", cursor: "pointer", fontSize: "13px", fontWeight: "600", fontFamily: "inherit"}}>{vm.vbx?.moreText}</button>
                   </>) : null}
                 </div>
               </div>
-              {(vm.vm?.hasSel) ? (<>
-                <div style={{display: "flex", flexDirection: "column", gap: "18px", minWidth: "0"}}>
-                  <div style={{background: "#2E2F31", borderRadius: "24px", padding: "24px", color: "#fff", display: "flex", flexDirection: "column", gap: "20px", boxShadow: "0 14px 34px rgba(46,47,49,.18)"}}>
+              {(vm.vbx?.hasSel) ? (<>
+                <div style={{display: "flex", flexDirection: "column", gap: "16px", minWidth: "0"}}>
+                  <div style={{background: "radial-gradient(120% 140% at 100% 0%,#3a3c3f 0%,#2E2F31 55%,#242527 100%)", borderRadius: "24px", padding: "22px", color: "#fff", display: "flex", flexDirection: "column", gap: "18px", boxShadow: "0 18px 40px rgba(46,47,49,.22)"}}>
                     <div style={{display: "flex", gap: "14px", alignItems: "center", flexWrap: "wrap"}}>
-                      <div style={{width: "60px", height: "60px", borderRadius: "18px", background: "#8DC63F", color: "#1f2021", display: "grid", placeItems: "center", fontWeight: "800", fontSize: "19px", flexShrink: "0"}}>{vm.vm?.sel?.ini}</div>
-                      <div style={{flex: "1", minWidth: "160px"}}>
-                        <div onClick={vm.vm?.openFile} style={{fontSize: "22px", fontWeight: "800", cursor: "pointer", display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap"}}>
-                          {vm.vm?.sel?.name}
-                          <span style={{fontSize: "11px", fontWeight: "700", padding: "3px 10px", borderRadius: "999px", background: "rgba(141,198,63,.18)", color: "#8DC63F"}}>{"مشاهده پرونده ←"}</span>
+                      <div style={{width: "58px", height: "58px", borderRadius: "18px", background: "#8DC63F", color: "#1f2021", display: "grid", placeItems: "center", fontWeight: "800", fontSize: "18px", flexShrink: "0"}}>{vm.vbx?.sel?.ini}</div>
+                      <div style={{flex: "1", minWidth: "170px"}}>
+                        <div onClick={vm.vbx?.sel?.openFile} style={{fontSize: "21px", fontWeight: "800", cursor: "pointer"}}>{vm.vbx?.sel?.name}</div>
+                        <div style={{fontSize: "13px", color: "#c9cbc6", marginTop: "3px", display: "flex", gap: "8px", flexWrap: "wrap"}}>
+                          <span style={{direction: "ltr"}}>{vm.vbx?.sel?.phone}</span>
+                          <span>{"·"}</span>
+                          <span>{vm.vbx?.sel?.date}{" ساعت "}{vm.vbx?.sel?.time}</span>
+                          <span>{"·"}</span>
+                          <span>{vm.vbx?.sel?.src}</span>
                         </div>
-                        <div style={{fontSize: "13px", color: "#b8bab5", marginTop: "4px"}}>
-                          <span style={{direction: "ltr", display: "inline-block"}}>{vm.vm?.sel?.phone}</span>
-                          {" · "}{vm.vm?.sel?.date}{" ساعت "}{vm.vm?.sel?.time}
-                        </div>
-                      </div>
-                      <div style={{display: "flex", gap: "8px", flexWrap: "wrap"}}>
-                        <span style={{padding: "6px 12px", borderRadius: "999px", fontSize: "12px", fontWeight: "700", background: vm.vm?.idChip?.bg, color: vm.vm?.idChip?.fg}}>{vm.vm?.idChip?.label}</span>
-                        <span style={{padding: "6px 12px", borderRadius: "999px", fontSize: "12px", fontWeight: "700", background: vm.vm?.selFol?.bg, color: vm.vm?.selFol?.fg}}>{vm.vm?.selFol?.label}</span>
-                      </div>
-                    </div>
-                    <div style={{display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(120px,1fr))", gap: "10px"}}>
-                      {(vm.vm?.info || []).map((x, __i11) => <React.Fragment key={__i11}>
-                        <div style={{background: "rgba(255,255,255,.06)", border: "1px solid rgba(255,255,255,.08)", borderRadius: "14px", padding: "12px 14px"}}>
-                          <div style={{fontSize: "11px", color: "#b8bab5"}}>{x?.label}</div>
-                          <div style={{fontSize: "15px", fontWeight: "700", marginTop: "5px"}}>{x?.value}</div>
-                        </div>
-                      </React.Fragment>)}
-                    </div>
-                    <div style={{background: "rgba(255,255,255,.05)", border: "1px solid rgba(141,198,63,.25)", borderRadius: "18px", padding: "16px 18px", display: "flex", alignItems: "center", gap: "16px"}}>
-                      <button onClick={vm.vm?.play} style={{width: "56px", height: "56px", borderRadius: "50%", border: "none", background: "#8DC63F", color: "#1f2021", display: "grid", placeItems: "center", cursor: "pointer", flexShrink: "0", boxShadow: "0 0 0 6px rgba(141,198,63,.18)"}}>
-                        {(vm.vm?.isPlaying) ? (<>
-                          <svg width="21" height="21" viewBox="0 0 24 24"><path d="M7 5h3v14H7zM14 5h3v14h-3z" fill="currentColor" /></svg>
+                        {(vm.vbx?.sel?.hasSurgery) ? (<>
+                          <div style={{marginTop: "6px", display: "inline-block", fontSize: "11px", fontWeight: "700", padding: "3px 10px", borderRadius: "999px", background: "rgba(141,198,63,.18)", color: "#c5e69a"}}>{vm.vbx?.sel?.surgery}</div>
                         </>) : null}
-                        {(vm.vm?.notPlaying) ? (<>
-                          <svg width="21" height="21" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" fill="currentColor" /></svg>
+                      </div>
+                      <span style={{padding: "6px 12px", borderRadius: "999px", fontSize: "12px", fontWeight: "800", background: vm.vbx?.sel?.stBg, color: vm.vbx?.sel?.stFg}}>{vm.vbx?.sel?.stLabel}</span>
+                    </div>
+                    {(vm.vbx?.ai?.emg) ? (<>
+                      <div style={{background: "rgba(217,45,32,.18)", border: "1px solid rgba(255,140,130,.45)", borderRadius: "16px", padding: "12px 14px", display: "flex", gap: "12px", alignItems: "center"}}>
+                        <span style={{width: "12px", height: "12px", borderRadius: "50%", background: "#ff6b5e", flexShrink: "0", animation: "cc-pulse-red 1.4s infinite"}} />
+                        <div>
+                          <div style={{fontWeight: "800", fontSize: "14px", color: "#ffd4cf"}}>{"پیام اورژانسی"}</div>
+                          <div style={{fontSize: "13px", color: "#ffe6e2", marginTop: "2px", lineHeight: "1.7"}}>{vm.vbx?.ai?.emgWhy}</div>
+                        </div>
+                      </div>
+                    </>) : null}
+                    <div style={{background: "rgba(255,255,255,.05)", border: "1px solid rgba(141,198,63,.25)", borderRadius: "18px", padding: "14px 16px", display: "flex", alignItems: "center", gap: "14px"}}>
+                      <button onClick={vm.vbx?.sel?.play} style={{width: "54px", height: "54px", borderRadius: "50%", border: "none", background: "#8DC63F", color: "#1f2021", display: "grid", placeItems: "center", cursor: "pointer", flexShrink: "0", boxShadow: "0 0 0 6px rgba(141,198,63,.16)"}}>
+                        {(vm.vbx?.sel?.playing) ? (<>
+                          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                            <rect x="6" y="5" width="4" height="14" rx="1" />
+                            <rect x="14" y="5" width="4" height="14" rx="1" />
+                          </svg>
+                        </>) : null}
+                        {(vm.vbx?.sel?.notPlaying) ? (<>
+                          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z" /></svg>
                         </>) : null}
                       </button>
-                      <div style={{flex: "1", minWidth: "0", display: "flex", flexDirection: "column", gap: "8px"}}>
-                        <div onClick={vm.vm?.seek} style={{display: "flex", alignItems: "center", gap: "3px", height: "46px", cursor: "pointer", overflow: "hidden"}}>
-                          {(vm.vm?.wave || []).map((b, __i13) => <React.Fragment key={__i13}>
+                      <div style={{flex: "1", minWidth: "0", display: "flex", flexDirection: "column", gap: "6px"}}>
+                        <div onClick={vm.vbx?.sel?.seek} style={{display: "flex", alignItems: "center", gap: "3px", height: "46px", cursor: "pointer", overflow: "hidden"}}>
+                          {(vm.vbx?.sel?.wave || []).map((b, __i13) => <React.Fragment key={__i13}>
                             <span style={{flex: "1", minWidth: "2px", maxWidth: "5px", borderRadius: "3px", height: b?.h, background: b?.c}} />
                           </React.Fragment>)}
                         </div>
                         <div style={{display: "flex", justifyContent: "space-between", fontSize: "12px", color: "#b8bab5"}}>
-                          <span style={{fontVariantNumeric: "tabular-nums"}}>{vm.vm?.timeText}</span>
-                          <span>{"پیام صوتی اولیه · صندوق IVR"}</span>
+                          <span style={{fontVariantNumeric: "tabular-nums"}}>{vm.vbx?.sel?.timeText}</span>
+                          <span>{"طول پیام "}{vm.vbx?.sel?.dur}</span>
                         </div>
                       </div>
-                      <button onClick={vm.vm?.cycleSpeed} style={{border: "1px solid rgba(255,255,255,.2)", background: "none", color: "#fff", padding: "6px 10px", borderRadius: "9px", cursor: "pointer", fontSize: "12px", fontWeight: "700", flexShrink: "0"}}>{vm.vm?.speedText}</button>
+                      <div style={{display: "flex", flexDirection: "column", gap: "6px", flexShrink: "0"}}>
+                        <button onClick={vm.vbx?.sel?.cycleSpeed} style={{border: "1px solid rgba(255,255,255,.2)", background: "none", color: "#fff", padding: "5px 9px", borderRadius: "9px", cursor: "pointer", fontSize: "12px", fontWeight: "700", fontFamily: "inherit"}}>{vm.vbx?.sel?.speedText}</button>
+                        <button onClick={vm.vbx?.sel?.download} title="دانلود" style={{border: "1px solid rgba(255,255,255,.2)", background: "none", color: "#fff", padding: "5px 9px", borderRadius: "9px", cursor: "pointer", fontSize: "12px", fontFamily: "inherit"}}>{"⇩"}</button>
+                      </div>
+                    </div>
+                    <div style={{display: "flex", gap: "8px", flexWrap: "wrap"}}>
+                      <button onClick={vm.vbx?.sel?.call} style={{border: "none", borderRadius: "12px", fontSize: "13px", fontWeight: "800", cursor: "pointer", fontFamily: "inherit", flex: "1", minWidth: "150px", background: "#8DC63F", color: "#1f2021", padding: "12px 16px", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px"}}>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8 9.8a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2z" />
+                        </svg>
+                        {"تماس با بیمار"}
+                      </button>
+                      {(vm.vbx?.sel?.hasAlt) ? (<>
+                        <button onClick={vm.vbx?.sel?.callAlt} style={{border: "none", borderRadius: "12px", fontSize: "13px", fontWeight: "800", cursor: "pointer", fontFamily: "inherit", background: "rgba(255,255,255,.1)", color: "#fff", padding: "12px 14px", border: "1px solid rgba(255,255,255,.18)"}}>{vm.vbx?.sel?.altText}</button>
+                      </>) : null}
+                      {(vm.vbx?.rep?.canAdd) ? (<>
+                        <button onClick={vm.vbx?.rep?.start} style={{border: "none", borderRadius: "12px", fontSize: "13px", fontWeight: "800", cursor: "pointer", fontFamily: "inherit", background: "#fff", color: "#2E2F31", padding: "12px 16px"}}>{"+ ثبت گزارش"}</button>
+                      </>) : null}
                     </div>
                   </div>
-                  <div style={{display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,300px),1fr))", gap: "18px"}}>
-                    <div style={{background: "#fff", border: "1px solid #e7e8e3", borderRadius: "22px", padding: "20px", display: "flex", flexDirection: "column", gap: "12px"}}>
-                      <div style={{display: "flex", justifyContent: "space-between", alignItems: "center", gap: "8px", flexWrap: "wrap"}}>
-                        <span style={{fontWeight: "800", fontSize: "15px"}}>{"متن استخراج‌شده"}</span>
-                        <span style={{padding: "4px 10px", borderRadius: "999px", fontSize: "11px", fontWeight: "700", background: "#eef5e3", color: "#3d6a0c"}}>{"تبدیل توسط AI · دقت "}{vm.vm?.sel?.ai?.conf}{"%"}</span>
-                      </div>
-                      <div style={{position: "relative", fontSize: "14px", lineHeight: "2.1", color: "#3a3b3d", textWrap: "pretty", paddingRight: "18px", borderRight: "3px solid #dcebc4"}}>{vm.vm?.sel?.ai?.tx}</div>
+                  <div style={{background: "#fff", border: "1px solid #e7e8e3", borderRadius: "22px", padding: "16px 18px", display: "flex", flexDirection: "column", gap: "10px"}}>
+                    <div style={{fontWeight: "800", fontSize: "14px"}}>{"وضعیت پیام"}</div>
+                    <div style={{display: "flex", gap: "8px", flexWrap: "wrap"}}>
+                      {(vm.vbx?.statuses || []).map((t, __i11) => <React.Fragment key={__i11}>
+                        <button onClick={t?.pick} style={{display: "flex", alignItems: "center", gap: "7px", border: `1.5px solid ${t?.bd}`, background: t?.bg, color: t?.fg, padding: "8px 14px", borderRadius: "12px", fontSize: "13px", fontWeight: t?.fw, cursor: "pointer", fontFamily: "inherit"}}>
+                          <span style={{width: "8px", height: "8px", borderRadius: "50%", background: t?.dot}} />
+                          {t?.label}
+                        </button>
+                      </React.Fragment>)}
                     </div>
-                    <div style={{background: "linear-gradient(180deg,#f5faee,#fff)", border: "1px solid #dcebc4", borderRadius: "22px", padding: "20px", display: "flex", flexDirection: "column", gap: "12px"}}>
-                      <div style={{display: "flex", alignItems: "center", gap: "8px"}}>
-                        <span style={{width: "30px", height: "30px", borderRadius: "10px", background: "#2E2F31", color: "#8DC63F", display: "grid", placeItems: "center"}}>
-                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinejoin="round"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z" /></svg>
-                        </span>
-                        <span style={{fontWeight: "800", fontSize: "15px"}}>{"خلاصه هوشمند پیام"}</span>
+                  </div>
+                  <div style={{background: "linear-gradient(180deg,#f6faef 0%,#fff 60%)", border: "1px solid #dcebc4", borderRadius: "22px", padding: "18px 20px", display: "flex", flexDirection: "column", gap: "12px"}}>
+                    <div style={{display: "flex", alignItems: "center", gap: "10px"}}>
+                      <span style={{width: "34px", height: "34px", borderRadius: "11px", background: "#2E2F31", color: "#8DC63F", display: "grid", placeItems: "center", fontWeight: "800"}}>{"✦"}</span>
+                      <div style={{flex: "1", fontWeight: "800", fontSize: "15px"}}>{"تحلیل هوش مصنوعی"}</div>
+                      {(vm.vbx?.canRun) ? (<>
+                        <button onClick={vm.vbx?.run} style={{border: "1px solid #cfe4ad", background: "#fff", color: "#3d6a0c", padding: "6px 12px", borderRadius: "10px", fontSize: "12px", fontWeight: "700", cursor: "pointer", fontFamily: "inherit"}}>{vm.vbx?.runLabel}</button>
+                      </>) : null}
+                    </div>
+                    {(vm.vbx?.analyzing) ? (<>
+                      <div style={{display: "flex", alignItems: "center", gap: "10px", fontSize: "13px", color: "#6a4b9c", background: "#f6f2fb", borderRadius: "12px", padding: "12px 14px"}}>
+                        <span style={{width: "10px", height: "10px", borderRadius: "50%", background: "#6a4b9c", animation: "cc-pulse 1.2s infinite"}} />
+                        {"پیام در حال تبدیل به متن و تحلیل است…"}
                       </div>
+                    </>) : null}
+                    {(vm.vbx?.aiFailed) ? (<>
+                      <div style={{background: "#fdeceb", color: "#b42318", borderRadius: "12px", padding: "10px 14px", fontSize: "13px", lineHeight: "1.7"}}>{"تحلیل ناموفق بود: "}{vm.vbx?.aiErr}</div>
+                    </>) : null}
+                    {(vm.vbx?.notAnalyzed) ? (<>
+                      <div style={{fontSize: "13px", color: "#6b6e72", lineHeight: "1.8"}}>{"این پیام هنوز تحلیل نشده است."}</div>
+                    </>) : null}
+                    {(vm.vbx?.ai?.has) ? (<>
+                      <div style={{fontSize: "18px", fontWeight: "800", lineHeight: "1.6"}}>{vm.vbx?.ai?.topic}</div>
                       <div style={{display: "flex", gap: "6px", flexWrap: "wrap"}}>
-                        <span style={{padding: "4px 10px", borderRadius: "8px", fontSize: "12px", fontWeight: "700", background: vm.vm?.sel?.aiBg, color: vm.vm?.sel?.aiFg}}>{vm.vm?.sel?.aiName}</span>
-                        <span style={{padding: "4px 10px", borderRadius: "999px", fontSize: "11px", fontWeight: "700", background: vm.vm?.urg?.bg, color: vm.vm?.urg?.fg}}>{"اولویت "}{vm.vm?.urg?.label}</span>
-                        <span style={{padding: "4px 10px", borderRadius: "999px", fontSize: "11px", fontWeight: "700", background: vm.vm?.sent?.bg, color: vm.vm?.sent?.fg}}>{"احساس "}{vm.vm?.sent?.label}</span>
+                        {(vm.vbx?.ai?.hasCat) ? (<>
+                          <span style={{display: "inline-flex", alignItems: "center", gap: "5px", padding: "3px 9px", borderRadius: "999px", fontSize: "11px", fontWeight: "700", whiteSpace: "nowrap", fontSize: "12px", padding: "4px 10px", borderRadius: "8px", background: vm.vbx?.ai?.catBg, color: vm.vbx?.ai?.catFg}}>{vm.vbx?.ai?.cat}</span>
+                        </>) : null}
+                        <span style={{display: "inline-flex", alignItems: "center", gap: "5px", padding: "3px 9px", borderRadius: "999px", fontSize: "11px", fontWeight: "700", whiteSpace: "nowrap", fontSize: "12px", padding: "4px 10px", background: vm.vbx?.ai?.urgBg, color: vm.vbx?.ai?.urgFg}}>{"اولویت "}{vm.vbx?.ai?.urg}</span>
+                        {(vm.vbx?.ai?.hasMood) ? (<>
+                          <span style={{display: "inline-flex", alignItems: "center", gap: "5px", padding: "3px 9px", borderRadius: "999px", fontSize: "11px", fontWeight: "700", whiteSpace: "nowrap", fontSize: "12px", padding: "4px 10px", background: vm.vbx?.ai?.moodBg, color: vm.vbx?.ai?.moodFg}}>{"حال بیمار: "}{vm.vbx?.ai?.mood}</span>
+                        </>) : null}
+                        {(vm.vbx?.ai?.hasWho) ? (<>
+                          <span style={{display: "inline-flex", alignItems: "center", gap: "5px", padding: "3px 9px", borderRadius: "999px", fontSize: "11px", fontWeight: "700", whiteSpace: "nowrap", fontSize: "12px", padding: "4px 10px", background: "#f2f3ef", color: "#3a3b3d"}}>{"خود را «"}{vm.vbx?.ai?.who}{"» معرفی کرد"}</span>
+                        </>) : null}
                       </div>
+                      {(vm.vbx?.ai?.moodNote) ? (<>
+                        <div style={{fontSize: "13px", color: "#55585c", lineHeight: "1.8", background: "#fff", borderRadius: "12px", padding: "8px 12px", border: "1px solid #eeefeb"}}>{vm.vbx?.ai?.moodNote}</div>
+                      </>) : null}
                       <ul style={{margin: "0", paddingRight: "18px", fontSize: "14px", lineHeight: "2", color: "#3a3b3d"}}>
-                        {(vm.vm?.sel?.ai?.sum || []).map((b, __i12) => <React.Fragment key={__i12}>
-                          <li>{b}</li>
+                        {(vm.vbx?.ai?.sum || []).map((b, __i12) => <React.Fragment key={__i12}>
+                          <li>{b?.t}</li>
                         </React.Fragment>)}
                       </ul>
-                      <div style={{display: "flex", gap: "8px", alignItems: "center", background: "#fff", border: "1px dashed #cfe4ad", borderRadius: "12px", padding: "10px 12px", fontSize: "13px"}}>
-                        <span style={{color: "#6b6e72"}}>{"اقدام پیشنهادی:"}</span>
-                        <b style={{color: "#3d6a0c"}}>{vm.vm?.sugg}</b>
-                      </div>
-                    </div>
-                  </div>
-                  <div style={{background: "#fff", border: "1px solid #e7e8e3", borderRadius: "22px", padding: "18px 20px", display: "flex", gap: "10px", flexWrap: "wrap", alignItems: "center"}}>
-                    <button onClick={vm.vm?.actCall} style={{display: "flex", alignItems: "center", gap: "8px", border: "none", background: "#8DC63F", color: "#1f2021", padding: "11px 18px", borderRadius: "12px", fontSize: "13px", fontWeight: "800", cursor: "pointer", fontFamily: "inherit"}}>
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round">
-                        <path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2" />
-                      </svg>
-                      {"تماس با بیمار"}
-                    </button>
-                    <button onClick={vm.vm?.actDone} style={{display: "flex", alignItems: "center", gap: "8px", border: `1px solid ${vm.vm?.doneBd}`, background: vm.vm?.doneBg, color: vm.vm?.doneFg, padding: "11px 18px", borderRadius: "12px", fontSize: "13px", fontWeight: "800", cursor: "pointer", fontFamily: "inherit"}}>
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#3d6a0c" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5" /></svg>
-                      {vm.vm?.doneLabel}
-                    </button>
-                    {(vm.vm?.isDone) ? (<>
-                      <span style={{marginRight: "auto", display: "flex", alignItems: "center", gap: "8px", padding: "8px 14px", borderRadius: "12px", background: "#eaf4dc", color: "#3d6a0c", fontSize: "13px", fontWeight: "700"}}>
-                        <span style={{width: "20px", height: "20px", borderRadius: "50%", background: "#8DC63F", color: "#1f2021", display: "grid", placeItems: "center", fontSize: "11px"}}>{"✓"}</span>
-                        {"پیگیری این پیام انجام شد"}{vm.vm?.doneAt}
-                      </span>
+                      {(vm.vbx?.ai?.hasAction) ? (<>
+                        <div style={{display: "flex", gap: "8px", alignItems: "center", background: "#fff", border: "1px dashed #cfe4ad", borderRadius: "12px", padding: "10px 12px", fontSize: "13px"}}>
+                          <span style={{color: "#6b6e72", whiteSpace: "nowrap"}}>{"اقدام پیشنهادی:"}</span>
+                          <b style={{color: "#3d6a0c"}}>{vm.vbx?.ai?.action}</b>
+                        </div>
+                      </>) : null}
+                      {(vm.vbx?.ai?.hasKw) ? (<>
+                        <div style={{display: "flex", gap: "6px", flexWrap: "wrap"}}>
+                          {(vm.vbx?.ai?.kw || []).map((w, __i13) => <React.Fragment key={__i13}>
+                            <span style={{fontSize: "11px", color: "#55585c", background: "#f2f3ef", borderRadius: "7px", padding: "3px 8px"}}>{"#"}{w?.t}</span>
+                          </React.Fragment>)}
+                        </div>
+                      </>) : null}
+                      {(vm.vbx?.ai?.old) ? (<>
+                        <div style={{fontSize: "12px", color: "#8a5a00", background: "#fcf3e0", borderRadius: "10px", padding: "8px 12px"}}>
+                          {"این پیام با نسخه قبلی تحلیل شده؛ برای دیدن موضوع، حال بیمار و تشخیص اورژانس «تحلیل دوباره» را بزنید."}
+                        </div>
+                      </>) : null}
+                      {(vm.vbx?.ai?.hasTx) ? (<>
+                        <button onClick={vm.vbx?.ai?.togTx} style={{alignSelf: "flex-start", border: "none", background: "transparent", color: "#1d5a85", fontSize: "12px", fontWeight: "700", cursor: "pointer", padding: "0", fontFamily: "inherit"}}>{vm.vbx?.ai?.txLabel}</button>
+                        {(vm.vbx?.ai?.txOpen) ? (<>
+                          <div style={{fontSize: "14px", lineHeight: "2.1", color: "#3a3b3d", paddingRight: "14px", borderRight: "3px solid #dcebc4", whiteSpace: "pre-wrap"}}>{vm.vbx?.ai?.tx}</div>
+                        </>) : null}
+                      </>) : null}
                     </>) : null}
                   </div>
-                  {(vm.vm?.hasCallbacks) ? (<>
-                    <div style={{background: "#fff", border: "1px solid #e7e8e3", borderRadius: "22px", padding: "20px", display: "flex", flexDirection: "column", gap: "12px"}}>
-                      <div style={{display: "flex", justifyContent: "space-between", alignItems: "center"}}>
-                        <span style={{fontWeight: "800", fontSize: "15px"}}>{"تماس‌های برقرارشده با بیمار"}</span>
-                        <span style={{fontSize: "12px", color: "#6b6e72"}}>{vm.vm?.cbCount}{" تماس"}</span>
+                  <div style={{background: "#fff", border: "1px solid #e7e8e3", borderRadius: "22px", padding: "18px 20px", display: "flex", flexDirection: "column", gap: "12px"}}>
+                    <div style={{display: "flex", alignItems: "center", gap: "10px"}}>
+                      <div style={{width: "34px", height: "34px", borderRadius: "10px", background: "#e5eff7", color: "#1d5a85", display: "grid", placeItems: "center"}}>
+                        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z" />
+                          <path d="M14 3v6h6M8 13h8M8 17h5" />
+                        </svg>
                       </div>
-                      {(vm.vm?.callbacks || []).map((cb, __i11) => <React.Fragment key={__i11}>
-                        <div style={{display: "flex", gap: "12px", alignItems: "center", padding: "12px 14px", border: "1px solid #eeefeb", borderRadius: "14px", background: "#fafbf8", flexWrap: "wrap"}}>
-                          {(cb?.hasVoice) ? (<>
-                            <button onClick={cb?.onPlay} style={{width: "38px", height: "38px", borderRadius: "50%", border: "none", background: cb?.playBg, color: cb?.playFg, display: "grid", placeItems: "center", cursor: "pointer", flexShrink: "0"}}>
-                              {(cb?.isPlaying) ? (<>
-                                <svg width="14" height="14" viewBox="0 0 24 24"><path d="M7 5h3v14H7zM14 5h3v14h-3z" fill="currentColor" /></svg>
-                              </>) : null}
-                              {(cb?.notPlaying) ? (<>
-                                <svg width="14" height="14" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" fill="currentColor" /></svg>
-                              </>) : null}
-                            </button>
+                      <div style={{flex: "1", fontWeight: "800", fontSize: "15px"}}>
+                        {"گزارش تماس "}
+                        <span style={{fontSize: "12px", color: "#8b8e89", fontWeight: "600"}}>{"("}{vm.vbx?.rep?.count}{")"}</span>
+                      </div>
+                      {(vm.vbx?.rep?.canAdd) ? (<>
+                        {(vm.vbx?.rep?.closed) ? (<>
+                          <button onClick={vm.vbx?.rep?.start} style={{border: "none", padding: "10px 14px", borderRadius: "12px", fontSize: "13px", fontWeight: "800", cursor: "pointer", fontFamily: "inherit", background: "#2E2F31", color: "#fff", padding: "8px 14px", fontSize: "12px"}}>{"+ ثبت گزارش"}</button>
+                        </>) : null}
+                      </>) : null}
+                    </div>
+                    {(vm.vbx?.rep?.open) ? (<>
+                      <div style={{background: "#f7f8f5", borderRadius: "16px", padding: "12px", display: "flex", flexDirection: "column", gap: "10px"}}>
+                        <div style={{fontSize: "13px", fontWeight: "800"}}>{vm.vbx?.rep?.formTitle}</div>
+                        <div style={{fontSize: "12px", color: "#6b6e72", fontWeight: "700"}}>{"موضوع"}</div>
+                        <div style={{display: "flex", gap: "6px", flexWrap: "wrap"}}>
+                          {(vm.vbx?.rep?.cats || []).map((o, __i13) => <React.Fragment key={__i13}>
+                            <span onClick={o?.pick} style={{padding: "6px 11px", borderRadius: "999px", fontSize: "12px", fontWeight: "700", cursor: "pointer", border: `1px solid ${o?.bd}`, background: o?.bg, color: o?.fg}}>{o?.label}</span>
+                          </React.Fragment>)}
+                        </div>
+                        <div style={{fontSize: "12px", color: "#6b6e72", fontWeight: "700"}}>{"نتیجه تماس"}</div>
+                        <div style={{display: "flex", gap: "6px", flexWrap: "wrap"}}>
+                          {(vm.vbx?.rep?.outs || []).map((o, __i13) => <React.Fragment key={__i13}>
+                            <span onClick={o?.pick} style={{padding: "6px 11px", borderRadius: "999px", fontSize: "12px", fontWeight: "700", cursor: "pointer", border: `1px solid ${o?.bd}`, background: o?.bg, color: o?.fg}}>{o?.label}</span>
+                          </React.Fragment>)}
+                        </div>
+                        {(vm.vbx?.rep?.isFollow) ? (<>
+                          <div style={{fontSize: "12px", color: "#6b6e72", fontWeight: "700"}}>{"زمان پیگیری بعدی"}</div>
+                          <div style={{display: "flex", gap: "6px", flexWrap: "wrap"}}>
+                            {(vm.vbx?.rep?.fus || []).map((o, __i14) => <React.Fragment key={__i14}>
+                              <span onClick={o?.pick} style={{padding: "6px 11px", borderRadius: "999px", fontSize: "12px", fontWeight: "700", cursor: "pointer", border: `1px solid ${o?.bd}`, background: o?.bg, color: o?.fg}}>{o?.label}</span>
+                            </React.Fragment>)}
+                          </div>
+                        </>) : null}
+                        <textarea value={vm.vbx?.rep?.text} onChange={vm.vbx?.rep?.setText} placeholder="چه گفته شد و چه کاری انجام شد؟" rows="4" style={{border: "1px solid #e1e3dc", borderRadius: "12px", padding: "10px 12px", fontSize: "13px", fontFamily: "inherit", lineHeight: "1.8", resize: "vertical", outline: "none", background: "#fff"}} />
+                        <div style={{display: "flex", gap: "8px", justifyContent: "flex-end"}}>
+                          <button onClick={vm.vbx?.rep?.cancel} style={{border: "none", padding: "10px 14px", borderRadius: "12px", fontSize: "13px", fontWeight: "800", cursor: "pointer", fontFamily: "inherit", background: "#fff", border: "1px solid #e1e3dc", color: "#2E2F31"}}>{"انصراف"}</button>
+                          <button onClick={vm.vbx?.rep?.save} style={{border: "none", padding: "10px 14px", borderRadius: "12px", fontSize: "13px", fontWeight: "800", cursor: "pointer", fontFamily: "inherit", background: "#8DC63F", color: "#1f2021", opacity: vm.vbx?.rep?.saveOp}}>{vm.vbx?.rep?.saveText}</button>
+                        </div>
+                      </div>
+                    </>) : null}
+                    {(vm.vbx?.rep?.loading) ? (<>
+                      <div style={{fontSize: "12px", color: "#8b8e89"}}>{"در حال بارگذاری…"}</div>
+                    </>) : null}
+                    {(vm.vbx?.rep?.none) ? (<>
+                      <div style={{fontSize: "12px", color: "#8b8e89", padding: "2px"}}>{"هنوز گزارشی برای این تماس ثبت نشده است."}</div>
+                    </>) : null}
+                    {(vm.vbx?.rep?.items || []).map((g, __i10) => <React.Fragment key={__i10}>
+                      <div style={{background: "#fff", border: "1px solid #e7e8e3", borderRadius: "16px", padding: "12px 14px", display: "flex", flexDirection: "column", gap: "8px"}}>
+                        <div style={{display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap"}}>
+                          <span style={{fontSize: "11px", fontWeight: "800", padding: "3px 9px", borderRadius: "999px", background: "#f2f3ef", color: "#3a3b3d"}}>{g?.cat}</span>
+                          <span style={{fontSize: "11px", fontWeight: "800", padding: "3px 9px", borderRadius: "999px", background: g?.outBg, color: g?.outFg}}>{g?.out}</span>
+                          {(g?.hasFu) ? (<>
+                            <span style={{fontSize: "11px", fontWeight: "800", padding: "3px 9px", borderRadius: "999px", background: g?.fuBg, color: g?.fuFg}}>{g?.fu}</span>
                           </>) : null}
-                          {(cb?.noVoice) ? (<>
-                            <div style={{width: "38px", height: "38px", borderRadius: "50%", background: "#fdeceb", color: "#b42318", display: "grid", placeItems: "center", flexShrink: "0"}}>
-                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round">
-                                <path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2" />
-                              </svg>
-                            </div>
+                        </div>
+                        <div style={{fontSize: "13px", lineHeight: "1.9", whiteSpace: "pre-wrap", color: "#232425"}}>{g?.text}</div>
+                        <div style={{display: "flex", alignItems: "center", gap: "8px", fontSize: "11px", color: "#8b8e89"}}>
+                          <span style={{width: "22px", height: "22px", borderRadius: "7px", background: "#eef5e3", color: "#3d6a0c", display: "grid", placeItems: "center", fontWeight: "800", fontSize: "11px"}}>{g?.ini}</span>
+                          <span style={{flex: "1"}}>{g?.by}{" · "}{g?.when}{g?.edited}</span>
+                          {(g?.mine) ? (<>
+                            <button onClick={g?.edit} style={{border: "none", background: "transparent", color: "#3d6a0c", fontSize: "11px", fontWeight: "700", cursor: "pointer", fontFamily: "inherit", padding: "2px 4px"}}>{"ویرایش"}</button>
+                            <button onClick={g?.del} style={{border: "none", background: "transparent", color: "#b42318", fontSize: "11px", fontWeight: "700", cursor: "pointer", fontFamily: "inherit", padding: "2px 4px"}}>{"حذف"}</button>
                           </>) : null}
-                          <div style={{flex: "1", minWidth: "160px"}}>
-                            <div style={{fontWeight: "700", fontSize: "13px"}}>{cb?.histTitle}</div>
-                            <div style={{fontSize: "12px", color: "#6b6e72", marginTop: "3px"}}>{cb?.date}{" · "}{cb?.time}{" · "}{cb?.opName}{" · "}{cb?.durText}</div>
-                            {(cb?.hasSummary) ? (<>
-                              <div style={{fontSize: "13px", marginTop: "6px", lineHeight: "1.8", color: "#3a3b3d"}}>{"خلاصه: "}{cb?.summary}</div>
+                        </div>
+                      </div>
+                    </React.Fragment>)}
+                    {(vm.vbx?.rep?.hasHist) ? (<>
+                      <div style={{fontSize: "12px", fontWeight: "800", color: "#6b6e72", marginTop: "4px"}}>{"گزارش‌های قبلی این شماره ("}{vm.vbx?.rep?.histCount}{")"}</div>
+                      {(vm.vbx?.rep?.hist || []).map((g, __i11) => <React.Fragment key={__i11}>
+                        <div style={{background: "#fff", border: "1px solid #e7e8e3", borderRadius: "16px", padding: "12px 14px", display: "flex", flexDirection: "column", gap: "8px"}}>
+                          <div style={{display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap"}}>
+                            <span style={{fontSize: "11px", fontWeight: "800", padding: "3px 9px", borderRadius: "999px", background: "#f2f3ef", color: "#3a3b3d"}}>{g?.cat}</span>
+                            <span style={{fontSize: "11px", fontWeight: "800", padding: "3px 9px", borderRadius: "999px", background: g?.outBg, color: g?.outFg}}>{g?.out}</span>
+                            {(g?.hasFu) ? (<>
+                              <span style={{fontSize: "11px", fontWeight: "800", padding: "3px 9px", borderRadius: "999px", background: g?.fuBg, color: g?.fuFg}}>{g?.fu}</span>
                             </>) : null}
                           </div>
-                          <span style={{padding: "4px 10px", borderRadius: "999px", fontSize: "12px", fontWeight: "600", background: cb?.status?.bg, color: cb?.status?.fg}}>{cb?.status?.label}</span>
-                          {(cb?.hasVoice) ? (<>
-                            <span style={{padding: "4px 10px", borderRadius: "999px", fontSize: "11px", fontWeight: "700", background: "#fdeceb", color: "#b42318"}}>{"● "}{cb?.recLabel}</span>
-                          </>) : null}
+                          <div style={{fontSize: "13px", lineHeight: "1.9", whiteSpace: "pre-wrap", color: "#232425"}}>{g?.text}</div>
+                          <div style={{display: "flex", alignItems: "center", gap: "8px", fontSize: "11px", color: "#8b8e89"}}>
+                            <span style={{width: "22px", height: "22px", borderRadius: "7px", background: "#eef5e3", color: "#3d6a0c", display: "grid", placeItems: "center", fontWeight: "800", fontSize: "11px"}}>{g?.ini}</span>
+                            <span style={{flex: "1"}}>{g?.by}{" · "}{g?.when}{g?.edited}</span>
+                          </div>
+                        </div>
+                      </React.Fragment>)}
+                    </>) : null}
+                  </div>
+                  {(vm.vbx?.hasLater) ? (<>
+                    <div style={{background: "#fff", border: "1px solid #e7e8e3", borderRadius: "22px", padding: "18px 20px", display: "flex", flexDirection: "column", gap: "10px"}}>
+                      <div style={{display: "flex", justifyContent: "space-between", alignItems: "center"}}>
+                        <span style={{fontWeight: "800", fontSize: "15px"}}>{"تماس‌های بعد از این پیام"}</span>
+                        <span style={{fontSize: "12px", color: "#6b6e72"}}>{vm.vbx?.laterText}</span>
+                      </div>
+                      {(vm.vbx?.later || []).map((l, __i11) => <React.Fragment key={__i11}>
+                        <div onClick={l?.open} style={{display: "flex", alignItems: "center", gap: "10px", padding: "10px 12px", border: "1px solid #eeefeb", borderRadius: "14px", background: "#fafbf8", cursor: "pointer"}}>
+                          <div style={{flex: "1", minWidth: "0"}}>
+                            <div style={{fontSize: "13px", fontWeight: "700"}}>{l?.title}</div>
+                            <div style={{fontSize: "12px", color: "#6b6e72", marginTop: "2px"}}>{l?.when}{" · "}{l?.dur}</div>
+                          </div>
+                          <span style={{padding: "4px 10px", borderRadius: "999px", fontSize: "11px", fontWeight: "700", background: l?.stBg, color: l?.stFg}}>{l?.st}</span>
                         </div>
                       </React.Fragment>)}
                     </div>
                   </>) : null}
-                  <div style={{display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,300px),1fr))", gap: "18px", alignItems: "start"}}>
-                    <div style={{background: "#fff", border: "1px solid #e7e8e3", borderRadius: "22px", padding: "20px"}}>
-                      <div style={{fontWeight: "800", fontSize: "15px", marginBottom: "14px"}}>{"تاریخچه تماس‌های اخیر بیمار"}</div>
-                      {(vm.vm?.history || []).map((h, __i11) => <React.Fragment key={__i11}>
-                        <div style={{display: "flex", gap: "12px", position: "relative", paddingBottom: "16px"}}>
-                          <div style={{display: "flex", flexDirection: "column", alignItems: "center", flexShrink: "0"}}>
-                            <div style={{width: "34px", height: "34px", borderRadius: "11px", background: h?.status?.bg, color: h?.status?.fg, display: "grid", placeItems: "center"}}>
-                              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round">
-                                <path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2" />
-                              </svg>
-                            </div>
-                            <span style={{flex: "1", width: "2px", background: "#eeefeb", marginTop: "4px"}} />
-                          </div>
-                          <div style={{flex: "1", minWidth: "0", paddingTop: "4px"}}>
-                            <div style={{fontWeight: "700", fontSize: "13px"}}>{h?.histTitle}</div>
-                            <div style={{fontSize: "12px", color: "#6b6e72", marginTop: "3px"}}>{h?.date}{" · "}{h?.time}{" · "}{h?.opName}</div>
-                            <span style={{display: "inline-block", marginTop: "6px", padding: "2px 9px", borderRadius: "999px", fontSize: "11px", background: "#f4f5f1", color: "#55585c"}}>{h?.queue}</span>
-                          </div>
-                          {(h?.hasVoice) ? (<>
-                            <button onClick={h?.onPlay} style={{width: "30px", height: "30px", borderRadius: "50%", border: "none", background: h?.playBg, color: h?.playFg, display: "grid", placeItems: "center", cursor: "pointer", flexShrink: "0"}}>
-                              {(h?.isPlaying) ? (<>
-                                <svg width="12" height="12" viewBox="0 0 24 24"><path d="M7 5h3v14H7zM14 5h3v14h-3z" fill="currentColor" /></svg>
-                              </>) : null}
-                              {(h?.notPlaying) ? (<>
-                                <svg width="12" height="12" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" fill="currentColor" /></svg>
-                              </>) : null}
-                            </button>
-                          </>) : null}
-                        </div>
-                      </React.Fragment>)}
-                    </div>
-                    <div style={{background: "#fff", border: "1px solid #e7e8e3", borderRadius: "22px", padding: "20px", display: "flex", flexDirection: "column", gap: "12px"}}>
-                      <div style={{fontWeight: "800", fontSize: "15px"}}>{"یادداشت‌های پیگیری"}</div>
-                      {(vm.vm?.notes || []).map((n, __i11) => <React.Fragment key={__i11}>
-                        <div style={{background: "#fafbf8", border: "1px solid #eeefeb", borderRadius: "12px", padding: "10px 12px", display: "flex", flexDirection: "column", gap: "6px"}}>
-                          {(n?.hasRef) ? (<>
-                            <span style={{alignSelf: "flex-start", padding: "3px 10px", borderRadius: "999px", fontSize: "11px", fontWeight: "700", background: n?.refBg, color: n?.refFg}}>{n?.refLabel}</span>
-                          </>) : null}
-                          {(n?.hasText) ? (<>
-                            <div style={{fontSize: "13px", lineHeight: "1.8"}}>{n?.t}</div>
-                          </>) : null}
-                          <div style={{fontSize: "11px", color: "#6b6e72"}}>{n?.by}{" · "}{n?.at}</div>
-                        </div>
-                      </React.Fragment>)}
-                      <div style={{display: "flex", flexDirection: "column", gap: "6px"}}>
-                        <span style={{fontSize: "12px", color: "#6b6e72"}}>{"ارجاع پیام به"}</span>
-                        <div style={{display: "flex", gap: "6px", flexWrap: "wrap"}}>
-                          {(vm.vm?.refs || []).map((r, __i13) => <React.Fragment key={__i13}>
-                            <button onClick={r?.onClick} style={{border: `1px solid ${r?.bd}`, background: r?.bg, color: r?.fg, padding: "6px 12px", borderRadius: "999px", fontSize: "12px", fontWeight: "700", cursor: "pointer", fontFamily: "inherit"}}>{r?.label}</button>
-                          </React.Fragment>)}
-                        </div>
-                      </div>
-                      <textarea value={vm.vm?.noteText} onChange={vm.vm?.setNote} placeholder="نتیجه تماس یا توضیح پیگیری را بنویسید…" style={{border: "1px solid #e1e3dc", borderRadius: "12px", padding: "10px 12px", fontSize: "13px", minHeight: "84px", resize: "vertical", outline: "none", fontFamily: "inherit"}} />
-                      <button onClick={vm.vm?.addNote} style={{alignSelf: "flex-start", border: "none", background: "#2E2F31", color: "#fff", padding: "9px 16px", borderRadius: "10px", fontSize: "13px", fontWeight: "700", cursor: "pointer"}}>{"ثبت یادداشت"}</button>
-                    </div>
-                  </div>
                 </div>
               </>) : null}
             </div>
@@ -2170,6 +2247,151 @@ export default function AppView({ vm }) {
                 </div>
               </div>
             </React.Fragment>)}
+          </div>
+        </>) : null}
+        {(vm.is?.vvm) ? (<>
+          <div style={{display: "flex", flexDirection: "column", gap: "20px"}}>
+            <div style={{display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: "16px", flexWrap: "wrap"}}>
+              <div>
+                <h1 style={{margin: "0", fontSize: "28px", fontWeight: "800"}}>{"صندوق پیام صوتی"}</h1>
+                <div style={{fontSize: "14px", color: "#6b6e72", marginTop: "6px", maxWidth: "780px", lineHeight: "1.8"}}>
+                  {"تماس‌گیرنده در هر منوی تلفنی با یک کلید به صندوق پیام می‌رود، پیغام شروع را می‌شنود و پیامش ضبط می‌شود. پیام به هوش مصنوعی فرستاده می‌شود تا موضوع، خلاصه، حال بیمار و اورژانسی بودن آن مشخص شود."}
+                </div>
+              </div>
+              <button onClick={vm.vb3?.goInbox} style={{border: "none", borderRadius: "12px", fontSize: "13px", fontWeight: "800", cursor: "pointer", fontFamily: "inherit", background: "#2E2F31", color: "#fff", padding: "11px 18px"}}>{"مشاهده پیام‌ها ←"}</button>
+            </div>
+            <div style={{display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(180px,1fr))", gap: "14px"}}>
+              {(vm.vb3?.kpis || []).map((k, __i7) => <React.Fragment key={__i7}>
+                <div style={{background: "#fff", border: "1px solid #e7e8e3", borderRadius: "18px", padding: "16px 18px"}}>
+                  <div style={{fontSize: "12px", color: "#6b6e72"}}>{k?.label}</div>
+                  <div style={{fontSize: "24px", fontWeight: "800", marginTop: "4px", color: k?.color}}>{k?.value}</div>
+                </div>
+              </React.Fragment>)}
+            </div>
+            <div style={{background: "#fff", border: "1px solid #e7e8e3", borderRadius: "22px", padding: "20px", display: "flex", flexDirection: "column", gap: "16px"}}>
+              <div style={{display: "flex", alignItems: "center", gap: "12px"}}>
+                <div style={{width: "44px", height: "44px", borderRadius: "14px", background: "#2E2F31", color: "#8DC63F", display: "grid", placeItems: "center", flexShrink: "0"}}>
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="3" y="5" width="18" height="14" rx="3" />
+                    <path d="M3 8l9 6 9-6" />
+                  </svg>
+                </div>
+                <div style={{flex: "1"}}>
+                  <div style={{fontWeight: "800", fontSize: "16px"}}>{"صندوق پیام"}</div>
+                  <div style={{fontSize: "12px", color: "#6b6e72", marginTop: "3px"}}>{"با روشن کردن، تنظیمات زیر روی همه مقصدهای «صندوق صوتی» و منوها اعمال می‌شود"}</div>
+                </div>
+                <span style={{fontSize: "12px", color: "#6b6e72"}}>{vm.vb3?.onLabel}</span>
+                <button onClick={vm.vb3?.tog} style={{width: "42px", height: "24px", borderRadius: "99px", border: "none", background: vm.vb3?.onT?.bg, display: "flex", justifyContent: vm.vb3?.onT?.j, alignItems: "center", padding: "2px", cursor: "pointer", flexShrink: "0"}}>
+                  <span style={{width: "20px", height: "20px", borderRadius: "50%", background: "#fff", boxShadow: "0 1px 3px rgba(0,0,0,.2)"}} />
+                </button>
+              </div>
+              <div style={{background: vm.vb3?.statusBg, color: vm.vb3?.statusFg, borderRadius: "12px", padding: "10px 14px", fontSize: "13px", lineHeight: "1.8", fontWeight: "600"}}>{vm.vb3?.status}</div>
+              <div style={{display: "flex", flexWrap: "wrap", gap: "8px", alignItems: "stretch"}}>
+                {(vm.vb3?.flow || []).map((f, __i8) => <React.Fragment key={__i8}>
+                  <div style={{display: "flex", alignItems: "center", gap: "8px", opacity: f?.op}}>
+                    <div style={{display: "flex", alignItems: "center", gap: "10px", background: "#f7f8f4", border: `1px ${f?.dash} #e1e3dc`, borderRadius: "14px", padding: "10px 12px", minWidth: "150px"}}>
+                      <span style={{width: "30px", height: "30px", borderRadius: "10px", background: f?.bg, color: f?.fg, display: "grid", placeItems: "center", fontWeight: "800", fontSize: "13px", flexShrink: "0"}}>{f?.icon}</span>
+                      <div style={{minWidth: "0"}}>
+                        <div style={{fontSize: "12px", fontWeight: "800"}}>{f?.n}{". "}{f?.title}</div>
+                        <div style={{fontSize: "11px", color: "#6b6e72", marginTop: "2px"}}>{f?.sub}</div>
+                      </div>
+                    </div>
+                    {(f?.arrow) ? (<>
+                      <span style={{color: "#b9bbb6", fontSize: "16px"}}>{"←"}</span>
+                    </>) : null}
+                  </div>
+                </React.Fragment>)}
+              </div>
+            </div>
+            <div style={{display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,360px),1fr))", gap: "20px", alignItems: "start"}}>
+              <div style={{background: "#fff", border: "1px solid #e7e8e3", borderRadius: "22px", padding: "20px", display: "flex", flexDirection: "column", gap: "14px"}}>
+                <div style={{fontWeight: "800", fontSize: "16px"}}>{"کلید در منوهای تلفنی"}</div>
+                <div style={{display: "flex", alignItems: "center", gap: "12px"}}>
+                  <div style={{flex: "1", fontSize: "13px", color: "#3a3b3d", lineHeight: "1.7"}}>{"در همه منوهای IVR، زدن این کلید تماس‌گیرنده را به صندوق پیام می‌برد"}</div>
+                  <button onClick={vm.vb3?.togIvr} style={{width: "42px", height: "24px", borderRadius: "99px", border: "none", background: vm.vb3?.ivrT?.bg, display: "flex", justifyContent: vm.vb3?.ivrT?.j, alignItems: "center", padding: "2px", cursor: "pointer", flexShrink: "0"}}>
+                    <span style={{width: "20px", height: "20px", borderRadius: "50%", background: "#fff", boxShadow: "0 1px 3px rgba(0,0,0,.2)"}} />
+                  </button>
+                </div>
+                {(vm.vb3?.inIvr) ? (<>
+                  <div style={{display: "grid", gridTemplateColumns: "repeat(6,1fr)", gap: "8px", maxWidth: "340px"}}>
+                    {(vm.vb3?.keys || []).map((k, __i10) => <React.Fragment key={__i10}>
+                      <button onClick={k?.pick} style={{aspectRatio: "1", borderRadius: "14px", border: `1.5px solid ${k?.bd}`, background: k?.bg, color: k?.fg, fontSize: "18px", fontWeight: "800", cursor: "pointer", fontFamily: "inherit"}}>{k?.label}</button>
+                    </React.Fragment>)}
+                  </div>
+                </>) : null}
+                {(vm.vb3?.hasClash) ? (<>
+                  <div style={{background: "#fcf3e0", color: "#8a5a00", borderRadius: "10px", padding: "8px 12px", fontSize: "12px", fontWeight: "600", lineHeight: "1.7"}}>{vm.vb3?.clashText}{" — در آن منوها گزینه خود منو اولویت دارد."}</div>
+                </>) : null}
+              </div>
+              <div style={{background: "#fff", border: "1px solid #e7e8e3", borderRadius: "22px", padding: "20px", display: "flex", flexDirection: "column", gap: "14px"}}>
+                <div style={{display: "flex", alignItems: "center", gap: "10px"}}>
+                  <div style={{flex: "1", fontWeight: "800", fontSize: "16px"}}>{"پیغام‌ها"}</div>
+                  <button onClick={vm.vb3?.goSounds} style={{background: "#fff", border: "1px solid #e1e3dc", color: "#3a3b3d", padding: "8px 12px", borderRadius: "10px", fontSize: "12px", fontWeight: "700", cursor: "pointer", fontFamily: "inherit"}}>{"بارگذاری صدا ←"}</button>
+                </div>
+                <label style={{display: "flex", flexDirection: "column", gap: "6px", fontSize: "12px", color: "#6b6e72"}}>
+                  {"پیغام شروع (قبل از ضبط)"}
+                  <div style={{display: "flex", gap: "8px"}}>
+                    <select value={vm.vb3?.greet} onChange={vm.vb3?.setGreet} style={{border: "1px solid #e1e3dc", borderRadius: "10px", padding: "10px 12px", fontSize: "13px", outline: "none", background: "#fff", color: "#232425", fontFamily: "inherit", width: "100%"}}>
+                      {(vm.vb3?.sndOpts || []).map((o, __i11) => <React.Fragment key={__i11}>
+                        <option value={o?.v}>{o?.label}</option>
+                      </React.Fragment>)}
+                    </select>
+                    {(vm.vb3?.hasGreet) ? (<>
+                      <button onClick={vm.vb3?.playGreet} style={{width: "42px", flexShrink: "0", borderRadius: "10px", border: "1px solid #e1e3dc", background: "#eef5e3", color: "#3d6a0c", cursor: "pointer", fontSize: "13px"}}>{"▶"}</button>
+                    </>) : null}
+                  </div>
+                  <span style={{fontSize: "11px", color: "#8b8e89"}}>
+                    {"مثلاً «لطفاً پیام خود را بعد از بوق بگذارید و برای پایان کلید ستاره را بزنید»"}
+                  </span>
+                </label>
+                <label style={{display: "flex", flexDirection: "column", gap: "6px", fontSize: "12px", color: "#6b6e72"}}>
+                  {"پیغام پایان (اختیاری)"}
+                  <div style={{display: "flex", gap: "8px"}}>
+                    <select value={vm.vb3?.end} onChange={vm.vb3?.setEnd} style={{border: "1px solid #e1e3dc", borderRadius: "10px", padding: "10px 12px", fontSize: "13px", outline: "none", background: "#fff", color: "#232425", fontFamily: "inherit", width: "100%"}}>
+                      {(vm.vb3?.sndOpts || []).map((o, __i11) => <React.Fragment key={__i11}>
+                        <option value={o?.v}>{o?.label}</option>
+                      </React.Fragment>)}
+                    </select>
+                    {(vm.vb3?.hasEnd) ? (<>
+                      <button onClick={vm.vb3?.playEnd} style={{width: "42px", flexShrink: "0", borderRadius: "10px", border: "1px solid #e1e3dc", background: "#eef5e3", color: "#3d6a0c", cursor: "pointer", fontSize: "13px"}}>{"▶"}</button>
+                    </>) : null}
+                  </div>
+                  <span style={{fontSize: "11px", color: "#8b8e89"}}>
+                    {"بعد از پایان پیام پخش می‌شود، مثلاً «پیام شما ثبت شد، همکاران ما به‌زودی تماس می‌گیرند»"}
+                  </span>
+                </label>
+                <div style={{display: "flex", alignItems: "center", gap: "12px", borderTop: "1px solid #f1f2ee", paddingTop: "12px"}}>
+                  <div style={{flex: "1", fontSize: "13px"}}>{"بوق قبل از شروع ضبط"}</div>
+                  <button onClick={vm.vb3?.togBeep} style={{width: "42px", height: "24px", borderRadius: "99px", border: "none", background: vm.vb3?.beepT?.bg, display: "flex", justifyContent: vm.vb3?.beepT?.j, alignItems: "center", padding: "2px", cursor: "pointer", flexShrink: "0"}}>
+                    <span style={{width: "20px", height: "20px", borderRadius: "50%", background: "#fff", boxShadow: "0 1px 3px rgba(0,0,0,.2)"}} />
+                  </button>
+                </div>
+              </div>
+              <div style={{background: "#fff", border: "1px solid #e7e8e3", borderRadius: "22px", padding: "20px", display: "flex", flexDirection: "column", gap: "14px"}}>
+                <div style={{fontWeight: "800", fontSize: "16px"}}>{"پایان پیام"}</div>
+                <div style={{fontSize: "12px", color: "#6b6e72"}}>
+                  {"تماس‌گیرنده چطور پیامش را تمام کند؟ (قطع کردن گوشی همیشه پیام را ذخیره می‌کند)"}
+                </div>
+                <div style={{display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: "8px"}}>
+                  {(vm.vb3?.terms || []).map((t, __i9) => <React.Fragment key={__i9}>
+                    <button onClick={t?.pick} style={{border: `1.5px solid ${t?.bd}`, background: t?.bg, color: t?.fg, borderRadius: "14px", padding: "12px 8px", cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: "4px", fontFamily: "inherit"}}>
+                      <span style={{fontSize: "20px", fontWeight: "800", lineHeight: "1"}}>{t?.k}</span>
+                      <span style={{fontSize: "12px", fontWeight: "700"}}>{t?.label}</span>
+                    </button>
+                  </React.Fragment>)}
+                </div>
+                <div style={{display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px"}}>
+                  <label style={{display: "flex", flexDirection: "column", gap: "6px", fontSize: "12px", color: "#6b6e72"}}>
+                    {"حداکثر طول پیام (ثانیه)"}
+                    <input type="number" min="15" max="600" value={vm.vb3?.maxSec} onChange={vm.vb3?.setMax} style={{border: "1px solid #e1e3dc", borderRadius: "10px", padding: "10px 12px", fontSize: "13px", outline: "none", background: "#fff", color: "#232425", fontFamily: "inherit", width: "100%"}} />
+                  </label>
+                  <label style={{display: "flex", flexDirection: "column", gap: "6px", fontSize: "12px", color: "#6b6e72"}}>
+                    {"پایان با سکوت (ثانیه، ۰ = خاموش)"}
+                    <input type="number" min="0" max="30" value={vm.vb3?.silence} onChange={vm.vb3?.setSilence} style={{border: "1px solid #e1e3dc", borderRadius: "10px", padding: "10px 12px", fontSize: "13px", outline: "none", background: "#fff", color: "#232425", fontFamily: "inherit", width: "100%"}} />
+                  </label>
+                </div>
+              </div>
+            </div>
           </div>
         </>) : null}
         {(vm.is?.vsurvey) ? (<>

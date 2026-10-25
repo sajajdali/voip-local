@@ -269,7 +269,7 @@ export class CallsController {
   async workflow(@Body() b: { follow?: Record<string, string>; doneAt?: Record<string, string>; notes?: Record<string, any[]> }, @CurrentUser() me: Me) {
     const out: any = {};
     for (const [id, status] of Object.entries(b.follow || {})) {
-      if (!['new', 'follow', 'done'].includes(status)) continue;
+      if (!['new', 'follow', 'noans', 'done', 'invalid'].includes(status)) continue;
       await this.db.follow.upsert({ where: { callId: id }, create: { callId: id, status }, update: { status } });
       (out.follow = out.follow || {})[id] = status;
     }

@@ -6,7 +6,7 @@ import { jalaliToGregorianCompact } from '../jalali';
 export interface VoipConfig {
   exts: any[]; trunks: any[]; vqs: any[]; ivrs: any[]; snds: any[]; routes: any[];
   tgroups: any[]; tconds: any[]; holidays: any[]; rgroups: any[]; fmes: Record<string, any>;
-  blist: any[]; bset: any; oroutes?: any[]; survey?: any; aiagent?: any;
+  blist: any[]; bset: any; oroutes?: any[]; survey?: any; vmbox?: any; aiagent?: any;
 }
 
 export interface Generated {
@@ -148,6 +148,23 @@ function moh(cfg: VoipConfig, dir: string) {
 
 // ---------------------------------------------------------------- dialplan
 export const SURVEY_MAX_Q = 5;
+/** Greeting, beep, recording and closing prompt of the voice mailbox («صندوق پیام» settings). */
+function vmboxLines(cfg: VoipConfig): string[] {
+  const vb = cfg.vmbox || {};
+  const has = (id: string) => !!id && cfg.snds.some(s => s.id === id);
+  if (!vb.on) return [' same => n,Playback(beep)', ' same => n,Record(${ASTSPOOLDIR}/monitor/${CC_REC},4,180,k)', ' same => n,Hangup()'];
+  const silence = Math.min(30, Math.max(0, +vb.silence || 0)), max = Math.min(600, Math.max(15, +vb.maxSec || 120));
+  // Record() ends on # by default; t = * instead; x = no key at all (silence, time limit or hang-up)
+  const opt = 'k' + (vb.term === '*' ? 't' : vb.term === 'none' ? 'x' : '');
+  return [
+    ...(has(vb.greet) ? [` same => n,Playback(custom/${sid(vb.greet)})`] : []),
+    ...(vb.beep !== false ? [' same => n,Playback(beep)'] : []),
+    ` same => n,Record(\${ASTSPOOLDIR}/monitor/\${CC_REC},${silence},${max},${opt})`,
+    ...(has(vb.end) ? [` same => n,Playback(custom/${sid(vb.end)})`] : []),
+    ' same => n,Hangup()',
+  ];
+}
+
 function surveyLines(cfg: VoipConfig): string[] {
   const sv = cfg.survey || {};
   const has = (id: string) => !!id && cfg.snds.some(s => s.id === id);
@@ -302,6 +319,10 @@ function dialplan(cfg: VoipConfig, opts: { hookUrl: string; hookSecret: string }
     // callers can also dial the AI receptionist's code while the menu plays (unless it clashes with a menu key)
     const aiCode = cfg.aiagent?.enabled && cfg.aiagent.codeInIvr !== false ? String(cfg.aiagent.code || '') : '';
     if (aiCode && !(iv.opts || []).some((o: any) => o.k === aiCode)) lines.push(`exten => ${aiCode},1,Goto(cc-ai,s,1)`);
+    // «صندوق پیام» key in every menu (a menu's own option on the same key wins)
+    const vb = cfg.vmbox || {};
+    if (vb.on && vb.inIvr !== false && /^[0-9*#]$/.test(vb.key || '') && vb.key !== aiCode && !(iv.opts || []).some((o: any) => o.k === vb.key))
+      lines.push(`exten => ${vb.key},1,Set(__CC_QUEUE=صندوق پیام · IVR ${safe(iv.name)})`, ' same => n,Goto(cc-vm,s,1)');
     if (iv.ddial) lines.push('include => cc-ivr-direct');
     X(`cc-ivr-${sid(iv.id)}`, lines);
   }
@@ -441,9 +462,7 @@ function dialplan(cfg: VoipConfig, opts: { hookUrl: string; hookSecret: string }
     ' same => n,ExecIf($["${CC_QUEUE}"=""]?Set(CC_QUEUE=صندوق صوتی))',
     ' same => n,Set(CC_VM=1)',
     ' same => n,Set(CC_REC=cc-vm/${STRFTIME(${EPOCH},,%Y%m%d)}-${FILTER(0-9.,${UNIQUEID})}.wav)',
-    ' same => n,Playback(beep)',
-    ' same => n,Record(${ASTSPOOLDIR}/monitor/${CC_REC},4,180,k)',
-    ' same => n,Hangup()',
+    ...vmboxLines(cfg),
   ]);
   X('cc-busy', ['exten => s,1,Busy(10)']);
   // announcements: play a recording, then hang up
