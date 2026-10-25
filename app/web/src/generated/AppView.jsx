@@ -2234,7 +2234,6 @@ export default function AppView({ vm }) {
                     <span style={{fontSize: "30px", fontWeight: "800", color: "#232425", letterSpacing: ".5px", lineHeight: "1.1"}}>{vm.lv?.hm}</span>
                     <span style={{fontSize: "13px", fontWeight: "700", color: "#9a9d97"}}>{vm.lv?.sec}</span>
                   </div>
-                  <div style={{fontSize: "12px", color: "#6b6e72"}}>{vm.lv?.date}</div>
                 </div>
               </div>
             </div>
