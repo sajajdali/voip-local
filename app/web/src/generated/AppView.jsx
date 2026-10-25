@@ -5203,10 +5203,41 @@ export default function AppView({ vm }) {
               </div>
             </div>
             {(vm.cvm?.hasRec) ? (<>
-              <div style={{display: "flex", gap: "8px"}}>
-                <button onClick={vm.cvm?.play} style={{flex: "1", background: "#2E2F31", color: "#fff", border: "none", padding: "11px", borderRadius: "12px", fontSize: "13px", fontWeight: "800", cursor: "pointer", fontFamily: "inherit"}}>{vm.cvm?.playLabel}</button>
-                <button onClick={vm.cvm?.download} style={{background: "#fff", border: "1px solid #e1e3dc", color: "#2E2F31", padding: "11px 16px", borderRadius: "12px", fontSize: "13px", fontWeight: "700", cursor: "pointer", fontFamily: "inherit"}}>{"دانلود"}</button>
-              </div>
+              {(vm.cvm?.notCur) ? (<>
+                <div style={{display: "flex", gap: "8px"}}>
+                  <button onClick={vm.cvm?.play} style={{flex: "1", background: "#2E2F31", color: "#fff", border: "none", padding: "11px", borderRadius: "12px", fontSize: "13px", fontWeight: "800", cursor: "pointer", fontFamily: "inherit"}}>{"▶ پخش مکالمه"}</button>
+                  <button onClick={vm.cvm?.download} style={{background: "#fff", border: "1px solid #e1e3dc", color: "#2E2F31", padding: "11px 16px", borderRadius: "12px", fontSize: "13px", fontWeight: "700", cursor: "pointer", fontFamily: "inherit"}}>{"دانلود"}</button>
+                </div>
+              </>) : null}
+              {(vm.cvm?.isCur) ? (<>
+                {(vm.player?.show) ? (<>
+                  <div style={{background: "#2E2F31", color: "#fff", borderRadius: "18px", padding: "14px 16px", display: "flex", flexDirection: "column", gap: "12px"}}>
+                    <div style={{display: "flex", alignItems: "center", gap: "10px"}}>
+                      <span style={{fontSize: "12px", color: "#d9dad6", fontVariantNumeric: "tabular-nums", minWidth: "38px"}}>{vm.player?.posText}</span>
+                      <div onClick={vm.player?.seek} style={{flex: "1", height: "8px", background: "rgba(255,255,255,.15)", borderRadius: "6px", cursor: "pointer", position: "relative", overflow: "hidden"}}>
+                        <div style={{position: "absolute", top: "0", bottom: "0", right: "0", width: vm.player?.pct, background: "#8DC63F", borderRadius: "6px"}} />
+                      </div>
+                      <span style={{fontSize: "12px", color: "#d9dad6", fontVariantNumeric: "tabular-nums", minWidth: "38px", textAlign: "left"}}>{vm.player?.durText}</span>
+                    </div>
+                    <div style={{display: "flex", alignItems: "center", justifyContent: "center", gap: "10px"}}>
+                      <button onClick={vm.player?.cycleSpeed} style={{border: "1px solid rgba(255,255,255,.2)", background: "none", color: "#fff", padding: "6px 10px", borderRadius: "8px", cursor: "pointer", fontSize: "12px", fontWeight: "700", marginLeft: "auto"}}>{vm.player?.speedText}</button>
+                      <button onClick={vm.player?.back} title="۱۰ ثانیه عقب" style={{border: "none", background: "rgba(255,255,255,.08)", color: "#fff", width: "38px", height: "38px", borderRadius: "50%", cursor: "pointer", fontSize: "11px"}}>{"10-"}</button>
+                      <button onClick={vm.player?.toggle} style={{border: "none", background: "#8DC63F", color: "#1f2021", width: "48px", height: "48px", borderRadius: "50%", display: "grid", placeItems: "center", cursor: "pointer"}}>
+                        {(vm.player?.playing) ? (<>
+                          <svg width="18" height="18" viewBox="0 0 24 24"><path d="M7 5h3v14H7zM14 5h3v14h-3z" fill="currentColor" /></svg>
+                        </>) : null}
+                        {(vm.player?.notPlaying) ? (<>
+                          <svg width="18" height="18" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" fill="currentColor" /></svg>
+                        </>) : null}
+                      </button>
+                      <button onClick={vm.player?.fwd} title="۱۰ ثانیه جلو" style={{border: "none", background: "rgba(255,255,255,.08)", color: "#fff", width: "38px", height: "38px", borderRadius: "50%", cursor: "pointer", fontSize: "11px"}}>{"10+"}</button>
+                      <button onClick={vm.player?.download} title="دانلود" style={{border: "none", background: "none", color: "#8DC63F", cursor: "pointer", display: "grid", placeItems: "center", marginRight: "auto"}}>
+                        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M12 4v11M7 10l5 5 5-5M5 20h14" /></svg>
+                      </button>
+                    </div>
+                  </div>
+                </>) : null}
+              </>) : null}
             </>) : null}
             {(vm.cvm?.loading) ? (<>
               <div style={{fontSize: "13px", color: "#6b6e72", padding: "8px"}}>{"در حال بارگذاری…"}</div>
@@ -5284,37 +5315,39 @@ export default function AppView({ vm }) {
           {vm.toast?.text}
         </div>
       </>) : null}
-      {(vm.player?.show) ? (<>
-        <div style={{position: "fixed", bottom: "16px", left: "24px", right: "272px", background: "#2E2F31", color: "#fff", borderRadius: "18px", padding: "12px 18px", display: "flex", alignItems: "center", gap: "16px", boxShadow: "0 12px 32px rgba(0,0,0,.22)", zIndex: "20", flexWrap: "wrap"}}>
-          <div style={{display: "flex", alignItems: "center", gap: "8px"}}>
-            <button onClick={vm.player?.back} title="۱۰ ثانیه عقب" style={{border: "none", background: "rgba(255,255,255,.08)", color: "#fff", width: "34px", height: "34px", borderRadius: "50%", cursor: "pointer", fontSize: "11px"}}>{"10-"}</button>
-            <button onClick={vm.player?.toggle} style={{border: "none", background: "#8DC63F", color: "#1f2021", width: "44px", height: "44px", borderRadius: "50%", display: "grid", placeItems: "center", cursor: "pointer"}}>
-              {(vm.player?.playing) ? (<>
-                <svg width="17" height="17" viewBox="0 0 24 24"><path d="M7 5h3v14H7zM14 5h3v14h-3z" fill="currentColor" /></svg>
-              </>) : null}
-              {(vm.player?.notPlaying) ? (<>
-                <svg width="17" height="17" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" fill="currentColor" /></svg>
-              </>) : null}
-            </button>
-            <button onClick={vm.player?.fwd} title="۱۰ ثانیه جلو" style={{border: "none", background: "rgba(255,255,255,.08)", color: "#fff", width: "34px", height: "34px", borderRadius: "50%", cursor: "pointer", fontSize: "11px"}}>{"10+"}</button>
-          </div>
-          <div style={{minWidth: "150px"}}>
-            <div style={{fontSize: "14px", fontWeight: "700"}}>{vm.player?.name}</div>
-            <div style={{fontSize: "12px", color: "#b8bab5"}}>{vm.player?.opName}{" · "}{vm.player?.date}{" · "}{vm.player?.time}</div>
-          </div>
-          <div style={{flex: "1", display: "flex", alignItems: "center", gap: "10px", minWidth: "200px"}}>
-            <span style={{fontSize: "12px", color: "#d9dad6", fontVariantNumeric: "tabular-nums"}}>{vm.player?.posText}</span>
-            <div onClick={vm.player?.seek} style={{flex: "1", height: "8px", background: "rgba(255,255,255,.15)", borderRadius: "6px", cursor: "pointer", position: "relative", overflow: "hidden"}}>
-              <div style={{position: "absolute", top: "0", bottom: "0", right: "0", width: vm.player?.pct, background: "#8DC63F", borderRadius: "6px"}} />
+      {(vm.cvm?.barOk) ? (<>
+        {(vm.player?.show) ? (<>
+          <div style={{position: "fixed", bottom: "16px", left: "24px", right: "272px", background: "#2E2F31", color: "#fff", borderRadius: "18px", padding: "12px 18px", display: "flex", alignItems: "center", gap: "16px", boxShadow: "0 12px 32px rgba(0,0,0,.22)", zIndex: "20", flexWrap: "wrap"}}>
+            <div style={{display: "flex", alignItems: "center", gap: "8px"}}>
+              <button onClick={vm.player?.back} title="۱۰ ثانیه عقب" style={{border: "none", background: "rgba(255,255,255,.08)", color: "#fff", width: "34px", height: "34px", borderRadius: "50%", cursor: "pointer", fontSize: "11px"}}>{"10-"}</button>
+              <button onClick={vm.player?.toggle} style={{border: "none", background: "#8DC63F", color: "#1f2021", width: "44px", height: "44px", borderRadius: "50%", display: "grid", placeItems: "center", cursor: "pointer"}}>
+                {(vm.player?.playing) ? (<>
+                  <svg width="17" height="17" viewBox="0 0 24 24"><path d="M7 5h3v14H7zM14 5h3v14h-3z" fill="currentColor" /></svg>
+                </>) : null}
+                {(vm.player?.notPlaying) ? (<>
+                  <svg width="17" height="17" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" fill="currentColor" /></svg>
+                </>) : null}
+              </button>
+              <button onClick={vm.player?.fwd} title="۱۰ ثانیه جلو" style={{border: "none", background: "rgba(255,255,255,.08)", color: "#fff", width: "34px", height: "34px", borderRadius: "50%", cursor: "pointer", fontSize: "11px"}}>{"10+"}</button>
             </div>
-            <span style={{fontSize: "12px", color: "#d9dad6", fontVariantNumeric: "tabular-nums"}}>{vm.player?.durText}</span>
+            <div style={{minWidth: "150px"}}>
+              <div style={{fontSize: "14px", fontWeight: "700"}}>{vm.player?.name}</div>
+              <div style={{fontSize: "12px", color: "#b8bab5"}}>{vm.player?.opName}{" · "}{vm.player?.date}{" · "}{vm.player?.time}</div>
+            </div>
+            <div style={{flex: "1", display: "flex", alignItems: "center", gap: "10px", minWidth: "200px"}}>
+              <span style={{fontSize: "12px", color: "#d9dad6", fontVariantNumeric: "tabular-nums"}}>{vm.player?.posText}</span>
+              <div onClick={vm.player?.seek} style={{flex: "1", height: "8px", background: "rgba(255,255,255,.15)", borderRadius: "6px", cursor: "pointer", position: "relative", overflow: "hidden"}}>
+                <div style={{position: "absolute", top: "0", bottom: "0", right: "0", width: vm.player?.pct, background: "#8DC63F", borderRadius: "6px"}} />
+              </div>
+              <span style={{fontSize: "12px", color: "#d9dad6", fontVariantNumeric: "tabular-nums"}}>{vm.player?.durText}</span>
+            </div>
+            <button onClick={vm.player?.cycleSpeed} style={{border: "1px solid rgba(255,255,255,.2)", background: "none", color: "#fff", padding: "6px 10px", borderRadius: "8px", cursor: "pointer", fontSize: "12px", fontWeight: "700"}}>{vm.player?.speedText}</button>
+            <button onClick={vm.player?.download} title="دانلود" style={{border: "none", background: "none", color: "#8DC63F", cursor: "pointer", display: "grid", placeItems: "center"}}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M12 4v11M7 10l5 5 5-5M5 20h14" /></svg>
+            </button>
+            <button onClick={vm.player?.close} title="بستن" style={{border: "none", background: "none", color: "#b8bab5", cursor: "pointer", fontSize: "18px"}}>{"✕"}</button>
           </div>
-          <button onClick={vm.player?.cycleSpeed} style={{border: "1px solid rgba(255,255,255,.2)", background: "none", color: "#fff", padding: "6px 10px", borderRadius: "8px", cursor: "pointer", fontSize: "12px", fontWeight: "700"}}>{vm.player?.speedText}</button>
-          <button onClick={vm.player?.download} title="دانلود" style={{border: "none", background: "none", color: "#8DC63F", cursor: "pointer", display: "grid", placeItems: "center"}}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M12 4v11M7 10l5 5 5-5M5 20h14" /></svg>
-          </button>
-          <button onClick={vm.player?.close} title="بستن" style={{border: "none", background: "none", color: "#b8bab5", cursor: "pointer", fontSize: "18px"}}>{"✕"}</button>
-        </div>
+        </>) : null}
       </>) : null}
     </div>
   </>);

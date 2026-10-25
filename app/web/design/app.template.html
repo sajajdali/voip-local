@@ -1811,7 +1811,25 @@
       <div><div style="font-size:11px;color:#8b8e89">مدت مکالمه</div><b>{{ cvm.dur }}</b></div>
       <div style="grid-column:span 2"><div style="font-size:11px;color:#8b8e89">مسیر</div><b>{{ cvm.dir }} · {{ cvm.queue }}</b></div>
     </div>
-    <sc-if value="{{ cvm.hasRec }}"><div style="display:flex;gap:8px"><button sc-camel-on-click="{{ cvm.play }}" style="flex:1;background:#2E2F31;color:#fff;border:none;padding:11px;border-radius:12px;font-size:13px;font-weight:800;cursor:pointer;font-family:inherit">{{ cvm.playLabel }}</button><button sc-camel-on-click="{{ cvm.download }}" style="background:#fff;border:1px solid #e1e3dc;color:#2E2F31;padding:11px 16px;border-radius:12px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">دانلود</button></div></sc-if>
+    <sc-if value="{{ cvm.hasRec }}">
+    <sc-if value="{{ cvm.notCur }}"><div style="display:flex;gap:8px"><button sc-camel-on-click="{{ cvm.play }}" style="flex:1;background:#2E2F31;color:#fff;border:none;padding:11px;border-radius:12px;font-size:13px;font-weight:800;cursor:pointer;font-family:inherit">▶ پخش مکالمه</button><button sc-camel-on-click="{{ cvm.download }}" style="background:#fff;border:1px solid #e1e3dc;color:#2E2F31;padding:11px 16px;border-radius:12px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">دانلود</button></div></sc-if>
+    <sc-if value="{{ cvm.isCur }}"><sc-if value="{{ player.show }}">
+    <div style="background:#2E2F31;color:#fff;border-radius:18px;padding:14px 16px;display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;align-items:center;gap:10px">
+        <span style="font-size:12px;color:#d9dad6;font-variant-numeric:tabular-nums;min-width:38px">{{ player.posText }}</span>
+        <div sc-camel-on-click="{{ player.seek }}" style="flex:1;height:8px;background:rgba(255,255,255,.15);border-radius:6px;cursor:pointer;position:relative;overflow:hidden"><div style="position:absolute;top:0;bottom:0;right:0;width:{{ player.pct }};background:#8DC63F;border-radius:6px"></div></div>
+        <span style="font-size:12px;color:#d9dad6;font-variant-numeric:tabular-nums;min-width:38px;text-align:left">{{ player.durText }}</span>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:center;gap:10px">
+        <button sc-camel-on-click="{{ player.cycleSpeed }}" style="border:1px solid rgba(255,255,255,.2);background:none;color:#fff;padding:6px 10px;border-radius:8px;cursor:pointer;font-size:12px;font-weight:700;margin-left:auto">{{ player.speedText }}</button>
+        <button sc-camel-on-click="{{ player.back }}" title="۱۰ ثانیه عقب" style="border:none;background:rgba(255,255,255,.08);color:#fff;width:38px;height:38px;border-radius:50%;cursor:pointer;font-size:11px">10-</button>
+        <button sc-camel-on-click="{{ player.toggle }}" style="border:none;background:#8DC63F;color:#1f2021;width:48px;height:48px;border-radius:50%;display:grid;place-items:center;cursor:pointer"><sc-if value="{{ player.playing }}"><svg width="18" height="18" sc-camel-view-box="0 0 24 24"><path d="M7 5h3v14H7zM14 5h3v14h-3z" fill="currentColor"></path></svg></sc-if><sc-if value="{{ player.notPlaying }}"><svg width="18" height="18" sc-camel-view-box="0 0 24 24"><path d="M8 5v14l11-7z" fill="currentColor"></path></svg></sc-if></button>
+        <button sc-camel-on-click="{{ player.fwd }}" title="۱۰ ثانیه جلو" style="border:none;background:rgba(255,255,255,.08);color:#fff;width:38px;height:38px;border-radius:50%;cursor:pointer;font-size:11px">10+</button>
+        <button sc-camel-on-click="{{ player.download }}" title="دانلود" style="border:none;background:none;color:#8DC63F;cursor:pointer;display:grid;place-items:center;margin-right:auto"><svg width="19" height="19" sc-camel-view-box="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"></path></svg></button>
+      </div>
+    </div>
+    </sc-if></sc-if>
+    </sc-if>
 
     <sc-if value="{{ cvm.loading }}"><div style="font-size:13px;color:#6b6e72;padding:8px">در حال بارگذاری…</div></sc-if>
     <sc-if value="{{ cvm.queued }}"><div style="background:#fff;border:1px solid #e7e8e3;border-radius:18px;padding:16px;display:flex;align-items:center;gap:10px;font-size:13px;color:#55585c"><span style="width:9px;height:9px;border-radius:50%;background:#e0a83a;animation:cc-pulse 1.6s infinite"></span>هوش مصنوعی در حال تبدیل مکالمه به متن و خلاصه‌سازی است؛ چند لحظه دیگر همین‌جا نمایش داده می‌شود.</div></sc-if>
@@ -1838,7 +1856,7 @@
 </div>
 </sc-if>
 <sc-if value="{{ toast.show }}"><div style="position:fixed;top:22px;left:50%;transform:translateX(-50%);z-index:70;background:#2E2F31;color:#fff;padding:13px 20px;border-radius:14px;font-size:14px;font-weight:700;box-shadow:0 14px 34px rgba(0,0,0,.25);display:flex;align-items:center;gap:10px;border:1px solid rgba(141,198,63,.4);max-width:calc(100vw - 40px)"><span style="width:24px;height:24px;border-radius:50%;background:#8DC63F;color:#1f2021;display:grid;place-items:center;font-size:13px;flex-shrink:0">✓</span>{{ toast.text }}</div></sc-if>
-<sc-if value="{{ player.show }}">
+<sc-if value="{{ cvm.barOk }}"><sc-if value="{{ player.show }}">
   <div style="position:fixed;bottom:16px;left:24px;right:272px;background:#2E2F31;color:#fff;border-radius:18px;padding:12px 18px;display:flex;align-items:center;gap:16px;box-shadow:0 12px 32px rgba(0,0,0,.22);z-index:20;flex-wrap:wrap">
     <div style="display:flex;align-items:center;gap:8px">
       <button sc-camel-on-click="{{ player.back }}" title="۱۰ ثانیه عقب" style="border:none;background:rgba(255,255,255,.08);color:#fff;width:34px;height:34px;border-radius:50%;cursor:pointer;font-size:11px">10-</button>
@@ -1855,6 +1873,6 @@
     <button sc-camel-on-click="{{ player.download }}" title="دانلود" style="border:none;background:none;color:#8DC63F;cursor:pointer;display:grid;place-items:center"><svg width="18" height="18" sc-camel-view-box="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"></path></svg></button>
     <button sc-camel-on-click="{{ player.close }}" title="بستن" style="border:none;background:none;color:#b8bab5;cursor:pointer;font-size:18px">✕</button>
   </div>
-</sc-if>
+</sc-if></sc-if>
 </div>
 </x-dc>

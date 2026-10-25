@@ -1181,7 +1181,7 @@ class LiveApp extends React.Component {
 
   callViewVals(s) {
     const c = s.cvId ? this.calls.find(x => x.id === s.cvId) : null;
-    if (!c) return { cvm: { show: false } };
+    if (!c) return { cvm: { show: false, barOk: true } };
     const d = (s.cvCache || {})[c.id];
     const ai = d && d.ai;
     const state = d ? d.aiState : '';
@@ -1193,7 +1193,8 @@ class LiveApp extends React.Component {
     const u = ai ? URG[ai.urg] || URG.low : URG.low;
     const isAdmin = ME && ME.role === 'admin';
     return { cvm: {
-      show: true, close: () => this.setState({ cvId: null }),
+      show: true, barOk: false, close: () => this.setState({ cvId: null }),
+      isCur: s.pid === c.id, notCur: s.pid !== c.id,
       name: c.name, phone: c.phone, ini: c.ini, when: c.date + ' · ' + c.time, dir: c.dirLabel, queue: c.queue,
       op: c.op ? c.op.name + ' · داخلی ' + c.op.ext : 'بدون اپراتور', dur: c.durText, status: c.status,
       hasRec: !!c.hasVoice, noRec: !c.hasVoice, playLabel: playing ? '❚❚ توقف' : '▶ پخش مکالمه', play: () => this.playCall(c.id), download: () => this.download(c),
