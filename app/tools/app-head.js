@@ -120,6 +120,7 @@ class LiveApp extends React.Component {
     if (s.page === 'vbackup' && prev.page !== 'vbackup') this.loadBackups();
     if (s.page === 'vai' && prev.page !== 'vai') this.loadAi();
     if (s.page === 'vcrm' && prev.page !== 'vcrm') this.loadCrm();
+    if (s.page === 'sys' && prev.page !== 'sys') { this.loadSys(); clearInterval(this.sysT); this.sysT = setInterval(() => { if (this.state.page === 'sys') this.loadSys(); else clearInterval(this.sysT); }, 5000); }
     if (s.page === 'vagent' && prev.page !== 'vagent') this.loadAgent();
     if (s.page === 'settings' && prev.page !== 'settings') { this.loadAi(); this.loadApi(); this.loadBackups(); this.loadCrm(); this.loadAgent(); }
     if (this.remote) return;
@@ -1111,6 +1112,59 @@ class LiveApp extends React.Component {
       listening: !!s.lsId, lsOn: !!s.lsOn, lsWho: s.lsWho || '', lsState: lsCall ? lsCall.state : '', lsTime: s.lsAt ? clock(now - s.lsAt) : '',
       vu: Array.from({ length: 28 }, (_, i) => { const v = hist[hist.length - 28 + i] || 0; return { h: Math.max(3, Math.round(v * 34)) + 'px', bg: v > 0.7 ? '#e0a83a' : '#7FB536' }; }),
       stop: () => this.stopListen(), vol: String(vol), setVol: e => { const v = +e.target.value; this.setState({ lsVol: v }); if (this.lgain) this.lgain.gain.value = v; },
+    } };
+  }
+
+  // ---- «وضعیت سرور»
+  async loadSys() {
+    try { this.setState({ sysData: await api('/system') }); } catch (e) { if (!this.state.sysData) this.toast('بارگذاری وضعیت سرور ناموفق بود: ' + e.message); }
+  }
+
+  sysVals(s) {
+    const d = s.sysData;
+    if (!d) return { sy: { ready: false, loading: true } };
+    const fa = n => String(n).replace(/\d/g, x => '۰۱۲۳۴۵۶۷۸۹'[x]);
+    const gb = b => { const g = b / 1073741824; return g >= 100 ? fa(g.toFixed(0)) + ' گیگ' : g >= 1 ? fa(g.toFixed(1)) + ' گیگ' : fa(Math.round(b / 1048576)) + ' مگ'; };
+    const tone = p => (p >= 90 ? '#e0574a' : p >= 75 ? '#e0a83a' : '#8DC63F');
+    const C = 2 * Math.PI * 42;
+    const ring = (p, color) => ({ dash: C.toFixed(1), off: (C * (1 - Math.min(100, Math.max(0, p)) / 100)).toFixed(1), color: color || tone(p), pct: fa(Math.round(p)) });
+    const ago = ms => { const m = Math.floor(ms / 60000), h = Math.floor(m / 60), dd = Math.floor(h / 24); return dd ? fa(dd) + ' روز و ' + fa(h % 24) + ' ساعت' : h ? fa(h) + ' ساعت و ' + fa(m % 60) + ' دقیقه' : fa(m) + ' دقیقه'; };
+    const memP = d.mem.used / d.mem.total * 100, diskP = d.disk.used / d.disk.total * 100;
+    const scoreColor = d.score >= 85 ? '#8DC63F' : d.score >= 65 ? '#e0a83a' : '#e0574a';
+    // disk composition: our folders, then everything else the system uses
+    const PAL = { rec: '#2E2F31', backup: '#5b9bd0', logs: '#e0a83a', db: '#8d6fc0', sounds: '#8DC63F' };
+    const known = d.folders.reduce((n, f) => n + f.total, 0);
+    const parts = [...d.folders.map(f => ({ ...f, color: PAL[f.key] || '#9a9d97' })).sort((a, b) => b.total - a.total), { key: 'other', label: 'سیستم‌عامل و برنامه‌ها', total: Math.max(0, d.disk.used - known), recent: 0, color: '#c9cbc6' }];
+    const diskBar = [...parts.map(p => ({ w: (p.total / d.disk.total * 100).toFixed(2) + '%', bg: p.color, tip: p.label + ': ' + gb(p.total) })), { w: (d.disk.free / d.disk.total * 100).toFixed(2) + '%', bg: '#f2f3ef', tip: 'فضای آزاد: ' + gb(d.disk.free) }];
+    const legend = parts.map(p => ({ label: p.label, size: gb(p.total), dot: p.color, growth: p.recent > 1048576 ? '+' + gb(p.recent / 7) + ' در روز' : '', hasGrowth: p.recent > 1048576 }));
+    // last two hours of CPU and memory
+    const H = d.history || [], W = 600, HT = 140;
+    const pts = key => H.map((p, i) => ((H.length < 2 ? W : i / (H.length - 1) * W).toFixed(1)) + ',' + (HT - Math.min(100, p[key]) / 100 * HT).toFixed(1)).join(' ');
+    const area = key => (H.length > 1 ? 'M0,' + HT + ' L' + pts(key).split(' ').join(' L') + ' L' + W + ',' + HT + ' Z' : '');
+    const LV = { bad: { icon: '!', bg: '#fdeceb', fg: '#b42318', bd: '#f5c2bd' }, warn: { icon: '!', bg: '#fcf3e0', fg: '#8a5a00', bd: '#f0d9a8' }, ok: { icon: '✓', bg: '#f2f8ea', fg: '#3d6a0c', bd: '#dcebc6' } };
+    const t = d.telephony;
+    return { sy: {
+      ready: true, loading: false,
+      sub: d.os + ' · ' + (d.cpu.model || '') + ' · روشن از ' + ago(d.uptime * 1000) + ' پیش',
+      score: fa(d.score), verdict: d.verdict, scoreRing: ring(d.score, scoreColor), scoreColor,
+      tips: d.tips.map(x => ({ ...x, ...LV[x.level] })),
+      cpu: { ring: ring(d.cpu.pct), value: fa(d.cpu.pct.toFixed(0)) + '٪', cores: fa(d.cpu.cores) + ' هسته', load: d.cpu.load.map(x => fa(x.toFixed(1))).join(' / '), temp: d.cpu.temp ? fa(d.cpu.temp) + '°' : '—' },
+      mem: { ring: ring(memP), value: gb(d.mem.used) + ' از ' + gb(d.mem.total), free: gb(d.mem.avail), cache: gb(d.mem.cache), swap: !d.mem.swapTotal ? 'ندارد' : d.mem.swapUsed < 50 * 1048576 ? 'استفاده نشده' : gb(d.mem.swapUsed) },
+      disk: { ring: ring(diskP), value: gb(d.disk.used) + ' از ' + gb(d.disk.total), free: gb(d.disk.free), perDay: d.perDay > 1048576 ? gb(d.perDay) + ' در روز' : 'ناچیز',
+        forecast: d.daysLeft === null ? 'رشد ناچیز است' : d.daysLeft > 3650 ? 'بیش از ۱۰ سال' : d.daysLeft > 730 ? 'حدود ' + fa(Math.round(d.daysLeft / 365)) + ' سال دیگر' : d.daysLeft > 60 ? 'حدود ' + fa(Math.round(d.daysLeft / 30)) + ' ماه دیگر' : fa(d.daysLeft) + ' روز دیگر',
+        fcColor: d.daysLeft !== null && d.daysLeft < 90 ? '#b42318' : '#3d6a0c' },
+      diskBar, legend,
+      hasHist: H.length > 1, histText: H.length > 1 ? 'از ' + fa(Math.round((Date.now() - H[0].t) / 60000)) + ' دقیقه پیش' : 'نمودار پس از چند دقیقه کار سرور ساخته می‌شود',
+      cpuLine: pts('cpu'), memLine: pts('mem'), cpuArea: area('cpu'), memArea: area('mem'),
+      services: d.services.map(x => ({ label: x.label, unit: x.unit, ok: x.state === 'active', dot: x.state === 'active' ? '#8DC63F' : '#e0574a', state: x.state === 'active' ? 'فعال' : 'متوقف' })),
+      tel: [
+        { label: 'خط مخابرات', value: t.trunks ? (t.trunksUp === t.trunks ? 'متصل' : 'قطع') : 'تعریف نشده', ok: t.trunks && t.trunksUp === t.trunks },
+        { label: 'ارتباط پنل با مرکز تلفن', value: t.ami ? 'برقرار' : 'قطع', ok: t.ami },
+        { label: 'داخلی‌های آنلاین', value: fa(t.extsOnline) + ' از ' + fa(t.exts), ok: t.extsOnline > 0 },
+      ].map(x => ({ ...x, dot: x.ok ? '#8DC63F' : '#e0574a' })),
+      backup: { last: d.backup.last ? ago(Date.now() - d.backup.last) + ' پیش' : 'هنوز گرفته نشده', size: d.backup.lastSize ? gb(d.backup.lastSize) : '—', auto: d.backup.auto ? 'روشن، هر شب ساعت ' + fa(d.backup.time || '') : 'خاموش', autoColor: d.backup.auto ? '#3d6a0c' : '#8a5a00', go: () => this.setState({ page: 'vbackup' }) },
+      data: [{ label: 'تماس‌های ثبت‌شده', value: fa(d.calls.toLocaleString('en')) }, { label: 'فایل ضبط', value: fa(d.recs.toLocaleString('en')) }, { label: 'حجم دیتابیس', value: gb((d.folders.find(f => f.key === 'db') || { total: 0 }).total) }],
+      refresh: () => this.loadSys(),
     } };
   }
 

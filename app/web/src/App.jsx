@@ -120,6 +120,7 @@ class LiveApp extends React.Component {
     if (s.page === 'vbackup' && prev.page !== 'vbackup') this.loadBackups();
     if (s.page === 'vai' && prev.page !== 'vai') this.loadAi();
     if (s.page === 'vcrm' && prev.page !== 'vcrm') this.loadCrm();
+    if (s.page === 'sys' && prev.page !== 'sys') { this.loadSys(); clearInterval(this.sysT); this.sysT = setInterval(() => { if (this.state.page === 'sys') this.loadSys(); else clearInterval(this.sysT); }, 5000); }
     if (s.page === 'vagent' && prev.page !== 'vagent') this.loadAgent();
     if (s.page === 'settings' && prev.page !== 'settings') { this.loadAi(); this.loadApi(); this.loadBackups(); this.loadCrm(); this.loadAgent(); }
     if (this.remote) return;
@@ -1114,6 +1115,59 @@ class LiveApp extends React.Component {
     } };
   }
 
+  // ---- «وضعیت سرور»
+  async loadSys() {
+    try { this.setState({ sysData: await api('/system') }); } catch (e) { if (!this.state.sysData) this.toast('بارگذاری وضعیت سرور ناموفق بود: ' + e.message); }
+  }
+
+  sysVals(s) {
+    const d = s.sysData;
+    if (!d) return { sy: { ready: false, loading: true } };
+    const fa = n => String(n).replace(/\d/g, x => '۰۱۲۳۴۵۶۷۸۹'[x]);
+    const gb = b => { const g = b / 1073741824; return g >= 100 ? fa(g.toFixed(0)) + ' گیگ' : g >= 1 ? fa(g.toFixed(1)) + ' گیگ' : fa(Math.round(b / 1048576)) + ' مگ'; };
+    const tone = p => (p >= 90 ? '#e0574a' : p >= 75 ? '#e0a83a' : '#8DC63F');
+    const C = 2 * Math.PI * 42;
+    const ring = (p, color) => ({ dash: C.toFixed(1), off: (C * (1 - Math.min(100, Math.max(0, p)) / 100)).toFixed(1), color: color || tone(p), pct: fa(Math.round(p)) });
+    const ago = ms => { const m = Math.floor(ms / 60000), h = Math.floor(m / 60), dd = Math.floor(h / 24); return dd ? fa(dd) + ' روز و ' + fa(h % 24) + ' ساعت' : h ? fa(h) + ' ساعت و ' + fa(m % 60) + ' دقیقه' : fa(m) + ' دقیقه'; };
+    const memP = d.mem.used / d.mem.total * 100, diskP = d.disk.used / d.disk.total * 100;
+    const scoreColor = d.score >= 85 ? '#8DC63F' : d.score >= 65 ? '#e0a83a' : '#e0574a';
+    // disk composition: our folders, then everything else the system uses
+    const PAL = { rec: '#2E2F31', backup: '#5b9bd0', logs: '#e0a83a', db: '#8d6fc0', sounds: '#8DC63F' };
+    const known = d.folders.reduce((n, f) => n + f.total, 0);
+    const parts = [...d.folders.map(f => ({ ...f, color: PAL[f.key] || '#9a9d97' })).sort((a, b) => b.total - a.total), { key: 'other', label: 'سیستم‌عامل و برنامه‌ها', total: Math.max(0, d.disk.used - known), recent: 0, color: '#c9cbc6' }];
+    const diskBar = [...parts.map(p => ({ w: (p.total / d.disk.total * 100).toFixed(2) + '%', bg: p.color, tip: p.label + ': ' + gb(p.total) })), { w: (d.disk.free / d.disk.total * 100).toFixed(2) + '%', bg: '#f2f3ef', tip: 'فضای آزاد: ' + gb(d.disk.free) }];
+    const legend = parts.map(p => ({ label: p.label, size: gb(p.total), dot: p.color, growth: p.recent > 1048576 ? '+' + gb(p.recent / 7) + ' در روز' : '', hasGrowth: p.recent > 1048576 }));
+    // last two hours of CPU and memory
+    const H = d.history || [], W = 600, HT = 140;
+    const pts = key => H.map((p, i) => ((H.length < 2 ? W : i / (H.length - 1) * W).toFixed(1)) + ',' + (HT - Math.min(100, p[key]) / 100 * HT).toFixed(1)).join(' ');
+    const area = key => (H.length > 1 ? 'M0,' + HT + ' L' + pts(key).split(' ').join(' L') + ' L' + W + ',' + HT + ' Z' : '');
+    const LV = { bad: { icon: '!', bg: '#fdeceb', fg: '#b42318', bd: '#f5c2bd' }, warn: { icon: '!', bg: '#fcf3e0', fg: '#8a5a00', bd: '#f0d9a8' }, ok: { icon: '✓', bg: '#f2f8ea', fg: '#3d6a0c', bd: '#dcebc6' } };
+    const t = d.telephony;
+    return { sy: {
+      ready: true, loading: false,
+      sub: d.os + ' · ' + (d.cpu.model || '') + ' · روشن از ' + ago(d.uptime * 1000) + ' پیش',
+      score: fa(d.score), verdict: d.verdict, scoreRing: ring(d.score, scoreColor), scoreColor,
+      tips: d.tips.map(x => ({ ...x, ...LV[x.level] })),
+      cpu: { ring: ring(d.cpu.pct), value: fa(d.cpu.pct.toFixed(0)) + '٪', cores: fa(d.cpu.cores) + ' هسته', load: d.cpu.load.map(x => fa(x.toFixed(1))).join(' / '), temp: d.cpu.temp ? fa(d.cpu.temp) + '°' : '—' },
+      mem: { ring: ring(memP), value: gb(d.mem.used) + ' از ' + gb(d.mem.total), free: gb(d.mem.avail), cache: gb(d.mem.cache), swap: !d.mem.swapTotal ? 'ندارد' : d.mem.swapUsed < 50 * 1048576 ? 'استفاده نشده' : gb(d.mem.swapUsed) },
+      disk: { ring: ring(diskP), value: gb(d.disk.used) + ' از ' + gb(d.disk.total), free: gb(d.disk.free), perDay: d.perDay > 1048576 ? gb(d.perDay) + ' در روز' : 'ناچیز',
+        forecast: d.daysLeft === null ? 'رشد ناچیز است' : d.daysLeft > 3650 ? 'بیش از ۱۰ سال' : d.daysLeft > 730 ? 'حدود ' + fa(Math.round(d.daysLeft / 365)) + ' سال دیگر' : d.daysLeft > 60 ? 'حدود ' + fa(Math.round(d.daysLeft / 30)) + ' ماه دیگر' : fa(d.daysLeft) + ' روز دیگر',
+        fcColor: d.daysLeft !== null && d.daysLeft < 90 ? '#b42318' : '#3d6a0c' },
+      diskBar, legend,
+      hasHist: H.length > 1, histText: H.length > 1 ? 'از ' + fa(Math.round((Date.now() - H[0].t) / 60000)) + ' دقیقه پیش' : 'نمودار پس از چند دقیقه کار سرور ساخته می‌شود',
+      cpuLine: pts('cpu'), memLine: pts('mem'), cpuArea: area('cpu'), memArea: area('mem'),
+      services: d.services.map(x => ({ label: x.label, unit: x.unit, ok: x.state === 'active', dot: x.state === 'active' ? '#8DC63F' : '#e0574a', state: x.state === 'active' ? 'فعال' : 'متوقف' })),
+      tel: [
+        { label: 'خط مخابرات', value: t.trunks ? (t.trunksUp === t.trunks ? 'متصل' : 'قطع') : 'تعریف نشده', ok: t.trunks && t.trunksUp === t.trunks },
+        { label: 'ارتباط پنل با مرکز تلفن', value: t.ami ? 'برقرار' : 'قطع', ok: t.ami },
+        { label: 'داخلی‌های آنلاین', value: fa(t.extsOnline) + ' از ' + fa(t.exts), ok: t.extsOnline > 0 },
+      ].map(x => ({ ...x, dot: x.ok ? '#8DC63F' : '#e0574a' })),
+      backup: { last: d.backup.last ? ago(Date.now() - d.backup.last) + ' پیش' : 'هنوز گرفته نشده', size: d.backup.lastSize ? gb(d.backup.lastSize) : '—', auto: d.backup.auto ? 'روشن، هر شب ساعت ' + fa(d.backup.time || '') : 'خاموش', autoColor: d.backup.auto ? '#3d6a0c' : '#8a5a00', go: () => this.setState({ page: 'vbackup' }) },
+      data: [{ label: 'تماس‌های ثبت‌شده', value: fa(d.calls.toLocaleString('en')) }, { label: 'فایل ضبط', value: fa(d.recs.toLocaleString('en')) }, { label: 'حجم دیتابیس', value: gb((d.folders.find(f => f.key === 'db') || { total: 0 }).total) }],
+      refresh: () => this.loadSys(),
+    } };
+  }
+
   // ---- «هوش مصنوعی» settings page
   async loadAi() {
     try {
@@ -1565,9 +1619,9 @@ export default class App extends LiveApp {
   const fol=c=>s.follow[c.id]||c.follow;
   const vms=C.filter(c=>c.st==='voicemail'&&this.deptOk(c,s));const AI=C.filter(c=>c.ai&&!c.ai.pending);
   const nv=(p,count)=>({go:()=>this.setState({page:p}),bg:s.page===p?'#8DC63F':'transparent',fg:s.page===p?'#1f2021':'#d9dad6',count,cbg:s.page===p?'rgba(31,32,33,.15)':'rgba(255,255,255,.08)'});
-  const nav={calls:nv('calls',C.length),inbound:nv('inbound',C.filter(c=>c.dir==='in').length),voice:nv('voice',vms.filter(c=>fol(c)==='new').length),reports:nv('reports',''),survey:nv('survey',C.filter(c=>c.survey).length),ai:nv('ai',AI.length),vext:nv('vext',s.exts.length),vtrunk:nv('vtrunk',s.trunks.length),vqueue:nv('vqueue',s.vqs.length),vivr:nv('vivr',s.ivrs.length),vsound:nv('vsound',s.snds.length),vroute:nv('vroute',s.routes.length),vout:nv('vout',(s.oroutes||[]).length),vapi:nv('vapi',''),settings:nv('settings',''),live:nv('live',(s.liveCalls||[]).length),days:nv('days',''),aiconv:nv('aiconv',C.filter(c=>c.queue==='دستیار هوشمند').length),vbackup:nv('vbackup',(s.bk&&s.bk.items.filter(b=>b.status==='done').length)||''),vtime:nv('vtime',s.tconds.length),vring:nv('vring',s.rgroups.length),vfollow:nv('vfollow',Object.values(s.fmes).filter(f=>f.on).length),vblack:nv('vblack',s.blist.length)};
+  const nav={calls:nv('calls',C.length),inbound:nv('inbound',C.filter(c=>c.dir==='in').length),voice:nv('voice',vms.filter(c=>fol(c)==='new').length),reports:nv('reports',''),survey:nv('survey',C.filter(c=>c.survey).length),ai:nv('ai',AI.length),vext:nv('vext',s.exts.length),vtrunk:nv('vtrunk',s.trunks.length),vqueue:nv('vqueue',s.vqs.length),vivr:nv('vivr',s.ivrs.length),vsound:nv('vsound',s.snds.length),vroute:nv('vroute',s.routes.length),vout:nv('vout',(s.oroutes||[]).length),vapi:nv('vapi',''),settings:nv('settings',''),sys:nv('sys',''),live:nv('live',(s.liveCalls||[]).length),days:nv('days',''),aiconv:nv('aiconv',C.filter(c=>c.queue==='دستیار هوشمند').length),vbackup:nv('vbackup',(s.bk&&s.bk.items.filter(b=>b.status==='done').length)||''),vtime:nv('vtime',s.tconds.length),vring:nv('vring',s.rgroups.length),vfollow:nv('vfollow',Object.values(s.fmes).filter(f=>f.on).length),vblack:nv('vblack',s.blist.length)};
   const isV=['vext','vtrunk','vqueue','vivr','vsound','vroute','vout','vtime','vring','vfollow','vblack','vbackup'].includes(s.page);nav.voipOpen=s.voipOpen||isV;nav.toggleVoip=()=>this.setState({voipOpen:!(s.voipOpen||isV)});nav.voipChev=nav.voipOpen?'rotate(180deg)':'none';nav.voipBg=isV?'rgba(141,198,63,.12)':'transparent';const isR=['reports','days'].includes(s.page);nav.repOpen=s.repOpen||isR;nav.toggleRep=()=>this.setState({repOpen:!(s.repOpen||isR)});nav.repChev=nav.repOpen?'rotate(180deg)':'none';nav.repBg=isR?'rgba(141,198,63,.12)':'transparent';
-  const is={};['calls','inbound','voice','reports','survey','ai','vext','vtrunk','vqueue','vivr','vsound','vroute','vtime','vring','vfollow','vblack','vout','unreached','vapi','vbackup','settings','vai','vsurvey','vcrm','vagent','aiconv','days','live','file'].forEach(p=>is[p]=s.page===p);
+  const is={};['calls','inbound','voice','reports','survey','ai','vext','vtrunk','vqueue','vivr','vsound','vroute','vtime','vring','vfollow','vblack','vout','unreached','vapi','vbackup','settings','vai','vsurvey','vcrm','vagent','aiconv','days','live','sys','file'].forEach(p=>is[p]=s.page===p);
   const qm=(c,q)=>!q||c.name.includes(q)||c.phoneRaw.includes(q.replace(/\s/g,''));
   const pill=(on)=>({bg:on?'#2E2F31':'#fff',fg:on?'#fff':'#3a3b3d',bd:on?'#2E2F31':'#e1e3dc'});
   const ops=OPS.map(o=>({id:o.id,label:o.name+' ('+o.ext+')'}));
@@ -1710,6 +1764,6 @@ export default class App extends LiveApp {
    seek:e=>{const b=e.currentTarget.getBoundingClientRect();this.setState({pos:Math.min(1,Math.max(0,(b.right-e.clientX)/b.width))*(this.audDur||pc.dur)});},
    pct:s.pos/(this.audDur||pc.dur)*100+'%',posText:fmt(s.pos),durText:fmt((this.audDur||pc.dur)),speedText:s.speed+'x',cycleSpeed:()=>this.setState({speed:SP[(SP.indexOf(s.speed)+1)%SP.length]}),download:()=>this.download(pc)}:{show:false};
 
-  return {...this.voip(s),...this.voip2(s),...this.voipOut(s),...this.apiVals(s),...this.backupVals(s),...this.settingsVals(s),...this.aiSettingsVals(s),...this.surveyVals(s),...this.crmVals(s),...this.agentVals(s),...this.aiConvVals(s),...this.daysVals(s),...this.liveVals(s),pf,call,toast,nav:{...nav,unreached:nv('unreached',urV.navCount)},is,ur:urV,cl,ib,vm,rp,sv,ai,player,showAi,dates:[],hours:HOURS,ops,queues:s.vqs.map(q=>q.name),statuses,cats,me:this.meVals(),todayLong:jLong(new Date())};
+  return {...this.voip(s),...this.voip2(s),...this.voipOut(s),...this.apiVals(s),...this.backupVals(s),...this.settingsVals(s),...this.aiSettingsVals(s),...this.surveyVals(s),...this.crmVals(s),...this.agentVals(s),...this.aiConvVals(s),...this.daysVals(s),...this.liveVals(s),...this.sysVals(s),pf,call,toast,nav:{...nav,unreached:nv('unreached',urV.navCount)},is,ur:urV,cl,ib,vm,rp,sv,ai,player,showAi,dates:[],hours:HOURS,ops,queues:s.vqs.map(q=>q.name),statuses,cats,me:this.meVals(),todayLong:jLong(new Date())};
  }
 }

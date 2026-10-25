@@ -85,6 +85,10 @@ export default function AppView({ vm }) {
               <span style={{fontSize: "11px", padding: "2px 8px", borderRadius: "99px", background: vm.nav?.aiconv?.cbg}}>{vm.nav?.aiconv?.count}</span>
             </div>
             <div style={{fontSize: "11px", color: "#8b8e89", padding: "16px 14px 6px"}}>{"تنظیمات"}</div>
+            <div onClick={vm.nav?.sys?.go} style={{display: "flex", alignItems: "center", gap: "12px", padding: "11px 14px", borderRadius: "12px", cursor: "pointer", background: vm.nav?.sys?.bg, color: vm.nav?.sys?.fg, fontSize: "14px", fontWeight: "600"}}>
+              <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4h16v6H4zM4 14h16v6H4zM8 7h.01M8 17h.01" /></svg>
+              <span style={{flex: "1"}}>{"وضعیت سرور"}</span>
+            </div>
             <div onClick={vm.nav?.toggleVoip} style={{display: "flex", alignItems: "center", gap: "12px", padding: "11px 14px", borderRadius: "12px", cursor: "pointer", background: vm.nav?.voipBg, color: "#d9dad6", fontSize: "14px", fontWeight: "600"}}>
               <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
                 <circle cx="12" cy="12" r="3" />
@@ -2203,6 +2207,272 @@ export default function AppView({ vm }) {
                 <pre style={{margin: "0", background: "#2E2F31", color: "#e6e7e2", borderRadius: "12px", padding: "12px 14px", fontSize: "11px", direction: "ltr", textAlign: "left", maxHeight: "260px", overflow: "auto", whiteSpace: "pre-wrap"}}>{vm.crm2?.raw}</pre>
               </>) : null}
             </div>
+          </div>
+        </>) : null}
+        {(vm.is?.sys) ? (<>
+          <div style={{display: "flex", flexDirection: "column", gap: "18px"}}>
+            <div style={{display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: "16px", flexWrap: "wrap"}}>
+              <div>
+                <h1 style={{margin: "0", fontSize: "28px", fontWeight: "800"}}>{"وضعیت سرور"}</h1>
+                <div style={{fontSize: "14px", color: "#6b6e72", marginTop: "6px"}}>{vm.sy?.sub}</div>
+              </div>
+              <button onClick={vm.sy?.refresh} style={{display: "flex", alignItems: "center", gap: "8px", border: "1px solid #e1e3dc", background: "#fff", color: "#2E2F31", padding: "10px 16px", borderRadius: "12px", fontSize: "13px", fontWeight: "700", cursor: "pointer", fontFamily: "inherit"}}>
+                <span style={{width: "8px", height: "8px", borderRadius: "50%", background: "#8DC63F", animation: "cc-pulse 2s infinite"}} />
+                {"به‌روزرسانی هر ۵ ثانیه"}
+              </button>
+            </div>
+            {(vm.sy?.loading) ? (<>
+              <div style={{background: "#fff", border: "1px solid #e7e8e3", borderRadius: "20px", padding: "40px", textAlign: "center", color: "#6b6e72"}}>{"در حال دریافت وضعیت سرور…"}</div>
+            </>) : null}
+            {(vm.sy?.ready) ? (<>
+              <div style={{background: "#fff", border: "1px solid #e7e8e3", borderRadius: "20px", padding: "20px 22px", display: "flex", gap: "24px", flexWrap: "wrap", alignItems: "center"}}>
+                <div style={{display: "flex", alignItems: "center", gap: "18px", minWidth: "250px"}}>
+                  <div style={{position: "relative", width: "132px", height: "132px", flexShrink: "0"}}>
+                    <svg width="132" height="132" viewBox="0 0 100 100" style={{transform: "rotate(-90deg)"}}>
+                      <circle cx="50" cy="50" r="42" fill="none" stroke="#f0f1ec" strokeWidth="7" />
+                      <circle cx="50" cy="50" r="42" fill="none" stroke={vm.sy?.scoreRing?.color} strokeWidth="7" strokeLinecap="round" strokeDasharray={vm.sy?.scoreRing?.dash} strokeDashoffset={vm.sy?.scoreRing?.off} style={{transition: "stroke-dashoffset .8s ease"}} />
+                    </svg>
+                    <div style={{position: "absolute", inset: "0", display: "grid", placeItems: "center", textAlign: "center"}}>
+                      <div>
+                        <div style={{fontSize: "34px", fontWeight: "800", lineHeight: "1"}}>{vm.sy?.score}</div>
+                        <div style={{fontSize: "11px", color: "#8b8e89", marginTop: "4px"}}>{"از ۱۰۰"}</div>
+                      </div>
+                    </div>
+                  </div>
+                  <div>
+                    <div style={{fontSize: "12px", color: "#6b6e72"}}>{"سلامت کلی سرور"}</div>
+                    <div style={{fontSize: "22px", fontWeight: "800", color: vm.sy?.scoreColor, marginTop: "4px"}}>{vm.sy?.verdict}</div>
+                  </div>
+                </div>
+                <div style={{flex: "1", minWidth: "280px", display: "flex", flexDirection: "column", gap: "8px"}}>
+                  <div style={{fontSize: "12px", color: "#6b6e72", fontWeight: "700"}}>{"پیشنهادها برای مدیر"}</div>
+                  {(vm.sy?.tips || []).map((x, __i9) => <React.Fragment key={__i9}>
+                    <div style={{display: "flex", gap: "10px", alignItems: "flex-start", background: x?.bg, border: `1px solid ${x?.bd}`, borderRadius: "14px", padding: "10px 12px"}}>
+                      <span style={{width: "22px", height: "22px", borderRadius: "50%", background: "#fff", color: x?.fg, display: "grid", placeItems: "center", fontWeight: "800", fontSize: "13px", flexShrink: "0", border: `1px solid ${x?.bd}`}}>{x?.icon}</span>
+                      <div>
+                        <div style={{fontSize: "13px", fontWeight: "800", color: x?.fg}}>{x?.title}</div>
+                        <div style={{fontSize: "12px", color: "#55585c", marginTop: "2px", lineHeight: "1.7"}}>{x?.text}</div>
+                      </div>
+                    </div>
+                  </React.Fragment>)}
+                </div>
+              </div>
+              <div style={{display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(290px,1fr))", gap: "14px"}}>
+                <div style={{background: "#fff", border: "1px solid #e7e8e3", borderRadius: "20px", padding: "18px 20px", display: "flex", alignItems: "center", gap: "18px"}}>
+                  <div style={{position: "relative", width: "104px", height: "104px", flexShrink: "0"}}>
+                    <svg width="104" height="104" viewBox="0 0 100 100" style={{transform: "rotate(-90deg)"}}>
+                      <circle cx="50" cy="50" r="42" fill="none" stroke="#f0f1ec" strokeWidth="8" />
+                      <circle cx="50" cy="50" r="42" fill="none" stroke={vm.sy?.cpu?.ring?.color} strokeWidth="8" strokeLinecap="round" strokeDasharray={vm.sy?.cpu?.ring?.dash} strokeDashoffset={vm.sy?.cpu?.ring?.off} style={{transition: "stroke-dashoffset .8s ease"}} />
+                    </svg>
+                    <div style={{position: "absolute", inset: "0", display: "grid", placeItems: "center", textAlign: "center"}}>
+                      <div>
+                        <div style={{fontSize: "22px", fontWeight: "800", lineHeight: "1"}}>
+                          {vm.sy?.cpu?.ring?.pct}
+                          <span style={{fontSize: "12px"}}>{"٪"}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div style={{flex: "1", minWidth: "0", display: "flex", flexDirection: "column", gap: "7px"}}>
+                    <div style={{display: "flex", alignItems: "center", gap: "8px", fontWeight: "800", fontSize: "15px"}}>
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#3d6a0c" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M9 3v2M15 3v2M9 19v2M15 19v2M3 9h2M3 15h2M19 9h2M19 15h2M7 5h10a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2zM9 9h6v6H9z" />
+                      </svg>
+                      {"پردازنده"}
+                    </div>
+                    <div style={{fontSize: "13px", fontWeight: "700", color: "#3a3b3d"}}>{vm.sy?.cpu?.value}</div>
+                    <div style={{display: "flex", justifyContent: "space-between", gap: "8px", fontSize: "12px"}}>
+                      <span style={{color: "#6b6e72"}}>{"تعداد هسته"}</span>
+                      <b style={{color: "#232425", whiteSpace: "nowrap"}}>{vm.sy?.cpu?.cores}</b>
+                    </div>
+                    <div style={{display: "flex", justifyContent: "space-between", gap: "8px", fontSize: "12px"}}>
+                      <span style={{color: "#6b6e72", whiteSpace: "nowrap"}}>{"بار (۱، ۵، ۱۵ دقیقه)"}</span>
+                      <b style={{color: "#232425", whiteSpace: "nowrap"}}>{vm.sy?.cpu?.load}</b>
+                    </div>
+                    <div style={{display: "flex", justifyContent: "space-between", gap: "8px", fontSize: "12px"}}>
+                      <span style={{color: "#6b6e72"}}>{"دما"}</span>
+                      <b style={{color: "#232425", whiteSpace: "nowrap"}}>{vm.sy?.cpu?.temp}</b>
+                    </div>
+                  </div>
+                </div>
+                <div style={{background: "#fff", border: "1px solid #e7e8e3", borderRadius: "20px", padding: "18px 20px", display: "flex", alignItems: "center", gap: "18px"}}>
+                  <div style={{position: "relative", width: "104px", height: "104px", flexShrink: "0"}}>
+                    <svg width="104" height="104" viewBox="0 0 100 100" style={{transform: "rotate(-90deg)"}}>
+                      <circle cx="50" cy="50" r="42" fill="none" stroke="#f0f1ec" strokeWidth="8" />
+                      <circle cx="50" cy="50" r="42" fill="none" stroke={vm.sy?.mem?.ring?.color} strokeWidth="8" strokeLinecap="round" strokeDasharray={vm.sy?.mem?.ring?.dash} strokeDashoffset={vm.sy?.mem?.ring?.off} style={{transition: "stroke-dashoffset .8s ease"}} />
+                    </svg>
+                    <div style={{position: "absolute", inset: "0", display: "grid", placeItems: "center", textAlign: "center"}}>
+                      <div>
+                        <div style={{fontSize: "22px", fontWeight: "800", lineHeight: "1"}}>
+                          {vm.sy?.mem?.ring?.pct}
+                          <span style={{fontSize: "12px"}}>{"٪"}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div style={{flex: "1", minWidth: "0", display: "flex", flexDirection: "column", gap: "7px"}}>
+                    <div style={{display: "flex", alignItems: "center", gap: "8px", fontWeight: "800", fontSize: "15px"}}>
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#3d6a0c" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M3 7h18v10H3zM7 7v10M11 7v10M15 7v10M3 17v3M21 17v3" /></svg>
+                      {"حافظه (RAM)"}
+                    </div>
+                    <div style={{fontSize: "13px", fontWeight: "700", color: "#3a3b3d"}}>{vm.sy?.mem?.value}</div>
+                    <div style={{display: "flex", justifyContent: "space-between", gap: "8px", fontSize: "12px"}}>
+                      <span style={{color: "#6b6e72"}}>{"آزاد قابل استفاده"}</span>
+                      <b style={{color: "#232425", whiteSpace: "nowrap"}}>{vm.sy?.mem?.free}</b>
+                    </div>
+                    <div style={{display: "flex", justifyContent: "space-between", gap: "8px", fontSize: "12px"}}>
+                      <span style={{color: "#6b6e72"}}>{"کش سیستم"}</span>
+                      <b style={{color: "#232425", whiteSpace: "nowrap"}}>{vm.sy?.mem?.cache}</b>
+                    </div>
+                    <div style={{display: "flex", justifyContent: "space-between", gap: "8px", fontSize: "12px"}}>
+                      <span style={{color: "#6b6e72"}}>{"حافظه مجازی"}</span>
+                      <b style={{color: "#232425", whiteSpace: "nowrap"}}>{vm.sy?.mem?.swap}</b>
+                    </div>
+                  </div>
+                </div>
+                <div style={{background: "#fff", border: "1px solid #e7e8e3", borderRadius: "20px", padding: "18px 20px", display: "flex", alignItems: "center", gap: "18px"}}>
+                  <div style={{position: "relative", width: "104px", height: "104px", flexShrink: "0"}}>
+                    <svg width="104" height="104" viewBox="0 0 100 100" style={{transform: "rotate(-90deg)"}}>
+                      <circle cx="50" cy="50" r="42" fill="none" stroke="#f0f1ec" strokeWidth="8" />
+                      <circle cx="50" cy="50" r="42" fill="none" stroke={vm.sy?.disk?.ring?.color} strokeWidth="8" strokeLinecap="round" strokeDasharray={vm.sy?.disk?.ring?.dash} strokeDashoffset={vm.sy?.disk?.ring?.off} style={{transition: "stroke-dashoffset .8s ease"}} />
+                    </svg>
+                    <div style={{position: "absolute", inset: "0", display: "grid", placeItems: "center", textAlign: "center"}}>
+                      <div>
+                        <div style={{fontSize: "22px", fontWeight: "800", lineHeight: "1"}}>
+                          {vm.sy?.disk?.ring?.pct}
+                          <span style={{fontSize: "12px"}}>{"٪"}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div style={{flex: "1", minWidth: "0", display: "flex", flexDirection: "column", gap: "7px"}}>
+                    <div style={{display: "flex", alignItems: "center", gap: "8px", fontWeight: "800", fontSize: "15px"}}>
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#3d6a0c" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M4 6c0-1.7 3.6-3 8-3s8 1.3 8 3-3.6 3-8 3-8-1.3-8-3zM4 6v12c0 1.7 3.6 3 8 3s8-1.3 8-3V6M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3" />
+                      </svg>
+                      {"دیسک"}
+                    </div>
+                    <div style={{fontSize: "13px", fontWeight: "700", color: "#3a3b3d"}}>{vm.sy?.disk?.value}</div>
+                    <div style={{display: "flex", justifyContent: "space-between", gap: "8px", fontSize: "12px"}}>
+                      <span style={{color: "#6b6e72"}}>{"فضای آزاد"}</span>
+                      <b style={{color: "#232425", whiteSpace: "nowrap"}}>{vm.sy?.disk?.free}</b>
+                    </div>
+                    <div style={{display: "flex", justifyContent: "space-between", gap: "8px", fontSize: "12px"}}>
+                      <span style={{color: "#6b6e72"}}>{"رشد روزانه"}</span>
+                      <b style={{color: "#232425", whiteSpace: "nowrap"}}>{vm.sy?.disk?.perDay}</b>
+                    </div>
+                    <div style={{display: "flex", justifyContent: "space-between", gap: "8px", fontSize: "12px"}}>
+                      <span style={{color: "#6b6e72"}}>{"پر شدن دیسک"}</span>
+                      <b style={{color: vm.sy?.disk?.fcColor}}>{vm.sy?.disk?.forecast}</b>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div style={{display: "flex", flexWrap: "wrap", gap: "14px", alignItems: "stretch"}}>
+                <div style={{background: "#fff", border: "1px solid #e7e8e3", borderRadius: "20px", padding: "18px 20px", flex: "1 1 380px", minWidth: "0", display: "flex", flexDirection: "column", gap: "14px"}}>
+                  <div style={{fontWeight: "800", fontSize: "15px"}}>{"چه چیزی دیسک را پر کرده است"}</div>
+                  <div style={{display: "flex", height: "14px", borderRadius: "99px", overflow: "hidden", gap: "2px", background: "#f2f3ef"}}>
+                    {(vm.sy?.diskBar || []).map((b, __i10) => <React.Fragment key={__i10}>
+                      <div title={b?.tip} style={{width: b?.w, background: b?.bg, minWidth: "2px"}} />
+                    </React.Fragment>)}
+                  </div>
+                  <div style={{display: "flex", flexDirection: "column", gap: "8px"}}>
+                    {(vm.sy?.legend || []).map((g, __i10) => <React.Fragment key={__i10}>
+                      <div style={{display: "flex", alignItems: "center", gap: "10px", fontSize: "13px"}}>
+                        <span style={{width: "10px", height: "10px", borderRadius: "3px", background: g?.dot, flexShrink: "0"}} />
+                        <span style={{flex: "1"}}>{g?.label}</span>
+                        {(g?.hasGrowth) ? (<>
+                          <span style={{fontSize: "11px", color: "#8a5a00", background: "#fcf3e0", padding: "2px 8px", borderRadius: "999px"}}>{g?.growth}</span>
+                        </>) : null}
+                        <b style={{minWidth: "70px", textAlign: "left"}}>{g?.size}</b>
+                      </div>
+                    </React.Fragment>)}
+                  </div>
+                </div>
+                <div style={{background: "#fff", border: "1px solid #e7e8e3", borderRadius: "20px", padding: "18px 20px", flex: "1 1 420px", minWidth: "0", display: "flex", flexDirection: "column", gap: "10px"}}>
+                  <div style={{display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap"}}>
+                    <div style={{flex: "1"}}>
+                      <div style={{fontWeight: "800", fontSize: "15px"}}>{"پردازنده و حافظه در دو ساعت اخیر"}</div>
+                      <div style={{fontSize: "11px", color: "#8b8e89"}}>{vm.sy?.histText}</div>
+                    </div>
+                    <div style={{display: "flex", gap: "14px", fontSize: "12px", color: "#55585c"}}>
+                      <span style={{display: "flex", alignItems: "center", gap: "6px"}}>
+                        <span style={{width: "10px", height: "3px", borderRadius: "2px", background: "#2E2F31"}} />
+                        {"پردازنده"}
+                      </span>
+                      <span style={{display: "flex", alignItems: "center", gap: "6px"}}>
+                        <span style={{width: "10px", height: "3px", borderRadius: "2px", background: "#8DC63F"}} />
+                        {"حافظه"}
+                      </span>
+                    </div>
+                  </div>
+                  <div style={{position: "relative", direction: "ltr"}}>
+                    <svg width="100%" height="150" viewBox="0 0 600 140" preserveAspectRatio="none" style={{display: "block"}}>
+                      <line x1="0" y1="35" x2="600" y2="35" stroke="#f0f1ec" strokeWidth="1" />
+                      <line x1="0" y1="70" x2="600" y2="70" stroke="#f0f1ec" strokeWidth="1" />
+                      <line x1="0" y1="105" x2="600" y2="105" stroke="#f0f1ec" strokeWidth="1" />
+                      <line x1="0" y1="139" x2="600" y2="139" stroke="#e1e3dc" strokeWidth="1" />
+                      <path d={vm.sy?.memArea} fill="rgba(141,198,63,.14)" />
+                      <polyline points={vm.sy?.memLine} fill="none" stroke="#8DC63F" strokeWidth="2" vectorEffect="non-scaling-stroke" strokeLinejoin="round" />
+                      <path d={vm.sy?.cpuArea} fill="rgba(46,47,49,.06)" />
+                      <polyline points={vm.sy?.cpuLine} fill="none" stroke="#2E2F31" strokeWidth="2" vectorEffect="non-scaling-stroke" strokeLinejoin="round" />
+                    </svg>
+                    <div style={{position: "absolute", top: "0", right: "0", bottom: "0", display: "flex", flexDirection: "column", justifyContent: "space-between", fontSize: "10px", color: "#9a9d97", padding: "0 2px 10px", pointerEvents: "none"}}>
+                      <span>{"۱۰۰٪"}</span>
+                      <span>{"۵۰٪"}</span>
+                      <span>{"۰"}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div style={{display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(250px,1fr))", gap: "14px"}}>
+                <div style={{background: "#fff", border: "1px solid #e7e8e3", borderRadius: "20px", padding: "18px 20px", display: "flex", flexDirection: "column", gap: "10px"}}>
+                  <div style={{fontWeight: "800", fontSize: "15px"}}>{"سرویس‌ها"}</div>
+                  {(vm.sy?.services || []).map((x, __i9) => <React.Fragment key={__i9}>
+                    <div style={{display: "flex", alignItems: "center", gap: "10px", fontSize: "13px"}}>
+                      <span style={{width: "9px", height: "9px", borderRadius: "50%", background: x?.dot}} />
+                      <span style={{flex: "1"}}>{x?.label}</span>
+                      <span style={{fontSize: "12px", color: "#6b6e72"}}>{x?.state}</span>
+                    </div>
+                  </React.Fragment>)}
+                </div>
+                <div style={{background: "#fff", border: "1px solid #e7e8e3", borderRadius: "20px", padding: "18px 20px", display: "flex", flexDirection: "column", gap: "10px"}}>
+                  <div style={{fontWeight: "800", fontSize: "15px"}}>{"مرکز تلفن"}</div>
+                  {(vm.sy?.tel || []).map((x, __i9) => <React.Fragment key={__i9}>
+                    <div style={{display: "flex", alignItems: "center", gap: "10px", fontSize: "13px"}}>
+                      <span style={{width: "9px", height: "9px", borderRadius: "50%", background: x?.dot}} />
+                      <span style={{flex: "1"}}>{x?.label}</span>
+                      <b>{x?.value}</b>
+                    </div>
+                  </React.Fragment>)}
+                </div>
+                <div style={{background: "#fff", border: "1px solid #e7e8e3", borderRadius: "20px", padding: "18px 20px", display: "flex", flexDirection: "column", gap: "10px"}}>
+                  <div style={{fontWeight: "800", fontSize: "15px"}}>{"بکاپ"}</div>
+                  <div style={{display: "flex", justifyContent: "space-between", fontSize: "13px"}}>
+                    <span style={{color: "#6b6e72"}}>{"آخرین بکاپ سرور"}</span>
+                    <b>{vm.sy?.backup?.last}</b>
+                  </div>
+                  <div style={{display: "flex", justifyContent: "space-between", fontSize: "13px"}}>
+                    <span style={{color: "#6b6e72"}}>{"حجم آخرین بکاپ"}</span>
+                    <b>{vm.sy?.backup?.size}</b>
+                  </div>
+                  <div style={{display: "flex", justifyContent: "space-between", fontSize: "13px"}}>
+                    <span style={{color: "#6b6e72"}}>{"بکاپ خودکار"}</span>
+                    <b style={{color: vm.sy?.backup?.autoColor}}>{vm.sy?.backup?.auto}</b>
+                  </div>
+                  <button onClick={vm.sy?.backup?.go} style={{alignSelf: "flex-start", marginTop: "2px", border: "1px solid #e1e3dc", background: "#fff", color: "#2E2F31", padding: "7px 12px", borderRadius: "10px", fontSize: "12px", fontWeight: "700", cursor: "pointer", fontFamily: "inherit"}}>{"بکاپ و بازیابی"}</button>
+                </div>
+                <div style={{background: "#fff", border: "1px solid #e7e8e3", borderRadius: "20px", padding: "18px 20px", display: "flex", flexDirection: "column", gap: "10px"}}>
+                  <div style={{fontWeight: "800", fontSize: "15px"}}>{"داده‌ها"}</div>
+                  {(vm.sy?.data || []).map((x, __i9) => <React.Fragment key={__i9}>
+                    <div style={{display: "flex", justifyContent: "space-between", fontSize: "13px"}}>
+                      <span style={{color: "#6b6e72"}}>{x?.label}</span>
+                      <b>{x?.value}</b>
+                    </div>
+                  </React.Fragment>)}
+                </div>
+              </div>
+            </>) : null}
           </div>
         </>) : null}
         {(vm.is?.live) ? (<>

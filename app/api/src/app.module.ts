@@ -11,13 +11,14 @@ import { LiveGateway } from './gateway';
 import { MediaController } from './media';
 import { CrmController, PatientsService } from './patients';
 import { LiveCallsService } from './livecalls';
+import { SystemController, SystemService } from './system';
 import { PrismaService } from './prisma.service';
 import { ReportsController } from './reports';
 import { WebhookController, WebhookService } from './webhook';
 import { BackupController, BackupService } from './backups';
 
 @Module({
-  controllers: [AuthController, CallsController, HooksController, ConfigController, MediaController, ReportsController, WebhookController, BackupController, AiController, CrmController, AiAgentController],
-  providers: [PrismaService, Bus, AsteriskService, ConfigStore, CallsService, PatientsService, AiService, AiAgentService, LiveCallsService, WebhookService, BackupService, LiveGateway, { provide: APP_GUARD, useClass: AuthGuard }],
+  controllers: [AuthController, CallsController, HooksController, ConfigController, MediaController, ReportsController, WebhookController, BackupController, AiController, CrmController, AiAgentController, SystemController],
+  providers: [PrismaService, Bus, AsteriskService, ConfigStore, CallsService, PatientsService, AiService, AiAgentService, LiveCallsService, SystemService, WebhookService, BackupService, LiveGateway, { provide: APP_GUARD, useClass: AuthGuard }],
 })
 export class AppModule {}

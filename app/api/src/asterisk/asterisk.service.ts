@@ -7,7 +7,7 @@ import { env } from '../env';
 import { Ami } from './ami';
 import { generate, VoipConfig } from './generator';
 
-export interface Live { exts: Record<string, { st: string; dev?: string; ring?: boolean }>; queues: Record<string, { waiting: number; sla: number }>; trunks: Record<string, { reg: boolean; used: number }> }
+export interface Live { exts: Record<string, { st: string; dev?: string; ring?: boolean }>; queues: Record<string, { waiting: number; sla: number }>; trunks: Record<string, { reg: boolean; used: number; on?: boolean }> }
 
 @Injectable()
 export class AsteriskService extends EventEmitter implements OnModuleInit {
@@ -83,11 +83,15 @@ export class AsteriskService extends EventEmitter implements OnModuleInit {
     const trunks: Live['trunks'] = {};
     const regs = await this.ami.action({ Action: 'PJSIPShowRegistrationsOutbound' }, true).catch(() => ({ events: [] }));
     const chans = await this.ami.action({ Action: 'CoreShowChannels' }, true).catch(() => ({ events: [] }));
+    const eps = cfg.trunks.some(t => t.on) ? await this.ami.action({ Action: 'PJSIPShowEndpoints' }, true).catch(() => ({ events: [] })) : { events: [] };
     this.emit('channels', (chans.events || []).filter((c: any) => c.Event === 'CoreShowChannel'));
     for (const t of cfg.trunks) {
       const r = (regs.events || []).find((e: any) => e.ObjectName === `trunk-${t.id}-reg`);
       const used = (chans.events || []).filter((c: any) => String(c.Channel || '').startsWith(`PJSIP/trunk-${t.id}-`)).length;
-      trunks[t.id] = { reg: r ? r.Status === 'Registered' : false, used };
+      // IP-authenticated trunks have no registration: the endpoint turns Unavailable when the provider stops answering qualify
+      const ep = (eps.events || []).find((e: any) => e.ObjectName === `trunk-${t.id}`);
+      const up = r ? r.Status === 'Registered' : !!ep && !!ep.Contacts && !/Unavailable|Invalid|Unknown/i.test(ep.DeviceState || '');
+      trunks[t.id] = { reg: up, used, on: !!t.on };
     }
     this.live = { exts, queues, trunks };
     const j = JSON.stringify(this.live);
