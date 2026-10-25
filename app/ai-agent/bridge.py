@@ -269,7 +269,7 @@ class Config:
     caller_metadata_dir: str = "/var/lib/asterisk-ai/callers"
     # empty = keep nothing (the original privacy default); set by the call-center panel when calls are reviewed
     transcript_dir: str = ""
-    transcribe_model: str = "gpt-4o-transcribe"
+    transcribe_model: str = "gpt-transcribe"
 
     @classmethod
     def from_env(cls) -> "Config":
@@ -315,7 +315,7 @@ class Config:
                 "/var/lib/asterisk-ai/callers",
             ),
             transcript_dir=os.environ.get("ASTERISK_AI_TRANSCRIPT_DIR", "").strip(),
-            transcribe_model=os.environ.get("ASTERISK_AI_TRANSCRIBE_MODEL", "gpt-4o-transcribe").strip() or "gpt-4o-transcribe",
+            transcribe_model=os.environ.get("ASTERISK_AI_TRANSCRIBE_MODEL", "gpt-transcribe").strip() or "gpt-transcribe",
         )
 
 

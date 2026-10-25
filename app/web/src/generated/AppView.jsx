@@ -3352,7 +3352,7 @@ export default function AppView({ vm }) {
                 <div style={{display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px"}}>
                   <label style={{display: "flex", flexDirection: "column", gap: "6px", fontSize: "12px", color: "#6b6e72"}}>
                     {"مدل"}
-                    <input type="text" value={vm.ag2?.model} onChange={vm.ag2?.setModel} placeholder="gpt-realtime-2.1" style={{border: "1px solid #e1e3dc", borderRadius: "10px", padding: "10px 12px", fontSize: "13px", outline: "none", background: "#fff", color: "#232425", fontFamily: "inherit", width: "100%", direction: "ltr", textAlign: "left"}} />
+                    <input type="text" value={vm.ag2?.model} onChange={vm.ag2?.setModel} placeholder="gpt-realtime-2.1-mini" style={{border: "1px solid #e1e3dc", borderRadius: "10px", padding: "10px 12px", fontSize: "13px", outline: "none", background: "#fff", color: "#232425", fontFamily: "inherit", width: "100%", direction: "ltr", textAlign: "left"}} />
                   </label>
                   <label style={{display: "flex", flexDirection: "column", gap: "6px", fontSize: "12px", color: "#6b6e72"}}>
                     {"صدا"}
@@ -3569,7 +3569,7 @@ export default function AppView({ vm }) {
                 {(vm.ai2?.isLlm) ? (<>
                   <label style={{display: "flex", flexDirection: "column", gap: "6px", fontSize: "12px", color: "#6b6e72"}}>
                     {"مدل"}
-                    <input value={vm.ai2?.f?.llmModel} onChange={vm.ai2?.set?.llmModel} placeholder="gpt-6-astra" style={{border: "1px solid #e1e3dc", borderRadius: "10px", padding: "10px 12px", fontSize: "13px", outline: "none", background: "#fff", color: "#232425", fontFamily: "inherit", width: "100%", direction: "ltr", textAlign: "left"}} />
+                    <input value={vm.ai2?.f?.llmModel} onChange={vm.ai2?.set?.llmModel} placeholder="gpt-6-luna" style={{border: "1px solid #e1e3dc", borderRadius: "10px", padding: "10px 12px", fontSize: "13px", outline: "none", background: "#fff", color: "#232425", fontFamily: "inherit", width: "100%", direction: "ltr", textAlign: "left"}} />
                   </label>
                   {(vm.ai2?.isLlm) ? (<>
                     <div style={{display: "flex", gap: "6px", flexWrap: "wrap"}}>

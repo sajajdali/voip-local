@@ -27,7 +27,7 @@ export interface AiSettings {
 const DEFAULTS: AiSettings = {
   enabled: false,
   sttProvider: 'openai', sttUrl: 'https://api.openai.com/v1', sttKey: '', sttModel: 'gpt-transcribe', sttLanguage: 'fa',
-  llmProvider: 'openai', llmUrl: 'https://api.openai.com/v1', llmKey: '', llmModel: 'gpt-6-astra',
+  llmProvider: 'openai', llmUrl: 'https://api.openai.com/v1', llmKey: '', llmModel: 'gpt-6-luna',
   analyzeVoicemail: true, analyzeCalls: false, minSeconds: 3,
 };
 // Claude models that support the server-side refusal fallback
@@ -238,11 +238,12 @@ export class AiService {
   private async callChat(c: { recPath: string }, st: AiSettings, llm: AiSettings) {
     const base = c.recPath.replace(/\.wav$/, '');
     const side = async (f: string) => (fs.existsSync(f) && fs.statSync(f).size > 4000 ? (await this.transcribe(f, st)).text : '');
-    const [mixed, op, pt] = await Promise.all([this.transcribe(c.recPath, st), side(base + '-op.wav'), side(base + '-pt.wav')]);
+    const [mixed, op] = await Promise.all([this.transcribe(c.recPath, st), side(base + '-op.wav')]);
+    const pt = '';
     if (!mixed.text.trim()) return { turns: [] as { who: string; text: string }[], text: '', conf: mixed.conf };
     let turns: { who: string; text: string }[] = [];
     if (llm.llmProvider !== 'keywords') {
-      const user = 'متن کامل تماس به ترتیب زمان:\n' + mixed.text
+      const user = 'متن کامل تماس به ترتیب زمان:\n' + mixed.text + (op ? '\n\n(هر جمله‌ای که در صحبت‌های اپراتور نیست، از بیمار است.)' : '')
         + (op ? '\n\nفقط صحبت‌های اپراتور کلینیک:\n' + op : '') + (pt ? '\n\nفقط صحبت‌های بیمار:\n' + pt : '');
       const r = await this.llmJson(CHAT_SYSTEM, user, CHAT_SCHEMA, llm);
       turns = (Array.isArray(r.turns) ? r.turns : []).map((x: any) => ({ who: x.who === 'operator' ? 'operator' : 'patient', text: String(x.text || '').trim() })).filter((x: any) => x.text).slice(0, 400);
@@ -272,7 +273,7 @@ export class AiService {
     const r = await this.db.configEntry.findUnique({ where: { key: 'aiagent' } });
     const key = String((r?.data as any)?.openaiKey || '');
     if (!key) return { ...s, llmProvider: 'keywords' };
-    return { ...s, llmProvider: 'openai', llmUrl: 'https://api.openai.com/v1', llmKey: key, llmModel: s.llmProvider === 'openai' && s.llmModel ? s.llmModel : 'gpt-6-astra' };
+    return { ...s, llmProvider: 'openai', llmUrl: 'https://api.openai.com/v1', llmKey: key, llmModel: s.llmProvider === 'openai' && s.llmModel ? s.llmModel : 'gpt-6-luna' };
   }
 
   /** Manager's summary of a patient's conversation with the AI receptionist. */

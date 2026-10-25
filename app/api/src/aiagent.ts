@@ -27,12 +27,12 @@ export interface AiAgentSettings {
 const CRM_BASE = 'https://crm.drpouriaaflaki.com/api/v1/voip/surgery-status';
 export const AI_AGENT_DEFAULTS: AiAgentSettings = {
   enabled: false, code: '33', provider: 'openai',
-  openaiKey: '', openaiModel: 'gpt-realtime-2.1', openaiVoice: 'marin',
+  openaiKey: '', openaiModel: 'gpt-realtime-2.1-mini', openaiVoice: 'marin',
   geminiKey: '', geminiModel: 'gemini-3.1-flash-live-preview', geminiVoice: 'Kore',
   maxCalls: 4, maxSeconds: 900, closingSeconds: 15,
   transferExt: '', transferRing: 10, transferMobile: '', fallback: 'vm',
   crmNationalUrl: CRM_BASE + '/by-national-code', crmAppLinkUrl: CRM_BASE + '/application-link', crmEmergencyUrl: CRM_BASE + '/emergency-sms',
-  record: true, keepTranscript: true, transcribeModel: 'gpt-4o-transcribe', codeInIvr: true,
+  record: true, keepTranscript: true, transcribeModel: 'gpt-transcribe', codeInIvr: true,
 };
 
 const SECRET_KEYS = ['openaiKey', 'geminiKey'] as const;

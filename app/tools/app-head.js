@@ -624,7 +624,7 @@ class LiveApp extends React.Component {
 
   agentVals(s) {
     const d = s.agData;
-    const f = s.agForm || { enabled: false, code: '33', provider: 'openai', openaiModel: 'gpt-realtime-2.1', openaiVoice: 'marin', geminiModel: '', geminiVoice: '', maxCalls: 4, maxSeconds: 900, closingSeconds: 15, transferExt: '', transferRing: 10, transferMobile: '', fallback: 'vm', crmNationalUrl: '', crmAppLinkUrl: '', crmEmergencyUrl: '', openaiKey: '', geminiKey: '' };
+    const f = s.agForm || { enabled: false, code: '33', provider: 'openai', openaiModel: 'gpt-realtime-2.1-mini', openaiVoice: 'marin', geminiModel: '', geminiVoice: '', maxCalls: 4, maxSeconds: 900, closingSeconds: 15, transferExt: '', transferRing: 10, transferMobile: '', fallback: 'vm', crmNationalUrl: '', crmAppLinkUrl: '', crmEmergencyUrl: '', openaiKey: '', geminiKey: '' };
     const setF = o => this.setState({ agForm: { ...f, ...o } });
     const NUM = ['maxCalls', 'maxSeconds', 'closingSeconds', 'transferRing'];
     const st = d ? d.status : null;
@@ -1219,13 +1219,13 @@ class LiveApp extends React.Component {
 
   aiSettingsVals(s) {
     const d = s.aiData;
-    const f = s.aiForm || { enabled: false, sttProvider: 'openai', sttUrl: '', sttKey: '', sttModel: 'gpt-transcribe', sttLanguage: 'fa', llmProvider: 'openai', llmUrl: 'https://api.openai.com/v1', llmKey: '', llmModel: 'gpt-6-astra', analyzeVoicemail: true, analyzeCalls: false, minSeconds: 3 };
+    const f = s.aiForm || { enabled: false, sttProvider: 'openai', sttUrl: '', sttKey: '', sttModel: 'gpt-transcribe', sttLanguage: 'fa', llmProvider: 'openai', llmUrl: 'https://api.openai.com/v1', llmKey: '', llmModel: 'gpt-6-luna', analyzeVoicemail: true, analyzeCalls: false, minSeconds: 3 };
     const setF = o => this.setState({ aiForm: { ...f, ...o } });
     const tg = on => ({ bg: on ? '#8DC63F' : '#d9dad6', j: on ? 'flex-end' : 'flex-start' });
     const st = d ? d.status : null;
-    const CLAUDE_MODELS = [['claude-opus-5-5', 'Opus 5.5 (پیشنهادی)'], ['claude-sonnet-5-5', 'Sonnet 5.5'], ['claude-haiku-5-5', 'Haiku 5.5 (ارزان‌تر)'], ['claude-fable-5-1', 'Fable 5.1']];
-    const OPENAI_MODELS = [['gpt-6-astra', 'GPT-6 Astra (بهترین)'], ['gpt-6.1-sol', 'GPT-6.1 Sol (ارزان‌تر)']];
-    const STT_MODELS = [['gpt-transcribe', 'gpt-transcribe (بهترین)'], ['gpt-4o-transcribe', 'gpt-4o-transcribe'], ['whisper-1', 'whisper-1']];
+    const CLAUDE_MODELS = [['claude-haiku-5-5', 'Haiku 5.5 (ارزان، پیشنهادی)'], ['claude-sonnet-5-5', 'Sonnet 5.5'], ['claude-opus-5-5', 'Opus 5.5 (گران)'], ['claude-fable-5-1', 'Fable 5.1']];
+    const OPENAI_MODELS = [['gpt-6-luna', 'GPT-6 Luna (ارزان، پیشنهادی)'], ['gpt-5-nano', 'GPT-5 Nano (ارزان‌ترین)'], ['gpt-6.1-sol', 'GPT-6.1 Sol (دقیق‌تر)'], ['gpt-6-astra', 'GPT-6 Astra (گران)']];
+    const STT_MODELS = [['gpt-transcribe', 'gpt-transcribe (پیشنهادی)'], ['gpt-4o-mini-transcribe', 'gpt-4o-mini-transcribe (ارزان‌تر، تا اسفند ۱۴۰۵)']];
     const chips = (list, key) => list.map(([id, label]) => ({ label, pick: () => setF({ [key]: id }), bg: f[key] === id ? '#2E2F31' : '#fff', fg: f[key] === id ? '#fff' : '#3a3b3d', bd: f[key] === id ? '#2E2F31' : '#e1e3dc' }));
     const URG = { high: 'فوری', mid: 'متوسط', low: 'عادی' }, SENT = { pos: 'مثبت', neu: 'خنثی', neg: 'منفی' };
     const catName = id => ((d && d.categories.find(c => c.id === id)) || { name: id }).name;
@@ -1256,7 +1256,7 @@ class LiveApp extends React.Component {
       f, onT: tg(f.enabled), onLabel: f.enabled ? 'فعال' : 'غیرفعال', tog: () => setF({ enabled: !f.enabled }),
       vmT: tg(f.analyzeVoicemail), togVm: () => setF({ analyzeVoicemail: !f.analyzeVoicemail }), callT: tg(f.analyzeCalls), togCall: () => setF({ analyzeCalls: !f.analyzeCalls }),
       set: Object.fromEntries(['sttProvider', 'sttUrl', 'sttKey', 'sttModel', 'sttLanguage', 'llmUrl', 'llmKey', 'llmModel', 'minSeconds'].map(k => [k, e => setF({ [k]: e.target.value })]).concat([['llmProvider', e => {
-        const v = e.target.value; setF({ llmProvider: v, llmModel: v === 'claude' && !/^claude-/.test(f.llmModel) ? 'claude-opus-5-5' : v === 'openai' && /^claude-/.test(f.llmModel) ? 'gpt-6-astra' : f.llmModel, llmUrl: v === 'openai' && !f.llmUrl ? 'https://api.openai.com/v1' : v === 'claude' && /api\.openai\.com/.test(f.llmUrl) ? '' : f.llmUrl });
+        const v = e.target.value; setF({ llmProvider: v, llmModel: v === 'claude' && !/^claude-/.test(f.llmModel) ? 'claude-haiku-5-5' : v === 'openai' && /^claude-/.test(f.llmModel) ? 'gpt-6-luna' : f.llmModel, llmUrl: v === 'openai' && !f.llmUrl ? 'https://api.openai.com/v1' : v === 'claude' && /api\.openai\.com/.test(f.llmUrl) ? '' : f.llmUrl });
       }]])),
       sttUrlLabel: f.sttProvider === 'custom' ? 'آدرس کامل سرویس (فایل صوتی با POST ارسال می‌شود)' : 'آدرس پایه API',
       sttKeyPh: d && d.settings.hasSttKey ? 'ذخیره‌شده (' + d.settings.sttKeyHint + ')' : 'sk-…',
@@ -1267,7 +1267,7 @@ class LiveApp extends React.Component {
       llmUrlLabel: isClaude ? 'آدرس API (اختیاری؛ خالی = آدرس رسمی Anthropic)' : 'آدرس پایه API',
       llmUrlPh: isClaude ? 'https://api.anthropic.com' : 'https://api.example.com/v1',
       llmKeyPh: d && d.settings.hasLlmKey ? 'ذخیره‌شده (' + d.settings.llmKeyHint + ')' : (isClaude ? 'sk-ant-…' : 'sk-…'),
-      llmHelp: isClaude ? 'پیشنهاد: Claude Opus 5.5. اگر مدل به دلیل سیاست‌های ایمنی از پاسخ خودداری کند، درخواست خودکار با مدل جایگزین پیشنهادی Anthropic تکرار می‌شود.' : f.llmProvider === 'openai' ? 'پیشنهاد: GPT-6 Astra (دقیق‌ترین مدل OpenAI). هر سرویس سازگار با API گفتگوی OpenAI که خروجی JSON پشتیبانی کند هم قابل استفاده است.' : 'دسته‌بندی ساده با کلیدواژه‌های فارسی؛ دقت کمتر، بدون هزینه و بدون ارسال داده به بیرون.',
+      llmHelp: isClaude ? 'پیشنهاد: Claude Haiku 5.5 (ارزان). اگر مدل به دلیل سیاست‌های ایمنی از پاسخ خودداری کند، درخواست خودکار با مدل جایگزین پیشنهادی Anthropic تکرار می‌شود.' : f.llmProvider === 'openai' ? 'پیشنهاد: GPT-6 Luna (ارزان و برای خلاصه و دسته‌بندی کافی). هر سرویس سازگار با API گفتگوی OpenAI که خروجی JSON پشتیبانی کند هم قابل استفاده است.' : 'دسته‌بندی ساده با کلیدواژه‌های فارسی؛ دقت کمتر، بدون هزینه و بدون ارسال داده به بیرون.',
       sample: s.aiSample != null ? s.aiSample : 'سلام وقت بخیر، هفته پیش عمل بینی کردم و از دیشب ورم و درد دارم، لطفاً هرچه زودتر با من تماس بگیرید.',
       setSample: e => this.setState({ aiSample: e.target.value }),
       save: async () => { try { const r = await persist(); this.toast(r.enabled ? 'تنظیمات هوش مصنوعی ذخیره شد؛ تحلیل خودکار فعال است' : 'تنظیمات ذخیره شد (تحلیل خودکار خاموش است)'); } catch (e) { this.toast('ذخیره ناموفق بود: ' + e.message); } },
