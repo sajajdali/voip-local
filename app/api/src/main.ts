@@ -1,13 +1,15 @@
 import 'reflect-metadata';
 import { Logger } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
+import type { NestExpressApplication } from '@nestjs/platform-express';
 import { IoAdapter } from '@nestjs/platform-socket.io';
 import { AppModule } from './app.module';
 import { ConfigStore } from './config';
 import { env } from './env';
 
 async function main() {
-  const app = await NestFactory.create(AppModule, { logger: ['error', 'warn', 'log'] });
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, { logger: ['error', 'warn', 'log'] });
+  app.useBodyParser('json', { limit: '5mb' }); // reports and bulk actions carry call id lists
   app.setGlobalPrefix('api');
   app.useWebSocketAdapter(new IoAdapter(app));
   app.getHttpAdapter().getInstance().set('trust proxy', 'loopback');

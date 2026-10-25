@@ -257,6 +257,14 @@ export default function AppView({ vm }) {
                 <div style={{fontSize: "14px", color: "#6b6e72", marginTop: "6px"}}>{"همه تماس‌های ورودی و خروجی مرکز، با امکان پخش مستقیم ضبط مکالمه"}</div>
               </div>
               <div style={{display: "flex", gap: "8px", flexWrap: "wrap", alignItems: "center"}}>
+                {(vm.cl?.canDel) ? (<>
+                  <button onClick={vm.cl?.del} style={{display: "flex", alignItems: "center", gap: "8px", border: "1px solid #f1c9c4", background: "#fff", color: "#b42318", padding: "10px 16px", borderRadius: "12px", fontSize: "13px", fontWeight: "700", cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap"}}>
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3" />
+                    </svg>
+                    {vm.cl?.delText}
+                  </button>
+                </>) : null}
                 <button onClick={vm.cl?.exportAll} style={{display: "flex", alignItems: "center", gap: "8px", border: "1px solid #e1e3dc", background: "#fff", color: "#2E2F31", padding: "10px 16px", borderRadius: "12px", fontSize: "13px", fontWeight: "700", cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap"}}>
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#3d6a0c" strokeWidth="2" strokeLinecap="round"><path d="M12 4v11M7 10l5 5 5-5M5 20h14" /></svg>
                   {"خروجی Excel (نتایج فیلتر)"}
@@ -1109,10 +1117,20 @@ export default function AppView({ vm }) {
                 <h1 style={{margin: "0", fontSize: "28px", fontWeight: "800"}}>{"گزارش‌ساز"}</h1>
                 <div style={{fontSize: "14px", color: "#6b6e72", marginTop: "6px"}}>{"گزارش دلخواه بر اساس اپراتور، شماره، تاریخ، ساعت، صف، وضعیت و دسته‌بندی AI"}</div>
               </div>
-              <button onClick={vm.rp?.exportCsv} style={{display: "flex", alignItems: "center", gap: "8px", border: "none", background: "#2E2F31", color: "#fff", padding: "11px 18px", borderRadius: "12px", fontSize: "13px", fontWeight: "700", cursor: "pointer"}}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8DC63F" strokeWidth="2" strokeLinecap="round"><path d="M12 4v11M7 10l5 5 5-5M5 20h14" /></svg>
-                {"خروجی Excel"}
-              </button>
+              <div style={{display: "flex", gap: "8px", flexWrap: "wrap", alignItems: "center"}}>
+                {(vm.rp?.canDel) ? (<>
+                  <button onClick={vm.rp?.del} style={{display: "flex", alignItems: "center", gap: "8px", border: "1px solid #f1c9c4", background: "#fff", color: "#b42318", padding: "10px 16px", borderRadius: "12px", fontSize: "13px", fontWeight: "700", cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap"}}>
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3" />
+                    </svg>
+                    {vm.rp?.delText}
+                  </button>
+                </>) : null}
+                <button onClick={vm.rp?.exportCsv} style={{display: "flex", alignItems: "center", gap: "8px", border: "none", background: "#2E2F31", color: "#fff", padding: "11px 18px", borderRadius: "12px", fontSize: "13px", fontWeight: "700", cursor: "pointer"}}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8DC63F" strokeWidth="2" strokeLinecap="round"><path d="M12 4v11M7 10l5 5 5-5M5 20h14" /></svg>
+                  {"خروجی Excel"}
+                </button>
+              </div>
             </div>
             <div style={{display: "flex", gap: "8px", flexWrap: "wrap", alignItems: "center"}}>
               <span style={{fontSize: "13px", color: "#6b6e72", fontWeight: "600"}}>{"گزارش‌های آماده:"}</span>
@@ -1694,13 +1712,23 @@ export default function AppView({ vm }) {
                 </div>
               </React.Fragment>)}
             </div>
-            {(vm.ai?.hasPages) ? (<>
-              <div style={{display: "flex", alignItems: "center", justifyContent: "center", gap: "12px"}}>
-                <button onClick={vm.ai?.prev} style={{border: "1px solid #e1e3dc", background: "#fff", padding: "8px 14px", borderRadius: "10px", fontSize: "13px", fontWeight: "700", cursor: "pointer", fontFamily: "inherit", opacity: vm.ai?.prevOp}}>{"قبلی"}</button>
-                <span style={{fontSize: "13px", color: "#55585c"}}>{vm.ai?.pageText}</span>
-                <button onClick={vm.ai?.next} style={{border: "1px solid #e1e3dc", background: "#fff", padding: "8px 14px", borderRadius: "10px", fontSize: "13px", fontWeight: "700", cursor: "pointer", fontFamily: "inherit", opacity: vm.ai?.nextOp}}>{"بعدی"}</button>
-              </div>
-            </>) : null}
+            <div style={{display: "flex", alignItems: "center", justifyContent: "center", gap: "12px", flexWrap: "wrap"}}>
+              <label style={{display: "flex", alignItems: "center", gap: "8px", fontSize: "13px", color: "#55585c"}}>
+                {"نمایش در هر صفحه"}
+                <select value={vm.ai?.ps} onChange={vm.ai?.setPS} style={{border: "1px solid #e1e3dc", borderRadius: "10px", padding: "7px 9px", fontSize: "13px", background: "#fff", color: "#232425", fontFamily: "inherit"}}>
+                  {(vm.ai?.psOpts || []).map((o, __i9) => <React.Fragment key={__i9}>
+                    <option value={o?.v}>{o?.label}</option>
+                  </React.Fragment>)}
+                </select>
+              </label>
+              {(vm.ai?.hasPages) ? (<>
+                <div style={{display: "flex", alignItems: "center", justifyContent: "center", gap: "12px"}}>
+                  <button onClick={vm.ai?.prev} style={{border: "1px solid #e1e3dc", background: "#fff", padding: "8px 14px", borderRadius: "10px", fontSize: "13px", fontWeight: "700", cursor: "pointer", fontFamily: "inherit", opacity: vm.ai?.prevOp}}>{"قبلی"}</button>
+                  <span style={{fontSize: "13px", color: "#55585c"}}>{vm.ai?.pageText}</span>
+                  <button onClick={vm.ai?.next} style={{border: "1px solid #e1e3dc", background: "#fff", padding: "8px 14px", borderRadius: "10px", fontSize: "13px", fontWeight: "700", cursor: "pointer", fontFamily: "inherit", opacity: vm.ai?.nextOp}}>{"بعدی"}</button>
+                </div>
+              </>) : null}
+            </div>
           </div>
         </>) : null}
         {(vm.is?.vbackup) ? (<>
@@ -5661,6 +5689,68 @@ export default function AppView({ vm }) {
               </>) : null}
               <textarea value={vm.call?.note} onChange={vm.call?.setNote} placeholder="خلاصه مکالمه با بیمار…" style={{width: "100%", minHeight: "80px", borderRadius: "14px", border: "1px solid rgba(255,255,255,.15)", background: "rgba(255,255,255,.06)", color: "#fff", padding: "12px", fontFamily: "inherit", fontSize: "13px", outline: "none", resize: "vertical"}} />
               <button onClick={vm.call?.end} style={{width: "100%", border: "none", background: "#e0574a", color: "#fff", padding: "13px", borderRadius: "14px", fontSize: "14px", fontWeight: "800", cursor: "pointer", fontFamily: "inherit"}}>{"پایان تماس و ذخیره ضبط"}</button>
+            </>) : null}
+          </div>
+        </div>
+      </>) : null}
+      {(vm.dm?.show) ? (<>
+        <div onClick={vm.dm?.close} style={{position: "fixed", inset: "0", background: "rgba(20,21,22,.55)", zIndex: "60"}} />
+        <div style={{position: "fixed", top: "50%", left: "50%", transform: "translate(-50%,-50%)", width: "min(460px,calc(100% - 32px))", background: "#fff", borderRadius: "22px", zIndex: "61", boxShadow: "0 30px 80px rgba(0,0,0,.25)", overflow: "hidden"}}>
+          <div style={{background: "#fdf1ef", padding: "18px 22px", display: "flex", alignItems: "center", gap: "12px", borderBottom: "1px solid #f6d9d4"}}>
+            <div style={{width: "42px", height: "42px", borderRadius: "12px", background: "#b42318", color: "#fff", display: "grid", placeItems: "center", fontSize: "20px", fontWeight: "800"}}>{"!"}</div>
+            <div style={{flex: "1"}}>
+              <div style={{fontWeight: "800", fontSize: "16px", color: "#7a1a10"}}>{"حذف دائمی "}{vm.dm?.n}{" تماس"}</div>
+              <div style={{fontSize: "12px", color: "#9a4a40", marginTop: "2px"}}>{vm.dm?.stepText}</div>
+            </div>
+            <button onClick={vm.dm?.close} style={{width: "34px", height: "34px", borderRadius: "10px", border: "1px solid #f1c9c4", background: "#fff", cursor: "pointer", color: "#7a1a10"}}>{"✕"}</button>
+          </div>
+          <div style={{padding: "20px 22px", display: "flex", flexDirection: "column", gap: "14px", fontSize: "13px", lineHeight: "1.9", color: "#3a3b3d"}}>
+            {(vm.dm?.step1) ? (<>
+              <div style={{background: "#f7f8f5", borderRadius: "14px", padding: "12px 14px", display: "grid", gridTemplateColumns: "auto 1fr", gap: "4px 14px"}}>
+                <span style={{color: "#6b6e72"}}>{"انتخاب"}</span>
+                <b>{vm.dm?.label}</b>
+                <span style={{color: "#6b6e72"}}>{"تعداد تماس"}</span>
+                <b>{vm.dm?.n}</b>
+                <span style={{color: "#6b6e72"}}>{"بازه تاریخ"}</span>
+                <b>{vm.dm?.range}</b>
+                <span style={{color: "#6b6e72"}}>{"پاسخ‌داده"}</span>
+                <b>{vm.dm?.ans}</b>
+                <span style={{color: "#6b6e72"}}>{"دارای ضبط"}</span>
+                <b>{vm.dm?.rec}</b>
+              </div>
+              <div>
+                {"این تماس‌ها همراه با "}
+                <b>{"فایل‌های ضبط، یادداشت‌ها، پیگیری‌ها، نظرسنجی و تحلیل هوش مصنوعی"}</b>
+                {" برای همیشه پاک می‌شوند و از گزارش‌ها هم حذف می‌شوند. "}
+                <b style={{color: "#b42318"}}>{"این کار برگشت‌پذیر نیست."}</b>
+              </div>
+              <div style={{display: "flex", gap: "8px", justifyContent: "flex-end"}}>
+                <button onClick={vm.dm?.close} style={{border: "none", padding: "12px 16px", borderRadius: "12px", fontSize: "13px", fontWeight: "800", cursor: "pointer", fontFamily: "inherit", background: "#fff", border: "1px solid #e1e3dc", color: "#2E2F31"}}>{"انصراف"}</button>
+                <button onClick={vm.dm?.next1} style={{border: "none", padding: "12px 16px", borderRadius: "12px", fontSize: "13px", fontWeight: "800", cursor: "pointer", fontFamily: "inherit", background: "#2E2F31", color: "#fff"}}>{"متوجه شدم، ادامه"}</button>
+              </div>
+            </>) : null}
+            {(vm.dm?.step2) ? (<>
+              <div>
+                {"برای اطمینان، تعداد تماس‌هایی که حذف می‌شوند ("}
+                <b>{vm.dm?.n}</b>
+                {") را بنویسید:"}
+              </div>
+              <input value={vm.dm?.typed} onChange={vm.dm?.setTyped} inputmode="numeric" placeholder="تعداد تماس‌ها" style={{width: "100%", boxSizing: "border-box", border: "1px solid #e1e3dc", borderRadius: "12px", padding: "12px", fontSize: "15px", fontFamily: "inherit", outline: "none", background: "#fff", textAlign: "center", letterSpacing: "2px"}} />
+              <div style={{display: "flex", gap: "8px", justifyContent: "space-between"}}>
+                <button onClick={vm.dm?.back} style={{border: "none", padding: "12px 16px", borderRadius: "12px", fontSize: "13px", fontWeight: "800", cursor: "pointer", fontFamily: "inherit", background: "#fff", border: "1px solid #e1e3dc", color: "#2E2F31"}}>{"قبلی"}</button>
+                <button onClick={vm.dm?.next2} style={{border: "none", padding: "12px 16px", borderRadius: "12px", fontSize: "13px", fontWeight: "800", cursor: "pointer", fontFamily: "inherit", background: "#2E2F31", color: "#fff", opacity: vm.dm?.op2}}>{"ادامه"}</button>
+              </div>
+            </>) : null}
+            {(vm.dm?.step3) ? (<>
+              <div>{"مرحله آخر: رمز عبور حساب خودتان را وارد کنید."}</div>
+              <input type="password" value={vm.dm?.pw} onChange={vm.dm?.setPw} onKeyDown={vm.dm?.pwKey} autoComplete="current-password" placeholder="رمز عبور" style={{width: "100%", boxSizing: "border-box", border: "1px solid #e1e3dc", borderRadius: "12px", padding: "12px", fontSize: "15px", fontFamily: "inherit", outline: "none", background: "#fff"}} />
+              <div style={{display: "flex", gap: "8px", justifyContent: "space-between"}}>
+                <button onClick={vm.dm?.back} style={{border: "none", padding: "12px 16px", borderRadius: "12px", fontSize: "13px", fontWeight: "800", cursor: "pointer", fontFamily: "inherit", background: "#fff", border: "1px solid #e1e3dc", color: "#2E2F31"}}>{"قبلی"}</button>
+                <button onClick={vm.dm?.run} style={{border: "none", padding: "12px 16px", borderRadius: "12px", fontSize: "13px", fontWeight: "800", cursor: "pointer", fontFamily: "inherit", background: "#b42318", color: "#fff", opacity: vm.dm?.op3}}>{vm.dm?.goText}</button>
+              </div>
+            </>) : null}
+            {(vm.dm?.hasErr) ? (<>
+              <div style={{background: "#fdf1ef", color: "#b42318", borderRadius: "10px", padding: "8px 12px", fontWeight: "700"}}>{vm.dm?.err}</div>
             </>) : null}
           </div>
         </div>

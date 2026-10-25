@@ -777,11 +777,11 @@ class LiveApp extends React.Component {
     const dur = sec => { sec = Math.round(sec || 0); const h = Math.floor(sec / 3600), m = Math.floor(sec % 3600 / 60); return h ? fa(h) + ' ساعت ' + fa(m) + ' دقیقه' : m ? fa(m) + ' دقیقه' : fa(sec) + ' ثانیه'; };
     const mmss = sec => { sec = Math.round(sec || 0); return fa(String(Math.floor(sec / 60)).padStart(2, '0') + ':' + String(sec % 60).padStart(2, '0')); };
     const wdOf = date => { try { return jWeekday(jToDate(date)); } catch (e) { return -1; } }; // 0 = شنبه … 6 = جمعه
-    const GROUP = { zoj: [0, 2, 4], fard: [1, 3, 5], fri: [6] };
-    const GNAME = { zoj: 'روزهای زوج', fard: 'روزهای فرد', fri: 'جمعه' };
-    const GSUB = { zoj: 'شنبه، دوشنبه، چهارشنبه', fard: 'یکشنبه، سه‌شنبه، پنجشنبه', fri: 'تعطیل' };
+    const GROUP = { zoj: [0, 2, 4], fard: [1, 3], fri: [5, 6] }; // Thursday and Friday count as one group
+    const GNAME = { zoj: 'روزهای زوج', fard: 'روزهای فرد', fri: 'پنجشنبه و جمعه' };
+    const GSUB = { zoj: 'شنبه، دوشنبه، چهارشنبه', fard: 'یکشنبه، سه‌شنبه', fri: 'آخر هفته' };
     const groupOf = w => (GROUP.zoj.includes(w) ? 'zoj' : GROUP.fard.includes(w) ? 'fard' : 'fri');
-    const TAG = { zoj: { label: 'زوج', bg: '#e5eff7', fg: '#1d5a85' }, fard: { label: 'فرد', bg: '#eef5e3', fg: '#3d6a0c' }, fri: { label: 'جمعه', bg: '#f2f3ef', fg: '#55585c' } };
+    const TAG = { zoj: { label: 'زوج', bg: '#e5eff7', fg: '#1d5a85' }, fard: { label: 'فرد', bg: '#eef5e3', fg: '#3d6a0c' }, fri: { label: 'پنجشنبه/جمعه', bg: '#f2f3ef', fg: '#55585c' } };
     const addDays = (date, n) => jAdd(n, jToDate(date));
     const weekStart = date => addDays(date, -Math.max(0, wdOf(date)));
     const thisWeek = weekStart(TODAY);
@@ -931,7 +931,7 @@ class LiveApp extends React.Component {
     const pill = on => ({ bg: on ? '#2E2F31' : '#fff', fg: on ? '#fff' : '#3a3b3d', bd: on ? '#2E2F31' : '#e1e3dc' });
     const QD = [['امروز', TODAY, TODAY], ['دیروز', jAdd(-1), jAdd(-1)], ['این هفته', thisWeek, TODAY], ['هفته قبل', addDays(thisWeek, -7), addDays(thisWeek, -1)],
       ['این ماه', MONTH_START, TODAY], ['ماه قبل', prevMonthStart, prevMonthEnd], ['۳۰ روز اخیر', jAdd(-29), TODAY], ['۹۰ روز اخیر', jAdd(-89), TODAY]];
-    const DG = [['all', 'همه روزها'], ['zoj', 'زوج'], ['fard', 'فرد'], ['fri', 'جمعه']];
+    const DG = [['all', 'همه روزها'], ['zoj', 'زوج'], ['fard', 'فرد'], ['fri', 'پنجشنبه و جمعه']];
     const srcs = [...new Set(C.filter(c => c.queue && c.queue !== '—').map(c => c.queue))].sort();
     const opsAll = [...new Map(C.filter(c => c.op).map(c => [String(c.op.id), c.op])).values()].sort((a, b) => String(a.ext).localeCompare(String(b.ext)));
     const hoursOpt = Array.from({ length: 24 }, (_, h) => ({ v: String(h), label: fa(String(h).padStart(2, '0')) + ':۰۰' }));
@@ -1299,6 +1299,44 @@ class LiveApp extends React.Component {
   // ---- «کاربران و دسترسی‌ها»
   async loadUsers() {
     try { this.setState({ usersData: await api('/users') }); } catch (e) { this.toast('بارگذاری کاربران ناموفق بود: ' + e.message); }
+  }
+
+  // ---- permanent delete of calls (list / report builder): three steps, the last two re-checked by the server
+  askDelete(list, label) {
+    if (!CAN('calls', 'delete')) return;
+    if (!list.length) { this.toast('تماسی برای حذف وجود ندارد'); return; }
+    this.setState({ del: { ids: list.map(c => c.id), label, step: 1, typed: '', pw: '', busy: false, err: '',
+      dates: list.map(c => c.date).sort(), rec: list.filter(c => c.hasRec).length, ans: list.filter(c => c.st === 'answered' || c.st === 'transferred').length } });
+  }
+
+  delVals(s) {
+    const d = s.del;
+    if (!d) return { dm: { show: false } };
+    const fa = n => String(n).replace(/\d/g, x => '۰۱۲۳۴۵۶۷۸۹'[x]);
+    const en = v => String(v || '').replace(/[۰-۹]/g, x => '۰۱۲۳۴۵۶۷۸۹'.indexOf(x)).replace(/[٠-٩]/g, x => '٠١٢٣٤٥٦٧٨٩'.indexOf(x)).replace(/\D/g, '');
+    const n = d.ids.length, set = o => this.setState({ del: { ...d, err: '', ...o } });
+    const typedOk = +en(d.typed) === n;
+    const run = async () => {
+      if (d.busy || !d.pw) return;
+      set({ busy: true });
+      try {
+        const r = await api('/calls/delete', { ids: d.ids, count: n, password: d.pw });
+        this.setState({ del: null });
+        this.toast(fa(r.deleted) + ' تماس و ' + fa(r.files) + ' فایل ضبط برای همیشه حذف شد');
+        this.reloadCalls();
+      } catch (e) { set({ busy: false, err: e.message }); }
+    };
+    return { dm: {
+      show: true, step1: d.step === 1, step2: d.step === 2, step3: d.step === 3, stepText: 'مرحله ' + fa(d.step) + ' از ۳',
+      n: fa(n), label: d.label, range: d.dates.length ? (d.dates[0] === d.dates[n - 1] ? fa(d.dates[0]) : fa(d.dates[0]) + ' تا ' + fa(d.dates[n - 1])) : '—',
+      rec: fa(d.rec), ans: fa(d.ans), typed: d.typed, pw: d.pw, err: d.err, hasErr: !!d.err,
+      setTyped: e => set({ typed: e.target.value }), setPw: e => set({ pw: e.target.value }),
+      pwKey: e => { if (e.key === 'Enter') run(); },
+      next1: () => set({ step: 2 }),
+      next2: () => (typedOk ? set({ step: 3 }) : set({ err: 'عدد واردشده با تعداد تماس‌ها (' + fa(n) + ') یکی نیست' })),
+      op2: typedOk ? 1 : 0.45, op3: d.pw && !d.busy ? 1 : 0.45, goText: d.busy ? 'در حال حذف…' : 'حذف دائمی ' + fa(n) + ' تماس',
+      back: () => set({ step: Math.max(1, d.step - 1) }), close: () => (d.busy ? null : this.setState({ del: null })), run,
+    } };
   }
 
   usersVals(s) {

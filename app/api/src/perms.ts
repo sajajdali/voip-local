@@ -8,7 +8,7 @@ export interface Section { key: string; label: string; group: string; actions: A
 
 const ALL: Action[] = ['view', 'add', 'edit', 'delete'];
 export const SECTIONS: Section[] = [
-  { key: 'calls', label: 'لیست تماس‌ها و پرونده بیمار', group: 'مرکز تماس', actions: ['view', 'edit'], hint: { edit: 'تماس با بیمار، یادداشت و پیگیری' } },
+  { key: 'calls', label: 'لیست تماس‌ها و پرونده بیمار', group: 'مرکز تماس', actions: ['view', 'edit', 'delete'], hint: { edit: 'تماس با بیمار، یادداشت و پیگیری', delete: 'حذف دائمی تماس‌ها و ضبط‌ها' } },
   { key: 'inbound', label: 'تماس‌های ورودی', group: 'مرکز تماس', actions: ['view'] },
   { key: 'live', label: 'تماس‌های زنده', group: 'مرکز تماس', actions: ['view', 'edit'], hint: { edit: 'گوش دادن به مکالمه' } },
   { key: 'voice', label: 'پیام‌های صوتی', group: 'مرکز تماس', actions: ['view', 'edit'], hint: { edit: 'پیگیری و ارجاع' } },

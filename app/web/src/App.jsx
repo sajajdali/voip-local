@@ -777,11 +777,11 @@ class LiveApp extends React.Component {
     const dur = sec => { sec = Math.round(sec || 0); const h = Math.floor(sec / 3600), m = Math.floor(sec % 3600 / 60); return h ? fa(h) + ' ساعت ' + fa(m) + ' دقیقه' : m ? fa(m) + ' دقیقه' : fa(sec) + ' ثانیه'; };
     const mmss = sec => { sec = Math.round(sec || 0); return fa(String(Math.floor(sec / 60)).padStart(2, '0') + ':' + String(sec % 60).padStart(2, '0')); };
     const wdOf = date => { try { return jWeekday(jToDate(date)); } catch (e) { return -1; } }; // 0 = شنبه … 6 = جمعه
-    const GROUP = { zoj: [0, 2, 4], fard: [1, 3, 5], fri: [6] };
-    const GNAME = { zoj: 'روزهای زوج', fard: 'روزهای فرد', fri: 'جمعه' };
-    const GSUB = { zoj: 'شنبه، دوشنبه، چهارشنبه', fard: 'یکشنبه، سه‌شنبه، پنجشنبه', fri: 'تعطیل' };
+    const GROUP = { zoj: [0, 2, 4], fard: [1, 3], fri: [5, 6] }; // Thursday and Friday count as one group
+    const GNAME = { zoj: 'روزهای زوج', fard: 'روزهای فرد', fri: 'پنجشنبه و جمعه' };
+    const GSUB = { zoj: 'شنبه، دوشنبه، چهارشنبه', fard: 'یکشنبه، سه‌شنبه', fri: 'آخر هفته' };
     const groupOf = w => (GROUP.zoj.includes(w) ? 'zoj' : GROUP.fard.includes(w) ? 'fard' : 'fri');
-    const TAG = { zoj: { label: 'زوج', bg: '#e5eff7', fg: '#1d5a85' }, fard: { label: 'فرد', bg: '#eef5e3', fg: '#3d6a0c' }, fri: { label: 'جمعه', bg: '#f2f3ef', fg: '#55585c' } };
+    const TAG = { zoj: { label: 'زوج', bg: '#e5eff7', fg: '#1d5a85' }, fard: { label: 'فرد', bg: '#eef5e3', fg: '#3d6a0c' }, fri: { label: 'پنجشنبه/جمعه', bg: '#f2f3ef', fg: '#55585c' } };
     const addDays = (date, n) => jAdd(n, jToDate(date));
     const weekStart = date => addDays(date, -Math.max(0, wdOf(date)));
     const thisWeek = weekStart(TODAY);
@@ -931,7 +931,7 @@ class LiveApp extends React.Component {
     const pill = on => ({ bg: on ? '#2E2F31' : '#fff', fg: on ? '#fff' : '#3a3b3d', bd: on ? '#2E2F31' : '#e1e3dc' });
     const QD = [['امروز', TODAY, TODAY], ['دیروز', jAdd(-1), jAdd(-1)], ['این هفته', thisWeek, TODAY], ['هفته قبل', addDays(thisWeek, -7), addDays(thisWeek, -1)],
       ['این ماه', MONTH_START, TODAY], ['ماه قبل', prevMonthStart, prevMonthEnd], ['۳۰ روز اخیر', jAdd(-29), TODAY], ['۹۰ روز اخیر', jAdd(-89), TODAY]];
-    const DG = [['all', 'همه روزها'], ['zoj', 'زوج'], ['fard', 'فرد'], ['fri', 'جمعه']];
+    const DG = [['all', 'همه روزها'], ['zoj', 'زوج'], ['fard', 'فرد'], ['fri', 'پنجشنبه و جمعه']];
     const srcs = [...new Set(C.filter(c => c.queue && c.queue !== '—').map(c => c.queue))].sort();
     const opsAll = [...new Map(C.filter(c => c.op).map(c => [String(c.op.id), c.op])).values()].sort((a, b) => String(a.ext).localeCompare(String(b.ext)));
     const hoursOpt = Array.from({ length: 24 }, (_, h) => ({ v: String(h), label: fa(String(h).padStart(2, '0')) + ':۰۰' }));
@@ -1299,6 +1299,44 @@ class LiveApp extends React.Component {
   // ---- «کاربران و دسترسی‌ها»
   async loadUsers() {
     try { this.setState({ usersData: await api('/users') }); } catch (e) { this.toast('بارگذاری کاربران ناموفق بود: ' + e.message); }
+  }
+
+  // ---- permanent delete of calls (list / report builder): three steps, the last two re-checked by the server
+  askDelete(list, label) {
+    if (!CAN('calls', 'delete')) return;
+    if (!list.length) { this.toast('تماسی برای حذف وجود ندارد'); return; }
+    this.setState({ del: { ids: list.map(c => c.id), label, step: 1, typed: '', pw: '', busy: false, err: '',
+      dates: list.map(c => c.date).sort(), rec: list.filter(c => c.hasRec).length, ans: list.filter(c => c.st === 'answered' || c.st === 'transferred').length } });
+  }
+
+  delVals(s) {
+    const d = s.del;
+    if (!d) return { dm: { show: false } };
+    const fa = n => String(n).replace(/\d/g, x => '۰۱۲۳۴۵۶۷۸۹'[x]);
+    const en = v => String(v || '').replace(/[۰-۹]/g, x => '۰۱۲۳۴۵۶۷۸۹'.indexOf(x)).replace(/[٠-٩]/g, x => '٠١٢٣٤٥٦٧٨٩'.indexOf(x)).replace(/\D/g, '');
+    const n = d.ids.length, set = o => this.setState({ del: { ...d, err: '', ...o } });
+    const typedOk = +en(d.typed) === n;
+    const run = async () => {
+      if (d.busy || !d.pw) return;
+      set({ busy: true });
+      try {
+        const r = await api('/calls/delete', { ids: d.ids, count: n, password: d.pw });
+        this.setState({ del: null });
+        this.toast(fa(r.deleted) + ' تماس و ' + fa(r.files) + ' فایل ضبط برای همیشه حذف شد');
+        this.reloadCalls();
+      } catch (e) { set({ busy: false, err: e.message }); }
+    };
+    return { dm: {
+      show: true, step1: d.step === 1, step2: d.step === 2, step3: d.step === 3, stepText: 'مرحله ' + fa(d.step) + ' از ۳',
+      n: fa(n), label: d.label, range: d.dates.length ? (d.dates[0] === d.dates[n - 1] ? fa(d.dates[0]) : fa(d.dates[0]) + ' تا ' + fa(d.dates[n - 1])) : '—',
+      rec: fa(d.rec), ans: fa(d.ans), typed: d.typed, pw: d.pw, err: d.err, hasErr: !!d.err,
+      setTyped: e => set({ typed: e.target.value }), setPw: e => set({ pw: e.target.value }),
+      pwKey: e => { if (e.key === 'Enter') run(); },
+      next1: () => set({ step: 2 }),
+      next2: () => (typedOk ? set({ step: 3 }) : set({ err: 'عدد واردشده با تعداد تماس‌ها (' + fa(n) + ') یکی نیست' })),
+      op2: typedOk ? 1 : 0.45, op3: d.pw && !d.busy ? 1 : 0.45, goText: d.busy ? 'در حال حذف…' : 'حذف دائمی ' + fa(n) + ' تماس',
+      back: () => set({ step: Math.max(1, d.step - 1) }), close: () => (d.busy ? null : this.setState({ del: null })), run,
+    } };
   }
 
   usersVals(s) {
@@ -1898,7 +1936,7 @@ export default class App extends LiveApp {
   const QD=[['امروز',TODAY,TODAY],['دیروز',jAdd(-1),jAdd(-1)],['۷ روز اخیر',jAdd(-6),TODAY],['این ماه',MONTH_START,TODAY]];
   const nAct=Object.keys(CF0).filter(k=>cF[k]!==CF0[k]).length;const cf=cAll.filter(TF[s.cTab]);const pages=Math.max(1,Math.ceil(cf.length/ps));const pg=Math.min(s.cPage,pages-1);
   const tAns=today.filter(c=>c.st==='answered'||c.st==='transferred');
-  const cl={exportAll:()=>this.exportXlsx(cf,'لیست تماس‌ها',cF),exportMissed:()=>this.exportXlsx(C.filter(c=>c.dir==='in'&&(c.st==='missed'||c.st==='voicemail')&&c.date>=cF.from&&c.date<=cF.to&&qm(c,s.cQ)),'تماس‌های بی‌پاسخ',cF),pick:{from:v=>setC({from:v}),to:v=>setC({to:v})},q:s.cQ,setQ:e=>this.setState({cQ:e.target.value,cPage:0}),f:cF,set:Object.fromEntries(Object.keys(CF0).map(k=>[k,e=>setC({[k]:e.target.value})])),
+  const cl={canDel:CAN('calls','delete'),del:()=>this.askDelete(cf,'لیست تماس‌ها با فیلترهای فعلی'),delText:'حذف '+cf.length.toLocaleString('fa-IR')+' تماس',exportAll:()=>this.exportXlsx(cf,'لیست تماس‌ها',cF),exportMissed:()=>this.exportXlsx(C.filter(c=>c.dir==='in'&&(c.st==='missed'||c.st==='voicemail')&&c.date>=cF.from&&c.date<=cF.to&&qm(c,s.cQ)),'تماس‌های بی‌پاسخ',cF),pick:{from:v=>setC({from:v}),to:v=>setC({to:v})},q:s.cQ,setQ:e=>this.setState({cQ:e.target.value,cPage:0}),f:cF,set:Object.fromEntries(Object.keys(CF0).map(k=>[k,e=>setC({[k]:e.target.value})])),
    reset:()=>this.setState({cF:{...CF0},cQ:'',cPage:0}),activeText:nAct?nAct+' فیلتر فعال · '+cAll.length+' نتیجه':cAll.length+' نتیجه',
    quick:QD.map(([label,a,b])=>({label,onClick:()=>setC({from:a,to:b}),...pill(cF.from===a&&cF.to===b)})),
    kpis:[{value:today.length,label:'تماس امروز',bg:'#eef5e3',fg:'#8DC63F'},{value:tAns.length,label:'پاسخ‌داده امروز',bg:'#eaf4dc',fg:'#3d6a0c'},{value:today.filter(c=>c.st==='missed').length,label:'بی‌پاسخ امروز',bg:'#fdeceb',fg:'#e0574a'},{value:fmt(tAns.reduce((a,c)=>a+c.dur,0)/Math.max(1,tAns.length)),label:'میانگین مدت مکالمه',bg:'#e5eff7',fg:'#5b9bd0'}],
@@ -1980,7 +2018,7 @@ export default class App extends LiveApp {
   const maxC=Math.max(1,...groups.map(g=>g.a.count));const selMet=MET.filter(x=>r.metrics.includes(x.id));const ta=agg(rc);
   const dl=r.drill?rc.filter(c=>GK[r.group](c)===r.drill):rc;
   const PRE=[['عملکرد اپراتورها',{group:'operator',metrics:['count','answered','missed','rate','avg','total','csat'],op:'all',st:'all'}],['بی‌پاسخ‌های امروز',{from:TODAY,to:TODAY,st:'missed',group:'hour',metrics:['count','wait']}],['ساعات اوج تماس',{group:'hour',st:'all',metrics:['count','answered','missed','voicemail','rate','wait']}],['روند روزانه',{group:'date',st:'all',from:F0.from,to:TODAY,metrics:['count','answered','missed','rate','avg']}],['تماس‌گیرندگان پرتکرار',{group:'phone',st:'all',metrics:['count','answered','missed','total']}],['دسته‌بندی هوش مصنوعی',{group:'category',st:'all',metrics:['count','answered','voicemail','csat']}]];
-  const rp={pick:{from:v=>setR({from:v}),to:v=>setR({to:v})},r,set:Object.fromEntries(['from','to','op','dir','st','q'].map(k=>[k,e=>setR({[k]:e.target.value})])),
+  const rp={canDel:CAN('calls','delete'),del:()=>this.askDelete(dl,r.drill?'گزارش‌ساز · '+GL[r.group]+': '+r.drill:'گزارش‌ساز · همه نتایج گزارش'),delText:'حذف '+dl.length.toLocaleString('fa-IR')+' تماس'+(r.drill?' ('+r.drill+')':''),pick:{from:v=>setR({from:v}),to:v=>setR({to:v})},r,set:Object.fromEntries(['from','to','op','dir','st','q'].map(k=>[k,e=>setR({[k]:e.target.value})])),
    presets:PRE.map(([label,o])=>({label,onClick:()=>this.setState({r:{...R0,...o,drill:null}})})),
    groupOpts:Object.keys(GL).map(k=>({label:GL[k],onClick:()=>setR({group:k}),...pill(r.group===k)})),
    metricOpts:MET.map(x=>{const on=r.metrics.includes(x.id);return {label:x.label,mark:on?'✓':'+',onClick:()=>this.setState({r:{...s.r,metrics:on?r.metrics.filter(y=>y!==x.id):MET.filter(y=>r.metrics.includes(y.id)||y.id===x.id).map(y=>y.id)}}),bg:on?'#eef5e3':'#fff',fg:on?'#3d6a0c':'#6b6e72',bd:on?'#cfe4ad':'#e1e3dc'}}),
@@ -2005,7 +2043,7 @@ export default class App extends LiveApp {
    list:svl.slice(0,15).map(c=>{const sc=Math.round(c.survey.score);return {...R(c),starsOn:'★'.repeat(sc),starsOff:'★'.repeat(5-sc),scoreText:c.survey.score.toFixed(1)+' از 5',...this.svComment(c),qText:this.svLabels(s).map((q,i)=>c.survey.answers[i]!=null?q+': '+c.survey.answers[i]:'').filter(Boolean).join(' · ')}})};
 
   // ai
-  const aq=(s.aiQ||'').replace(/\s/g,'');const fa=AI.filter(c=>(s.aiCat==='all'||c.ai.cat.id===s.aiCat)&&(s.aiSent==='all'||c.ai.sent===s.aiSent)&&(!aq||(c.phoneRaw||'').includes(aq.replace(/^\+?98/,'0'))||(c.op&&String(c.op.ext)===aq)||(c.name||'').includes(s.aiQ.trim())));const aiPS=24,aiPages=Math.max(1,Math.ceil(fa.length/aiPS)),aiPg=Math.min(s.aiPg||0,aiPages-1);
+  const aq=(s.aiQ||'').replace(/\s/g,'');const fa=AI.filter(c=>(s.aiCat==='all'||c.ai.cat.id===s.aiCat)&&(s.aiSent==='all'||c.ai.sent===s.aiSent)&&(!aq||(c.phoneRaw||'').includes(aq.replace(/^\+?98/,'0'))||(c.op&&String(c.op.ext)===aq)||(c.name||'').includes(s.aiQ.trim())));const aiPS=+s.aiPS||(()=>{try{return +localStorage.getItem('cc.aiPS')||24}catch(e){return 24}})(),aiPages=Math.max(1,Math.ceil(fa.length/aiPS)),aiPg=Math.min(s.aiPg||0,aiPages-1);
   const sc={pos:0,neu:0,neg:0};AI.forEach(c=>sc[c.ai.sent]++);const kw={};AI.forEach(c=>c.ai.kw.forEach(k=>kw[k]=(kw[k]||0)+1));
   const maxCat=Math.max(1,...CATS.map(cat=>AI.filter(c=>c.ai.cat.id===cat.id).length));
   const confs=AI.map(c=>+c.ai.conf).filter(x=>isFinite(x)&&x>0);const ai={kpis:[{label:'مورد تحلیل‌شده',value:AI.length},{label:'اولویت فوری',value:AI.filter(c=>c.ai.urg==='high').length},{label:'احساس منفی',value:AI.length?Math.round(sc.neg/AI.length*100)+'%':'—'},{label:'میانگین دقت تبدیل',value:confs.length?Math.round(confs.reduce((a,x)=>a+x,0)/confs.length)+'%':'—'}],
@@ -2014,7 +2052,7 @@ export default class App extends LiveApp {
    kw:Object.entries(kw).sort((a,b)=>b[1]-a[1]).slice(0,14).map(([w,n])=>({w,n})),
    catF:s.aiCat,setCat:e=>this.setState({aiCat:e.target.value}),
    sentTabs:[['all','همه احساسات'],['pos','مثبت'],['neu','خنثی'],['neg','منفی']].map(([id,label])=>({label,onClick:()=>this.setState({aiSent:id}),...pill(s.aiSent===id)})),
-   count:fa.length,q:s.aiQ||'',setQ:e=>this.setState({aiQ:e.target.value,aiPg:0}),pageText:'صفحه '+(aiPg+1)+' از '+aiPages,hasPages:aiPages>1,prev:()=>this.setState({aiPg:Math.max(0,aiPg-1)}),next:()=>this.setState({aiPg:Math.min(aiPages-1,aiPg+1)}),prevOp:aiPg>0?1:.4,nextOp:aiPg<aiPages-1?1:.4,items:fa.slice(aiPg*aiPS,aiPg*aiPS+aiPS).map(c=>({...R(c),sentO:SENT[c.ai.sent],urgO:URG[c.ai.urg],isVm:c.st==='voicemail',isCallAi:c.st!=='voicemail',openVm:()=>this.setState({page:'voice',vSel:c.id,vTab:'all'})}))};
+   count:fa.length,q:s.aiQ||'',setQ:e=>this.setState({aiQ:e.target.value,aiPg:0}),pageText:'صفحه '+(aiPg+1).toLocaleString('fa-IR')+' از '+aiPages.toLocaleString('fa-IR'),hasPages:aiPages>1,prev:()=>this.setState({aiPg:Math.max(0,aiPg-1)}),next:()=>this.setState({aiPg:Math.min(aiPages-1,aiPg+1)}),prevOp:aiPg>0?1:.4,ps:String(aiPS),psOpts:[24,48,96,200,500].map(n=>({v:String(n),label:n.toLocaleString('fa-IR')+' مورد'})),setPS:e=>{const n=+e.target.value;try{localStorage.setItem('cc.aiPS',n)}catch(x){}this.setState({aiPS:n,aiPg:0})},nextOp:aiPg<aiPages-1?1:.4,items:fa.slice(aiPg*aiPS,aiPg*aiPS+aiPS).map(c=>({...R(c),sentO:SENT[c.ai.sent],urgO:URG[c.ai.urg],isVm:c.st==='voicemail',isCallAi:c.st!=='voicemail',openVm:()=>this.setState({page:'voice',vSel:c.id,vTab:'all'})}))};
 
   const urV=this.unreachedPage(C,isUR,lastOk);
   // player
@@ -2024,6 +2062,6 @@ export default class App extends LiveApp {
    seek:e=>{const b=e.currentTarget.getBoundingClientRect();this.setState({pos:Math.min(1,Math.max(0,(b.right-e.clientX)/b.width))*(this.audDur||pc.dur)});},
    pct:s.pos/(this.audDur||pc.dur)*100+'%',posText:fmt(s.pos),durText:fmt((this.audDur||pc.dur)),speedText:s.speed+'x',cycleSpeed:()=>this.setState({speed:SP[(SP.indexOf(s.speed)+1)%SP.length]}),download:()=>this.download(pc)}:{show:false};
 
-  return {...this.voip(s),...this.voip2(s),...this.voipOut(s),...this.apiVals(s),...this.backupVals(s),...this.settingsVals(s),...this.aiSettingsVals(s),...this.surveyVals(s),...this.crmVals(s),...this.agentVals(s),...this.aiConvVals(s),...this.daysVals(s),...this.liveVals(s),...this.sysVals(s),...this.callViewVals(s),...this.usageVals(s),...this.canVals(s),...this.usersVals(s),pf,call,toast,nav:{...nav,unreached:nv('unreached',urV.navCount)},is,ur:urV,cl,ib,vm,rp,sv,ai,player,showAi,dates:[],hours:HOURS,ops,queues:s.vqs.map(q=>q.name),statuses,cats,me:this.meVals(),todayLong:jLong(new Date())};
+  return {...this.voip(s),...this.voip2(s),...this.voipOut(s),...this.apiVals(s),...this.backupVals(s),...this.settingsVals(s),...this.aiSettingsVals(s),...this.surveyVals(s),...this.crmVals(s),...this.agentVals(s),...this.aiConvVals(s),...this.daysVals(s),...this.liveVals(s),...this.sysVals(s),...this.callViewVals(s),...this.usageVals(s),...this.canVals(s),...this.usersVals(s),...this.delVals(s),pf,call,toast,nav:{...nav,unreached:nv('unreached',urV.navCount)},is,ur:urV,cl,ib,vm,rp,sv,ai,player,showAi,dates:[],hours:HOURS,ops,queues:s.vqs.map(q=>q.name),statuses,cats,me:this.meVals(),todayLong:jLong(new Date())};
  }
 }

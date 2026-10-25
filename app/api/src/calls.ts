@@ -5,6 +5,7 @@ import type { Request, Response } from 'express';
 import * as fs from 'fs';
 import * as path from 'path';
 import { promisify } from 'util';
+import * as bcrypt from 'bcryptjs';
 import * as ExcelJS from 'exceljs';
 import { AiService } from './ai';
 import { SECTIONS, can } from './perms';
@@ -433,6 +434,42 @@ export class CallsController {
   }
 
   /** One call's AI result in full (chat turns, transcript) for the call view. */
+  /** Permanent bulk delete (list / report builder). The panel walks the user through three confirmations;
+   *  the server re-checks the two that matter: the typed count and the user's own password. */
+  @Perm('calls', 'delete')
+  @Post('calls/delete')
+  async remove(@Body() b: { ids: string[]; count: number; password: string }, @CurrentUser() me: Me) {
+    const ids = [...new Set((Array.isArray(b?.ids) ? b.ids : []).map(String).filter(x => /^[\w.-]{1,64}$/.test(x)))];
+    if (!ids.length) throw new BadRequestException('هیچ تماسی انتخاب نشده است');
+    if (ids.length > 50000) throw new BadRequestException('در هر بار حداکثر ۵۰٬۰۰۰ تماس قابل حذف است');
+    if (+b.count !== ids.length) throw new BadRequestException('تعداد واردشده با تعداد تماس‌های انتخاب‌شده یکی نیست');
+    const u = await this.db.user.findUnique({ where: { id: me.id } });
+    if (!u || !(await bcrypt.compare(String(b.password || ''), u.password))) throw new BadRequestException('رمز عبور اشتباه است');
+    const rows = await this.db.call.findMany({ where: { id: { in: ids } }, select: { id: true, date: true, recPath: true, survey: true } });
+    if (!rows.length) throw new BadRequestException('این تماس‌ها قبلاً حذف شده‌اند');
+    const found = rows.map(r => r.id);
+    await this.db.$transaction([
+      this.db.note.deleteMany({ where: { callId: { in: found } } }),
+      this.db.follow.deleteMany({ where: { callId: { in: found } } }),
+      this.db.call.deleteMany({ where: { id: { in: found } } }),
+    ]);
+    // recordings (mixed + per-side tracks) and survey voice comments; only inside the monitor folder
+    const root = path.resolve(env.monitorDir);
+    let files = 0;
+    for (const r of rows) {
+      const list = [r.recPath, (r.survey as any)?.rec];
+      if (r.recPath) list.push(r.recPath.replace(/\.wav$/, '') + '-op.wav', r.recPath.replace(/\.wav$/, '') + '-pt.wav');
+      for (const f of list) {
+        if (!f || f === 'demo' || !path.resolve(f).startsWith(root + path.sep)) continue;
+        try { await fs.promises.unlink(f); files++; } catch { /* already gone */ }
+      }
+    }
+    const dates = rows.map(r => r.date).sort();
+    await this.db.auditLog.create({ data: { userId: me.id, userName: me.name, action: 'calls.delete', target: `${rows.length} تماس`, detail: { count: rows.length, files, from: dates[0], to: dates[dates.length - 1] } } });
+    this.bus.emit('calls', {});
+    return { deleted: rows.length, files };
+  }
+
   @Get('calls/:id/insight')
   async insight(@Param('id') id: string, @CurrentUser() me: Me) {
     const c = await this.db.call.findUnique({ where: { id }, select: { ai: true, aiState: true, aiError: true, recPath: true, st: true } });
