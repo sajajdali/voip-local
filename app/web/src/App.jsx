@@ -2089,7 +2089,7 @@ export default class App extends LiveApp {
  }
  renderVals(){
   const s=this.state,C=this.calls,showAi=this.props.showAiColumn??true,ps=this.props.rowsPerPage??12;
-  const R=c=>{const cur=s.pid===c.id||s.recPlay===c.id,pl=(s.pid===c.id&&!s.paused)||s.recPlay===c.id;return {...c,openFile:()=>this.openFile(c),openCall:()=>this.openCall(c),isPlaying:pl,notPlaying:!pl,onPlay:()=>this.play(c.id),playBg:cur?'#8DC63F':'#eef5e3',playFg:cur?'#1f2021':'#3d6a0c',rowBg:cur?'#f7fbf1':'transparent',canDel:CAN('calls','delete'),onDel:()=>this.askDelete([c],'یک تماس'),hasRep:c.rep>0,repText:(c.rep||0).toLocaleString('fa-IR')+' گزارش'}};
+  const R=c=>{const cur=s.pid===c.id||s.recPlay===c.id,pl=(s.pid===c.id&&!s.paused)||s.recPlay===c.id;return {...c,openFile:()=>this.openFile(c),openCall:()=>this.openCall(c),isPlaying:pl,notPlaying:!pl,onPlay:()=>this.play(c.id),playBg:cur?'#8DC63F':'#eef5e3',playFg:cur?'#1f2021':'#3d6a0c',rowBg:cur?'#f7fbf1':'transparent',canDel:CAN('calls','delete'),onDel:()=>this.askDelete([c],'یک تماس'),hasRep:c.rep>0,repText:(c.rep||0).toLocaleString('fa-IR')+' گزارش',canRep:CAN('calls','edit'),onRep:()=>this.setState({cvId:c.id,crForm:{callId:c.id,editId:null,cat:'',outcome:'',text:'',fu:''}})}};
   const fol=c=>s.follow[c.id]||c.follow;
   const vms=C.filter(c=>c.st==='voicemail'&&this.deptOk(c,s));const AI=C.filter(c=>c.ai&&!c.ai.pending);
   const nv=(p,count)=>({go:()=>this.setState({page:p}),bg:s.page===p?'#8DC63F':'transparent',fg:s.page===p?'#1f2021':'#d9dad6',count,cbg:s.page===p?'rgba(31,32,33,.15)':'rgba(255,255,255,.08)'});

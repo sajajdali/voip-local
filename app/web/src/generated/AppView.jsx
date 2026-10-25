@@ -487,6 +487,15 @@ export default function AppView({ vm }) {
                               </svg>
                             </button>
                           </>) : null}
+                          {(row?.canRep) ? (<>
+                            <button onClick={row?.onRep} title="ثبت گزارش تماس" style={{height: "32px", marginRight: "6px", padding: "0 10px", borderRadius: "10px", border: "1px solid #c9dcec", background: "#fff", color: "#1d5a85", display: "inline-flex", alignItems: "center", gap: "5px", cursor: "pointer", verticalAlign: "middle", fontSize: "12px", fontWeight: "700", fontFamily: "inherit", whiteSpace: "nowrap"}}>
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z" />
+                                <path d="M14 3v6h6M12 12v6M9 15h6" />
+                              </svg>
+                              {"گزارش"}
+                            </button>
+                          </>) : null}
                         </td>
                       </tr>
                     </React.Fragment>)}
@@ -808,6 +817,15 @@ export default function AppView({ vm }) {
                               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                 <path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3" />
                               </svg>
+                            </button>
+                          </>) : null}
+                          {(row?.canRep) ? (<>
+                            <button onClick={row?.onRep} title="ثبت گزارش تماس" style={{height: "32px", marginRight: "6px", padding: "0 10px", borderRadius: "10px", border: "1px solid #c9dcec", background: "#fff", color: "#1d5a85", display: "inline-flex", alignItems: "center", gap: "5px", cursor: "pointer", verticalAlign: "middle", fontSize: "12px", fontWeight: "700", fontFamily: "inherit", whiteSpace: "nowrap"}}>
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z" />
+                                <path d="M14 3v6h6M12 12v6M9 15h6" />
+                              </svg>
+                              {"گزارش"}
                             </button>
                           </>) : null}
                         </td>
@@ -1699,6 +1717,15 @@ export default function AppView({ vm }) {
                             </>) : null}
                             {(row?.noVoice) ? (<>
                               <span style={{color: "#b9bbb6"}}>{"—"}</span>
+                            </>) : null}
+                            {(row?.canRep) ? (<>
+                              <button onClick={row?.onRep} title="ثبت گزارش تماس" style={{height: "32px", marginRight: "6px", padding: "0 10px", borderRadius: "10px", border: "1px solid #c9dcec", background: "#fff", color: "#1d5a85", display: "inline-flex", alignItems: "center", gap: "5px", cursor: "pointer", verticalAlign: "middle", fontSize: "12px", fontWeight: "700", fontFamily: "inherit", whiteSpace: "nowrap"}}>
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                                  <path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z" />
+                                  <path d="M14 3v6h6M12 12v6M9 15h6" />
+                                </svg>
+                                {"گزارش"}
+                              </button>
                             </>) : null}
                           </td>
                         </tr>
