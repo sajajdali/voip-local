@@ -1719,7 +1719,13 @@ export default function AppView({ vm }) {
                   <div style={{flex: "1", minWidth: "180px"}}>
                     <div style={{fontSize: "12px", color: "#8DC63F", fontWeight: "700"}}>{"پرونده بالینی · از سامانه بیماران"}</div>
                     <div style={{fontSize: "20px", fontWeight: "800", marginTop: "2px"}}>{vm.pf2?.clin?.name}</div>
+                    {(vm.pf2?.clin?.hasMessage) ? (<>
+                      <div style={{fontSize: "12px", color: "#c9cbc6", marginTop: "4px"}}>{vm.pf2?.clin?.message}</div>
+                    </>) : null}
                   </div>
+                  {(vm.pf2?.clin?.completed) ? (<>
+                    <span style={{display: "inline-flex", alignItems: "center", gap: "6px", background: "rgba(141,198,63,.18)", color: "#c5e69a", border: "1px solid rgba(141,198,63,.35)", padding: "6px 12px", borderRadius: "999px", fontSize: "12px", fontWeight: "800"}}>{"✓ جراحی انجام‌شده با دکتر افلاکی"}</span>
+                  </>) : null}
                   <button onClick={vm.pf2?.clin?.showDemo} style={{border: "1px solid rgba(255,255,255,.22)", background: "rgba(255,255,255,.06)", color: "#fff", padding: "8px 14px", borderRadius: "10px", fontSize: "12px", fontWeight: "700", cursor: "pointer", fontFamily: "inherit"}}>{vm.pf2?.clin?.demoLabel}</button>
                 </div>
                 {(vm.pf2?.clin?.demo) ? (<>
@@ -1803,8 +1809,8 @@ export default function AppView({ vm }) {
                         <div style={{fontWeight: "800", fontSize: "15px", marginBottom: "10px"}}>{"تاریخ‌های معاینه"}</div>
                         <div style={{display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(210px,1fr))", gap: "10px"}}>
                           {(vm.pf2?.clin?.exams || []).map((e, __i13) => <React.Fragment key={__i13}>
-                            <div style={{display: "flex", gap: "12px", alignItems: "center", border: "1px solid #e7e8e3", borderRadius: "16px", padding: "12px 14px", background: "#fff"}}>
-                              <div style={{width: "40px", height: "40px", borderRadius: "12px", background: "#fdeceb", color: "#b42318", display: "grid", placeItems: "center", fontWeight: "800", flexShrink: "0"}}>{e?.n}</div>
+                            <div style={{display: "flex", gap: "12px", alignItems: "center", border: "1px solid #e7e8e3", borderRadius: "16px", padding: "12px 14px", background: "#fff", opacity: e?.op}}>
+                              <div style={{width: "40px", height: "40px", borderRadius: "12px", background: e?.numBg, color: e?.numFg, display: "grid", placeItems: "center", fontWeight: "800", flexShrink: "0"}}>{e?.n}</div>
                               <div style={{flex: "1", minWidth: "0"}}>
                                 <div style={{fontSize: "13px", fontWeight: "800", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis"}}>{e?.title}</div>
                                 <div style={{fontSize: "13px", marginTop: "2px"}}>
@@ -1823,7 +1829,14 @@ export default function AppView({ vm }) {
                     </>) : null}
                     {(vm.pf2?.clin?.hasVisits) ? (<>
                       <div>
-                        <div style={{fontWeight: "800", fontSize: "15px", marginBottom: "10px"}}>{"سابقه مراجعات"}</div>
+                        <div style={{display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap", marginBottom: "10px"}}>
+                          <div style={{fontWeight: "800", fontSize: "15px", flex: "1"}}>{"سابقه مراجعات و نوبت‌ها"}</div>
+                          <div style={{display: "flex", gap: "6px", flexWrap: "wrap"}}>
+                            {(vm.pf2?.clin?.visTabs || []).map((vt, __i14) => <React.Fragment key={__i14}>
+                              <button onClick={vt?.pick} style={{border: `1px solid ${vt?.bd}`, background: vt?.bg, color: vt?.fg, padding: "5px 12px", borderRadius: "999px", fontSize: "12px", fontWeight: "700", cursor: "pointer", fontFamily: "inherit"}}>{vt?.label}</button>
+                            </React.Fragment>)}
+                          </div>
+                        </div>
                         <div style={{border: "1px solid #e7e8e3", borderRadius: "16px", overflow: "hidden"}}>
                           <div style={{overflowX: "auto"}}>
                             <table style={{width: "100%", borderCollapse: "collapse"}}>
@@ -1834,13 +1847,14 @@ export default function AppView({ vm }) {
                                   <th style={{padding: "11px 12px", fontSize: "12px", fontWeight: "700", color: "#d9dad6", textAlign: "right", whiteSpace: "nowrap", background: "#2E2F31"}}>{"تاریخ"}</th>
                                   <th style={{padding: "11px 12px", fontSize: "12px", fontWeight: "700", color: "#d9dad6", textAlign: "right", whiteSpace: "nowrap", background: "#2E2F31"}}>{"روز"}</th>
                                   <th style={{padding: "11px 12px", fontSize: "12px", fontWeight: "700", color: "#d9dad6", textAlign: "right", whiteSpace: "nowrap", background: "#2E2F31"}}>{"ساعت"}</th>
+                                  <th style={{padding: "11px 12px", fontSize: "12px", fontWeight: "700", color: "#d9dad6", textAlign: "right", whiteSpace: "nowrap", background: "#2E2F31"}}>{"وضعیت"}</th>
                                   <th style={{padding: "11px 12px", fontSize: "12px", fontWeight: "700", color: "#d9dad6", textAlign: "right", whiteSpace: "nowrap", background: "#2E2F31"}}>{"نسبت به جراحی"}</th>
-                                  <th style={{padding: "11px 12px", fontSize: "12px", fontWeight: "700", color: "#d9dad6", textAlign: "right", whiteSpace: "nowrap", background: "#2E2F31"}}>{"توضیح"}</th>
+                                  <th style={{padding: "11px 12px", fontSize: "12px", fontWeight: "700", color: "#d9dad6", textAlign: "right", whiteSpace: "nowrap", background: "#2E2F31"}}>{"توضیحات و گزارش پروسیجر"}</th>
                                 </tr>
                               </thead>
                               <tbody>
                                 {(vm.pf2?.clin?.visits || []).map((v, __i16) => <React.Fragment key={__i16}>
-                                  <tr style={{background: v?.rowBg}}>
+                                  <tr style={{background: v?.rowBg, opacity: v?.op}}>
                                     <td style={{padding: "11px 12px", fontSize: "13px", borderBottom: "1px solid #f1f2ee", whiteSpace: "nowrap", color: "#8b8e89", fontWeight: "700"}}>{v?.n}</td>
                                     <td style={{padding: "11px 12px", fontSize: "13px", borderBottom: "1px solid #f1f2ee", whiteSpace: "nowrap", fontWeight: "800"}}>
                                       {v?.type}
@@ -1851,8 +1865,22 @@ export default function AppView({ vm }) {
                                     <td style={{padding: "11px 12px", fontSize: "13px", borderBottom: "1px solid #f1f2ee", whiteSpace: "nowrap", fontWeight: "700"}}>{v?.date}</td>
                                     <td style={{padding: "11px 12px", fontSize: "13px", borderBottom: "1px solid #f1f2ee", whiteSpace: "nowrap", color: "#55585c"}}>{v?.wday}</td>
                                     <td style={{padding: "11px 12px", fontSize: "13px", borderBottom: "1px solid #f1f2ee", whiteSpace: "nowrap", fontVariantNumeric: "tabular-nums"}}>{v?.time}</td>
+                                    <td style={{padding: "11px 12px", fontSize: "13px", borderBottom: "1px solid #f1f2ee", whiteSpace: "nowrap"}}>
+                                      <span style={{fontSize: "11px", fontWeight: "800", padding: "3px 9px", borderRadius: "999px", background: v?.stBg, color: v?.stFg}}>{v?.st}</span>
+                                    </td>
                                     <td style={{padding: "11px 12px", fontSize: "13px", borderBottom: "1px solid #f1f2ee", whiteSpace: "nowrap", color: "#6b6e72", fontSize: "12px"}}>{v?.rel}</td>
-                                    <td style={{padding: "11px 12px", fontSize: "13px", borderBottom: "1px solid #f1f2ee", whiteSpace: "nowrap", color: "#55585c", fontSize: "12px", whiteSpace: "normal", minWidth: "120px"}}>{v?.note}</td>
+                                    <td style={{padding: "11px 12px", fontSize: "13px", borderBottom: "1px solid #f1f2ee", whiteSpace: "nowrap", whiteSpace: "normal", minWidth: "180px"}}>
+                                      {(v?.hasNotes) ? (<>
+                                        <div style={{display: "flex", flexDirection: "column", gap: "4px"}}>
+                                          {(v?.notes || []).map((nt, __i21) => <React.Fragment key={__i21}>
+                                            <div style={{fontSize: "12px", lineHeight: "1.7"}}>
+                                              <span style={{color: "#8b8e89", fontSize: "11px"}}>{nt?.k}{": "}</span>
+                                              <span style={{color: "#3a3b3d"}}>{nt?.t}</span>
+                                            </div>
+                                          </React.Fragment>)}
+                                        </div>
+                                      </>) : null}
+                                    </td>
                                   </tr>
                                 </React.Fragment>)}
                               </tbody>
@@ -1975,7 +2003,13 @@ export default function AppView({ vm }) {
                   <div style={{flex: "1", minWidth: "180px"}}>
                     <div style={{fontSize: "12px", color: "#8DC63F", fontWeight: "700"}}>{"پرونده بالینی · از سامانه بیماران"}</div>
                     <div style={{fontSize: "20px", fontWeight: "800", marginTop: "2px"}}>{vm.pf2?.clin?.name}</div>
+                    {(vm.pf2?.clin?.hasMessage) ? (<>
+                      <div style={{fontSize: "12px", color: "#c9cbc6", marginTop: "4px"}}>{vm.pf2?.clin?.message}</div>
+                    </>) : null}
                   </div>
+                  {(vm.pf2?.clin?.completed) ? (<>
+                    <span style={{display: "inline-flex", alignItems: "center", gap: "6px", background: "rgba(141,198,63,.18)", color: "#c5e69a", border: "1px solid rgba(141,198,63,.35)", padding: "6px 12px", borderRadius: "999px", fontSize: "12px", fontWeight: "800"}}>{"✓ جراحی انجام‌شده با دکتر افلاکی"}</span>
+                  </>) : null}
                   <button onClick={vm.pf2?.clin?.showDemo} style={{border: "1px solid rgba(255,255,255,.22)", background: "rgba(255,255,255,.06)", color: "#fff", padding: "8px 14px", borderRadius: "10px", fontSize: "12px", fontWeight: "700", cursor: "pointer", fontFamily: "inherit"}}>{vm.pf2?.clin?.demoLabel}</button>
                 </div>
                 {(vm.pf2?.clin?.demo) ? (<>
@@ -2059,8 +2093,8 @@ export default function AppView({ vm }) {
                         <div style={{fontWeight: "800", fontSize: "15px", marginBottom: "10px"}}>{"تاریخ‌های معاینه"}</div>
                         <div style={{display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(210px,1fr))", gap: "10px"}}>
                           {(vm.pf2?.clin?.exams || []).map((e, __i13) => <React.Fragment key={__i13}>
-                            <div style={{display: "flex", gap: "12px", alignItems: "center", border: "1px solid #e7e8e3", borderRadius: "16px", padding: "12px 14px", background: "#fff"}}>
-                              <div style={{width: "40px", height: "40px", borderRadius: "12px", background: "#fdeceb", color: "#b42318", display: "grid", placeItems: "center", fontWeight: "800", flexShrink: "0"}}>{e?.n}</div>
+                            <div style={{display: "flex", gap: "12px", alignItems: "center", border: "1px solid #e7e8e3", borderRadius: "16px", padding: "12px 14px", background: "#fff", opacity: e?.op}}>
+                              <div style={{width: "40px", height: "40px", borderRadius: "12px", background: e?.numBg, color: e?.numFg, display: "grid", placeItems: "center", fontWeight: "800", flexShrink: "0"}}>{e?.n}</div>
                               <div style={{flex: "1", minWidth: "0"}}>
                                 <div style={{fontSize: "13px", fontWeight: "800", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis"}}>{e?.title}</div>
                                 <div style={{fontSize: "13px", marginTop: "2px"}}>
@@ -2079,7 +2113,14 @@ export default function AppView({ vm }) {
                     </>) : null}
                     {(vm.pf2?.clin?.hasVisits) ? (<>
                       <div>
-                        <div style={{fontWeight: "800", fontSize: "15px", marginBottom: "10px"}}>{"سابقه مراجعات"}</div>
+                        <div style={{display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap", marginBottom: "10px"}}>
+                          <div style={{fontWeight: "800", fontSize: "15px", flex: "1"}}>{"سابقه مراجعات و نوبت‌ها"}</div>
+                          <div style={{display: "flex", gap: "6px", flexWrap: "wrap"}}>
+                            {(vm.pf2?.clin?.visTabs || []).map((vt, __i14) => <React.Fragment key={__i14}>
+                              <button onClick={vt?.pick} style={{border: `1px solid ${vt?.bd}`, background: vt?.bg, color: vt?.fg, padding: "5px 12px", borderRadius: "999px", fontSize: "12px", fontWeight: "700", cursor: "pointer", fontFamily: "inherit"}}>{vt?.label}</button>
+                            </React.Fragment>)}
+                          </div>
+                        </div>
                         <div style={{border: "1px solid #e7e8e3", borderRadius: "16px", overflow: "hidden"}}>
                           <div style={{overflowX: "auto"}}>
                             <table style={{width: "100%", borderCollapse: "collapse"}}>
@@ -2090,13 +2131,14 @@ export default function AppView({ vm }) {
                                   <th style={{padding: "11px 12px", fontSize: "12px", fontWeight: "700", color: "#d9dad6", textAlign: "right", whiteSpace: "nowrap", background: "#2E2F31"}}>{"تاریخ"}</th>
                                   <th style={{padding: "11px 12px", fontSize: "12px", fontWeight: "700", color: "#d9dad6", textAlign: "right", whiteSpace: "nowrap", background: "#2E2F31"}}>{"روز"}</th>
                                   <th style={{padding: "11px 12px", fontSize: "12px", fontWeight: "700", color: "#d9dad6", textAlign: "right", whiteSpace: "nowrap", background: "#2E2F31"}}>{"ساعت"}</th>
+                                  <th style={{padding: "11px 12px", fontSize: "12px", fontWeight: "700", color: "#d9dad6", textAlign: "right", whiteSpace: "nowrap", background: "#2E2F31"}}>{"وضعیت"}</th>
                                   <th style={{padding: "11px 12px", fontSize: "12px", fontWeight: "700", color: "#d9dad6", textAlign: "right", whiteSpace: "nowrap", background: "#2E2F31"}}>{"نسبت به جراحی"}</th>
-                                  <th style={{padding: "11px 12px", fontSize: "12px", fontWeight: "700", color: "#d9dad6", textAlign: "right", whiteSpace: "nowrap", background: "#2E2F31"}}>{"توضیح"}</th>
+                                  <th style={{padding: "11px 12px", fontSize: "12px", fontWeight: "700", color: "#d9dad6", textAlign: "right", whiteSpace: "nowrap", background: "#2E2F31"}}>{"توضیحات و گزارش پروسیجر"}</th>
                                 </tr>
                               </thead>
                               <tbody>
                                 {(vm.pf2?.clin?.visits || []).map((v, __i16) => <React.Fragment key={__i16}>
-                                  <tr style={{background: v?.rowBg}}>
+                                  <tr style={{background: v?.rowBg, opacity: v?.op}}>
                                     <td style={{padding: "11px 12px", fontSize: "13px", borderBottom: "1px solid #f1f2ee", whiteSpace: "nowrap", color: "#8b8e89", fontWeight: "700"}}>{v?.n}</td>
                                     <td style={{padding: "11px 12px", fontSize: "13px", borderBottom: "1px solid #f1f2ee", whiteSpace: "nowrap", fontWeight: "800"}}>
                                       {v?.type}
@@ -2107,8 +2149,22 @@ export default function AppView({ vm }) {
                                     <td style={{padding: "11px 12px", fontSize: "13px", borderBottom: "1px solid #f1f2ee", whiteSpace: "nowrap", fontWeight: "700"}}>{v?.date}</td>
                                     <td style={{padding: "11px 12px", fontSize: "13px", borderBottom: "1px solid #f1f2ee", whiteSpace: "nowrap", color: "#55585c"}}>{v?.wday}</td>
                                     <td style={{padding: "11px 12px", fontSize: "13px", borderBottom: "1px solid #f1f2ee", whiteSpace: "nowrap", fontVariantNumeric: "tabular-nums"}}>{v?.time}</td>
+                                    <td style={{padding: "11px 12px", fontSize: "13px", borderBottom: "1px solid #f1f2ee", whiteSpace: "nowrap"}}>
+                                      <span style={{fontSize: "11px", fontWeight: "800", padding: "3px 9px", borderRadius: "999px", background: v?.stBg, color: v?.stFg}}>{v?.st}</span>
+                                    </td>
                                     <td style={{padding: "11px 12px", fontSize: "13px", borderBottom: "1px solid #f1f2ee", whiteSpace: "nowrap", color: "#6b6e72", fontSize: "12px"}}>{v?.rel}</td>
-                                    <td style={{padding: "11px 12px", fontSize: "13px", borderBottom: "1px solid #f1f2ee", whiteSpace: "nowrap", color: "#55585c", fontSize: "12px", whiteSpace: "normal", minWidth: "120px"}}>{v?.note}</td>
+                                    <td style={{padding: "11px 12px", fontSize: "13px", borderBottom: "1px solid #f1f2ee", whiteSpace: "nowrap", whiteSpace: "normal", minWidth: "180px"}}>
+                                      {(v?.hasNotes) ? (<>
+                                        <div style={{display: "flex", flexDirection: "column", gap: "4px"}}>
+                                          {(v?.notes || []).map((nt, __i21) => <React.Fragment key={__i21}>
+                                            <div style={{fontSize: "12px", lineHeight: "1.7"}}>
+                                              <span style={{color: "#8b8e89", fontSize: "11px"}}>{nt?.k}{": "}</span>
+                                              <span style={{color: "#3a3b3d"}}>{nt?.t}</span>
+                                            </div>
+                                          </React.Fragment>)}
+                                        </div>
+                                      </>) : null}
+                                    </td>
                                   </tr>
                                 </React.Fragment>)}
                               </tbody>

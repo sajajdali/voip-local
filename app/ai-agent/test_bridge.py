@@ -717,23 +717,32 @@ class CallerLookupTests(unittest.TestCase):
 
     def test_emergency_sms_rejects_missing_identifiers(self):
         with mock.patch("caller_lookup.urllib.request.urlopen") as opened:
-            invalid_mobile = caller_lookup.send_emergency_sms(
-                {}, "", "0012345678"
-            )
             invalid_code = caller_lookup.send_emergency_sms(
                 {}, "09121234567", "1012345678"
             )
             missing_summary = caller_lookup.send_emergency_sms(
                 {}, "09121234567", "0012345678", "نازنین"
             )
-            missing_name = caller_lookup.send_emergency_sms(
-                {}, "09121234567", "0012345678", "", "درخواست تماس فوری دارد."
-            )
-        self.assertEqual(invalid_mobile, {"status": "invalid", "reason": "caller_number_missing"})
         self.assertEqual(invalid_code, {"status": "invalid", "reason": "invalid_national_code"})
         self.assertEqual(missing_summary, {"status": "invalid", "reason": "summary_missing"})
-        self.assertEqual(missing_name, {"status": "invalid", "reason": "name_missing"})
         opened.assert_not_called()
+
+    def test_emergency_sms_sends_without_number_or_name(self):
+        class Response:
+            status = 201
+            def __enter__(self): return self
+            def __exit__(self, *a): return False
+            def read(self, n=-1): return b'{"message":"success"}'
+        config = {"CRM_API_URL": "https://crm.example/api/v1/voip/surgery-status", "CRM_API_USERNAME": "u", "CRM_API_PASSWORD": "p"}
+        with mock.patch("caller_lookup.urllib.request.urlopen", return_value=Response()) as opened:
+            hidden = caller_lookup.send_emergency_sms(config, "", "0012345678", "", "درخواست تماس فوری دارد.")
+            landline = caller_lookup.send_emergency_sms(config, "22498671", "0012345678", "نازنین", "درخواست تماس فوری دارد.")
+        first, second = (json.loads(c.args[0].data) for c in opened.call_args_list)
+        self.assertEqual(hidden, {"status": "sent"})
+        self.assertEqual(landline, {"status": "sent"})
+        self.assertIsNone(first["mobile"])
+        self.assertIsNone(first["name"])
+        self.assertEqual(second["mobile"], "22498671")
 
 
 class OutboundApiTests(unittest.TestCase):

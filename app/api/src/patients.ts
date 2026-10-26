@@ -282,10 +282,18 @@ export function clinicalOf(raw: any) {
   const src = raw && typeof raw === 'object' ? (raw.data && typeof raw.data === 'object' && !Array.isArray(raw.data) ? raw.data : raw) : {};
   const get = (k: string) => { for (const a of CLIN[k]) if (src[a] !== undefined && src[a] !== null && src[a] !== '') return src[a]; return null; };
   const str = (v: any) => (v === null || v === undefined ? '' : String(v).trim());
-  const list = (v: any) => (Array.isArray(v) ? v : []).slice(0, 200);
-  const exams = list(get('exams')).map((x: any) => (typeof x === 'object' && x ? { date: str(x.date || x.at), time: str(x.time), title: str(x.title || x.type || x.note) } : { date: str(x), time: '', title: '' })).filter(x => x.date);
-  const visits = list(get('visits')).map((x: any) => (typeof x === 'object' && x ? { type: str(x.type || x.title || x.reason), date: str(x.date || x.at), time: str(x.time), note: str(x.note || x.description), doctor: str(x.doctor) } : { type: '', date: str(x), time: '', note: '', doctor: '' })).filter(x => x.date);
+  const list = (v: any) => (Array.isArray(v) ? v : []).slice(0, 500);
+  // status codes of the clinic system (0 pending … 8 online visit done); status_title is shown as sent
+  const st = (x: any) => ({ status: x.status === null || x.status === undefined || x.status === '' ? null : Number(x.status), statusTitle: str(x.status_title) });
+  const exams = list(get('exams')).map((x: any) => (typeof x === 'object' && x ? { id: x.id ?? null, date: str(x.date || x.at), time: str(x.time), title: str(x.title || x.type), ...st(x) } : { id: null, date: str(x), time: '', title: '', status: null, statusTitle: '' }));
+  const visits = list(get('visits')).map((x: any) => (typeof x === 'object' && x ? {
+    id: x.id ?? null, type: str(x.type || x.title), date: str(x.date || x.at), time: str(x.time), ...st(x),
+    apptNote: str(x.appointment_note ?? x.note), procNotes: (Array.isArray(x.procedure_notes) ? x.procedure_notes : []).map(str).filter(Boolean),
+  } : { id: null, type: '', date: str(x), time: '', status: null, statusTitle: '', apptNote: '', procNotes: [] as string[] }));
+  const yes = (v: any) => v === true || v === 1 || v === '1' || v === 'true';
   return {
+    completed: yes(src.has_completed_surgery), completedDate: str(src.last_surgery_date), message: str(src.message),
+    nextSurgeryAppt: str(src.next_surgery_appointment_date), lastSurgeryAppt: str(src.last_surgery_appointment_date),
     firstName: str(get('firstName')), lastName: str(get('lastName')), fullName: str(get('fullName')), nationalCode: str(get('nationalCode')).replace(/\D/g, ''),
     consultation: str(get('consultation')), surgery: str(get('surgery')), tampon: str(get('tampon')), splint: str(get('splint')), exams, visits,
   };

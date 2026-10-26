@@ -1703,14 +1703,21 @@ class LiveApp extends React.Component {
     const D = demo ? (() => {
       const g = n => jStr(new Date(today.getTime() + n * 864e5));
       return { firstName: 'نمونه', lastName: 'بیمار آزمایشی', nationalCode: '0012345678', consultation: g(-118), surgery: g(-38), tampon: g(-36), splint: g(-31),
-        exams: [{ date: g(-37), title: 'معاینه روز بعد از عمل' }, { date: g(-31), title: 'معاینه هفته اول' }, { date: g(-8), title: 'معاینه ماه اول' }, { date: g(52), title: 'معاینه سه‌ماهه' }],
-        visits: [{ type: 'مراجعه اولیه (مشاوره)', date: g(-118), time: '16:30' }, { type: 'آزمایش و آماده‌سازی', date: g(-45), time: '10:00' }, { type: 'جراحی', date: g(-38), time: '08:00' },
-          { type: 'برداشتن تامپون', date: g(-36), time: '14:15' }, { type: 'برداشتن اسپلینت و بخیه', date: g(-31), time: '15:00', note: 'ورم طبیعی' }, { type: 'معاینه ماه اول', date: g(-8), time: '13:45' }, { type: 'معاینه سه‌ماهه', date: g(52), time: '14:00' }] };
+        completed: true, message: 'سابقه جراحی با دکتر افلاکی دارد؛ ۳۸ روز از عمل گذشته است',
+        exams: [{ date: g(-37), time: '11:00', title: 'معاینه بعد از عمل', status: 4, statusTitle: 'حضور پیدا کرده' }, { date: g(-31), time: '15:30', title: 'معاینه بعد از عمل', status: 4, statusTitle: 'حضور پیدا کرده' }, { date: g(-8), time: '13:45', title: 'معاینه آنلاین', status: 8, statusTitle: 'نوبت آنلاین تکمیل‌شده' }, { date: g(52), time: '14:00', title: 'معاینه بعد از عمل', status: 1, statusTitle: 'تاییدشده' }],
+        visits: [{ type: 'مشاوره جراحی بینی', date: g(-118), time: '16:30', status: 4, statusTitle: 'حضور پیدا کرده', apptNote: 'معرفی از اینستاگرام' }, { type: 'مشاوره جراحی بینی', date: g(-60), time: '17:00', status: 3, statusTitle: 'کنسل‌شده' },
+          { type: 'جراحی بینی', date: g(-38), time: '08:00', status: 4, statusTitle: 'حضور پیدا کرده', procNotes: ['عمل بدون عارضه انجام شد'] }, { type: 'خارج‌سازی تامپون', date: g(-36), time: '14:15', status: 4, statusTitle: 'حضور پیدا کرده' },
+          { type: 'برداشت اسپلینت', date: g(-31), time: '15:00', status: 4, statusTitle: 'حضور پیدا کرده', apptNote: 'همراه با کشیدن بخیه', procNotes: ['ورم طبیعی', 'آموزش ماساژ داده شد'] }, { type: 'معاینه آنلاین', date: g(-8), time: '13:45', status: 8, statusTitle: 'نوبت آنلاین تکمیل‌شده' },
+          { type: 'تزریق', date: g(-3), time: '12:00', status: 5, statusTitle: 'عدم حضور' }, { type: 'معاینه بعد از عمل', date: g(52), time: '14:00', status: 1, statusTitle: 'تاییدشده' }] };
     })() : cl || {};
     const surg = parse(D.surgery), cons = parse(D.consultation), tamp = parse(D.tampon), spl = parse(D.splint);
-    const exams = (D.exams || []).map(x => ({ ...x, p: parse(x.date) })).filter(x => x.p).sort((a, b) => a.p.d - b.p.d);
-    const visits = (D.visits || []).map(x => ({ ...x, p: parse(x.date) })).filter(x => x.p).sort((a, b) => a.p.d - b.p.d || (a.time || '').localeCompare(b.time || ''));
-    const has = !!(surg || cons || tamp || spl || exams.length || visits.length || D.firstName || D.lastName || D.nationalCode);
+    // clinic appointment statuses: 3 cancelled, 5 no-show, 6 rejected do not count; 4 / 8 = attended
+    const STS = { 0: ['#f2f3ef', '#55585c'], 1: ['#e5eff7', '#1d5a85'], 2: ['#fcf3e0', '#8a5a00'], 3: ['#fdeceb', '#b42318'], 4: ['#eef5e3', '#3d6a0c'], 5: ['#fdeceb', '#b42318'], 6: ['#fdeceb', '#b42318'], 7: ['#fcf3e0', '#8a5a00'], 8: ['#eef5e3', '#3d6a0c'] };
+    const STN = { 0: 'در انتظار', 1: 'تاییدشده', 2: 'منتظر پرداخت', 3: 'کنسل‌شده', 4: 'حضور پیدا کرده', 5: 'عدم حضور', 6: 'ردشده', 7: 'در انتظار تایید', 8: 'نوبت آنلاین تکمیل‌شده' };
+    const dead = x => [3, 5, 6].includes(x.status), went = x => x.status === 4 || x.status === 8;
+    const exams = (D.exams || []).map(x => ({ ...x, p: parse(x.date) })).sort((a, b) => (a.p ? a.p.d : 9e15) - (b.p ? b.p.d : 9e15));
+    const visits = (D.visits || []).map(x => ({ ...x, p: parse(x.date) })).sort((a, b) => (a.p ? a.p.d : 9e15) - (b.p ? b.p.d : 9e15) || (a.time || '').localeCompare(b.time || ''));
+    const has = !!(surg || cons || tamp || spl || exams.length || visits.length || D.firstName || D.lastName || D.nationalCode || D.completed);
     const rel = (p, base, after) => {
       if (!p || !base) return '';
       const n = days(base.d, p.d);
@@ -1722,20 +1729,25 @@ class LiveApp extends React.Component {
         dot: done ? accent : future ? '#fff' : '#e7e8e3', ring: done ? accent : future ? accent : '#d9dad6', fg: done ? '#fff' : accent, bg: done ? '#fff' : future ? '#fff' : '#fafaf8',
         state: done ? 'انجام شد' : future ? 'آینده' : 'ثبت نشده', stBg: done ? '#eef5e3' : future ? '#e5eff7' : '#f2f3ef', stFg: done ? '#3d6a0c' : future ? '#1d5a85' : '#8b8e89', op: p ? 1 : 0.55 };
     };
-    const lastExam = exams.filter(x => x.p.d <= today).pop(), nextExam = exams.find(x => x.p.d > today);
+    const okEx = exams.filter(x => x.p && !dead(x));
+    const lastExam = okEx.filter(x => x.p.d <= today).pop(), nextExam = okEx.find(x => x.p.d > today);
     const steps = [
       node('c', 'مشاوره', cons, cons && surg ? rel(cons, surg) : cons ? days(cons.d, today) + ' روز پیش' : '', '#6a4b9c'),
-      node('s', 'جراحی', surg, surg ? (days(surg.d, today) >= 0 ? days(surg.d, today) + ' روز پیش' : 'در ' + days(today, surg.d) + ' روز آینده') : '', '#3d6a0c'),
+      { ...node('s', 'جراحی', surg, surg ? (days(surg.d, today) >= 0 ? days(surg.d, today) + ' روز پیش' : 'در ' + days(today, surg.d) + ' روز آینده') : '', '#3d6a0c'),
+        // a past surgery date alone is not proof: only has_completed_surgery confirms the operation
+        ...(surg && surg.d <= today && !D.completed ? { state: 'انجام عمل تأیید نشده', stBg: '#fcf3e0', stFg: '#8a5a00', dot: '#fff', fg: '#8a5a00', ring: '#e0a83a' } : {}) },
       node('t', 'برداشتن تامپون', tamp, rel(tamp, surg), '#1d5a85'),
       node('p', 'برداشتن اسپلینت', spl, rel(spl, surg), '#8a5a00'),
-      node('e', 'معاینات', lastExam ? lastExam.p : nextExam ? nextExam.p : null, exams.length ? exams.length + ' معاینه' + (nextExam ? ' · بعدی ' + nextExam.p.j.slice(5) : '') : '', '#b42318'),
+      { ...node('e', 'معاینات', lastExam ? lastExam.p : nextExam ? nextExam.p : null, exams.length ? exams.filter(went).length + ' انجام‌شده از ' + exams.length + (nextExam ? ' · بعدی ' + nextExam.p.j.slice(5) : '') : '', '#b42318'),
+        // a past examination counts as done only when the patient attended (status 4 / 8)
+        ...(lastExam && !went(lastExam) && !nextExam ? { state: lastExam.statusTitle || STN[lastExam.status] || 'حضور ثبت نشده', stBg: '#fcf3e0', stFg: '#8a5a00', dot: '#fff', fg: '#b42318' } : {}) },
     ].map((x, i, a) => ({ ...x, n: fa(i + 1), line: i < a.length - 1 }));
     const since = surg ? days(surg.d, today) : null;
     const stats = [
-      { label: 'روز از جراحی', value: since == null ? '—' : since >= 0 ? fa(since) : 'جراحی آینده', sub: surg ? fa(surg.j) : 'تاریخ جراحی ثبت نشده', color: '#3d6a0c' },
-      { label: 'از مشاوره تا جراحی', value: cons && surg ? fa(days(cons.d, surg.d)) + ' روز' : '—', sub: cons ? 'مشاوره ' + fa(cons.j) : 'مشاوره ثبت نشده', color: '#6a4b9c' },
-      { label: 'معاینات', value: fa(exams.length), sub: nextExam ? 'معاینه بعدی ' + fa(nextExam.p.j) : lastExam ? 'آخرین ' + fa(lastExam.p.j) : 'معاینه‌ای ثبت نشده', color: '#b42318' },
-      { label: 'مراجعات', value: fa(visits.length), sub: visits.length ? 'اولین ' + fa(visits[0].p.j) : 'مراجعه‌ای ثبت نشده', color: '#1d5a85' },
+      { label: 'روز از جراحی', value: since == null ? '—' : since >= 0 ? fa(since) : 'جراحی آینده', sub: surg ? fa(surg.j) + (since >= 0 && !D.completed ? ' · انجام عمل تأیید نشده' : '') : 'تاریخ جراحی ثبت نشده', color: '#3d6a0c' },
+      { label: 'از مشاوره تا جراحی', value: cons && surg ? (days(cons.d, surg.d) >= 0 ? fa(days(cons.d, surg.d)) + ' روز' : fa(-days(cons.d, surg.d)) + ' روز بعد از عمل') : '—', sub: cons ? 'مشاوره ' + fa(cons.j) + (surg && cons.d > surg.d ? ' · بعد از تاریخ جراحی' : '') : 'مشاوره ثبت نشده', color: '#6a4b9c' },
+      { label: 'معاینات انجام‌شده', value: fa(exams.filter(went).length) + ' از ' + fa(exams.length), sub: nextExam ? 'معاینه بعدی ' + fa(nextExam.p.j) : lastExam ? 'آخرین ' + fa(lastExam.p.j) : 'معاینه‌ای ثبت نشده', color: '#b42318' },
+      { label: 'حضور در نوبت‌ها', value: fa(visits.filter(went).length) + ' از ' + fa(visits.length), sub: visits.filter(dead).length ? fa(visits.filter(dead).length) + ' لغو / عدم حضور' : 'بدون لغو یا غیبت', color: '#1d5a85' },
     ];
     const nid = String(D.nationalCode || '');
     const name = [D.firstName, D.lastName].filter(Boolean).join(' ') || D.fullName || '';
@@ -1745,10 +1757,24 @@ class LiveApp extends React.Component {
       nid: nid ? (s.nidShow ? fa(nid) : '•••••••' + fa(nid.slice(-3))) : 'ثبت نشده', hasNid: !!nid, togNid: () => this.setState({ nidShow: !s.nidShow }), nidBtn: s.nidShow ? 'پنهان' : 'نمایش',
       surgery: surg ? fa(surg.j) : '—', consultation: cons ? fa(cons.j) : '—', surgeryW: surg ? wd(surg.d) : '', consW: cons ? wd(cons.d) : '',
       steps, stats,
-      exams: exams.map((x, i) => { const fut = x.p.d > today; return { n: fa(i + 1), title: x.title || 'معاینه ' + fa(i + 1), date: fa(x.p.j), wday: wd(x.p.d), time: x.time || x.p.time ? fa(x.time || x.p.time) : '', rel: fa(rel(x.p, surg)), fut, tag: fut ? 'آینده' : 'انجام شد', tagBg: fut ? '#e5eff7' : '#eef5e3', tagFg: fut ? '#1d5a85' : '#3d6a0c' }; }),
+      exams: exams.map((x, i) => {
+        const fut = !!x.p && x.p.d > today, c = STS[x.status] || (fut ? STS[1] : STS[0]);
+        return { n: fa(i + 1), title: x.title || 'معاینه', date: x.p ? fa(x.p.j) : 'بدون تاریخ', wday: x.p ? wd(x.p.d) : '', time: x.time || (x.p && x.p.time) ? fa(x.time || x.p.time) : '', rel: x.p ? fa(rel(x.p, surg)) : '',
+          tag: x.statusTitle || STN[x.status] || (fut ? 'آینده' : '—'), tagBg: c[0], tagFg: c[1], op: dead(x) ? 0.55 : 1, numBg: went(x) ? '#eef5e3' : dead(x) ? '#f2f3ef' : '#fdeceb', numFg: went(x) ? '#3d6a0c' : dead(x) ? '#8b8e89' : '#b42318' };
+      }),
       hasExams: exams.length > 0,
-      visits: visits.map((x, i) => { const fut = x.p.d > today; return { n: fa(i + 1), type: x.type || (i === 0 ? 'مراجعه اولیه' : 'مراجعه'), date: fa(x.p.j), wday: wd(x.p.d), time: x.time || x.p.time ? fa(x.time || x.p.time) : '—', rel: surg ? fa(rel(x.p, surg)) : '', note: x.note || x.doctor || '', fut, rowBg: fut ? '#f6f9fd' : i % 2 ? '#fafbf8' : '#fff' }; }),
+      visits: visits.filter(x => { const f = s.visF || 'all'; return f === 'all' || (f === 'went' ? went(x) : f === 'future' ? x.p && x.p.d > today && !dead(x) : dead(x)); }).map((x, i) => {
+        const fut = !!x.p && x.p.d > today, c = STS[x.status] || STS[0];
+        const notes = [...(x.apptNote ? [{ k: 'توضیح نوبت', t: x.apptNote }] : []), ...(x.procNotes || []).map(t => ({ k: 'گزارش پروسیجر', t }))];
+        return { n: fa(i + 1), type: x.type || 'خدمت نامشخص', date: x.p ? fa(x.p.j) : '—', wday: x.p ? wd(x.p.d) : '', time: x.time || (x.p && x.p.time) ? fa(x.time || x.p.time) : '—',
+          rel: surg && x.p ? fa(rel(x.p, surg)) : '', st: x.statusTitle || STN[x.status] || '—', stBg: c[0], stFg: c[1], notes, hasNotes: notes.length > 0, fut, op: dead(x) ? 0.6 : 1, rowBg: fut ? '#f6f9fd' : i % 2 ? '#fafbf8' : '#fff' };
+      }),
       hasVisits: visits.length > 0,
+      visTabs: [['all', 'همه'], ['went', 'حضور'], ['future', 'آینده'], ['dead', 'لغو / عدم حضور']].map(([k, label]) => {
+        const n = k === 'all' ? visits.length : visits.filter(x => (k === 'went' ? went(x) : k === 'future' ? x.p && x.p.d > today && !dead(x) : dead(x))).length;
+        const on = (s.visF || 'all') === k; return { label: label + ' ' + fa(n), bg: on ? '#2E2F31' : '#fff', fg: on ? '#fff' : '#55585c', bd: on ? '#2E2F31' : '#e1e3dc', pick: () => this.setState({ visF: k }) };
+      }),
+      completed: !!D.completed, message: D.message || '', hasMessage: !!D.message,
     };
   }
 

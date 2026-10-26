@@ -220,15 +220,13 @@ def send_emergency_sms(
     summary: str = "",
 ) -> dict:
     """Notify the CRM-configured postoperative support recipient."""
-    normalized_mobile = normalize_phone(mobile)
+    # the CRM accepts any caller id (landline, foreign, hidden = null) and an empty name («نامشخص»);
+    # a hidden number or unknown name must never stop an emergency report
+    normalized_mobile = normalize_phone(mobile or "")[:255]
     normalized_code = normalize_national_code(national_code)
-    if not normalized_mobile:
-        return {"status": "invalid", "reason": "caller_number_missing"}
     if not normalized_code:
         return {"status": "invalid", "reason": "invalid_national_code"}
-    sanitized_name = sanitize_name(name)
-    if not sanitized_name:
-        return {"status": "invalid", "reason": "name_missing"}
+    sanitized_name = sanitize_name(name)[:255]
     sanitized_summary = sanitize_emergency_summary(summary)
     if not sanitized_summary:
         return {"status": "invalid", "reason": "summary_missing"}
@@ -242,8 +240,8 @@ def send_emergency_sms(
     timeout = min(3.0, max(0.5, float(config.get("CRM_API_TIMEOUT", "2.5"))))
     token = base64.b64encode(f"{username}:{password}".encode()).decode("ascii")
     body = {
-        "name": sanitized_name,
-        "mobile": normalized_mobile,
+        "name": sanitized_name or None,
+        "mobile": normalized_mobile or None,
         "national_code": normalized_code,
         "summary": sanitized_summary,
     }
