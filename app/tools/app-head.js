@@ -1631,13 +1631,17 @@ class LiveApp extends React.Component {
   }
 
   async loadCard(phone, tries = 0) {
-    if (!/^0\d{6,}$/.test(phone || '')) return;
+    if (!phone) return;
+    // hidden / short numbers: nothing to ask, but the file must not wait forever
+    if (!/^0\d{6,}$/.test(phone)) { this.setState(st => ({ popCards: { ...(st.popCards || {}), [phone]: { phone, crmState: 'nomobile', fields: [], reports: [], clinical: null } } })); return; }
     try {
       const d = await api('/patients/' + encodeURIComponent(phone) + '/card');
       this.setState(st => ({ popCards: { ...(st.popCards || {}), [phone]: d } }));
       // the CRM lookup started with the call: ask again once it has answered
-      if (d.looking && tries < 3) setTimeout(() => this.loadCard(phone, tries + 1), 2500);
-    } catch (e) { /* no permission or offline: the card shows what the call carries */ }
+      if (d.looking && tries < 4) setTimeout(() => this.loadCard(phone, tries + 1), 2500);
+    } catch (e) {
+      this.setState(st => ({ popCards: { ...(st.popCards || {}), [phone]: (st.popCards || {})[phone] || { phone, crmState: 'failed', failMsg: e.message, fields: [], reports: [], clinical: null } } }));
+    }
   }
 
   openFileByPhone(phone) {
@@ -1816,7 +1820,21 @@ class LiveApp extends React.Component {
     return { pf2: {
       has: true, loading: !d, newCaller: !hasCalls, phone: phone.replace(/^(\d{4})(\d{3})(\d+)$/, '$1 $2 $3'), name: (d && d.name) || 'شماره ناشناس',
       crmOn: !!(d && d.crmOn), fields: d ? d.fields : [], hasFields: !!(d && d.fields.length), noFields: !!d && !d.fields.length,
-      crmAt: d && d.crmAt ? 'آخرین دریافت: ' + ago(d.crmAt) : 'هنوز از سامانه بیماران دریافت نشده', looking: !!(d && d.looking),
+      crmAt: d && d.checkedAt ? 'آخرین استعلام: ' + ago(d.checkedAt) : d && d.crmAt ? 'آخرین دریافت: ' + ago(d.crmAt) : '', looking: !!(d && d.looking),
+      ...(() => {
+        const st = d ? d.crmState || (d.fields && d.fields.length ? 'found' : 'never') : 'loading';
+        const M = {
+          none: ['پرونده‌ای در سامانه CRM ندارد', 'این شماره در سامانه بیماران ثبت نشده است. در هر تماس دوباره بررسی می‌شود.', '#f2f3ef', '#55585c'],
+          never: ['هنوز از سامانه بیماران استعلام نشده', 'با اولین تماس این شماره، یا با «به‌روزرسانی از سامانه بیماران»، اطلاعات گرفته می‌شود.', '#f2f3ef', '#55585c'],
+          error: ['سامانه بیماران پاسخ نداد', (d && d.checkError) || '', '#fdeceb', '#b42318'],
+          failed: ['دریافت اطلاعات پرونده ناموفق بود', (d && d.failMsg) || '', '#fdeceb', '#b42318'],
+          off: ['اتصال به سامانه بیماران خاموش است', 'از «همه تنظیمات ← سامانه بیماران» روشن می‌شود.', '#f2f3ef', '#55585c'],
+          nomobile: ['این شماره موبایل نیست', 'سامانه بیماران فقط با شماره موبایل جستجو می‌شود.', '#f2f3ef', '#55585c'],
+          looking: ['در حال دریافت از سامانه بیماران…', '', '#e5eff7', '#1d5a85'],
+          loading: ['در حال بارگذاری…', '', '#f7f8f4', '#8b8e89'],
+        }[st];
+        return { crmSt: st, crmFound: st === 'found', crmMsg: !!M, crmTitle: M ? M[0] : '', crmSub: M ? M[1] : '', crmBg: M ? M[2] : '', crmFg: M ? M[3] : '' };
+      })(),
       surgery: d ? d.surgeryNote : '', hasSurgery: !!(d && d.surgeryNote),
       canRefresh: !!(d && d.crmOn) && CAN('calls', 'edit') && /^09\d{9}$/.test(phone), refreshing: !!s.cardBusy, refreshText: s.cardBusy ? 'در حال دریافت…' : 'به‌روزرسانی از سامانه بیماران',
       refresh: async () => {
@@ -1835,10 +1853,12 @@ class LiveApp extends React.Component {
           goLive: () => this.setState({ page: 'live' }), canLive: canPage('live') };
       })(),
       sms: (() => {
+        // the call on the line, else this number's latest call; a number with no call yet: once per day for the file
         const lc = (s.liveCalls || []).find(x => x.phone === phone) || (s.pops || []).find(x => x.phone === phone);
-        if (lc) return this.smsBar(s, lc.id, phone, { forText: 'برای تماس فعلی (پشت خط)' });
+        if (lc) return this.smsBar(s, lc.id, phone, { always: true, forText: 'ثبت برای تماس فعلی (پشت خط)' });
         const last = this.calls.find(x => x.phoneRaw === phone);
-        return last ? this.smsBar(s, last.id, phone, { sentFromCall: last.sms, forText: 'برای آخرین تماس · ' + fa(last.date) + ' ' + fa(last.time) }) : { show: false };
+        if (last) return this.smsBar(s, last.id, phone, { always: true, sentFromCall: last.sms, forText: 'ثبت برای آخرین تماس · ' + fa(last.date) + ' ساعت ' + fa(last.time) });
+        return this.smsBar(s, 'P' + phone + '-' + TODAY.replace(/\//g, ''), phone, { always: true, forText: 'این شماره تماس ثبت‌شده ندارد؛ هر پیامک روزی یک بار' });
       })(),
       reports, hasReports: reports.length > 0, repCount: fa(reports.length), clin: this.clinicalVals(s, d && d.clinical, phone),
       call: () => this.startCall({ name: (d && d.name) || phone, phone, phoneRaw: phone, vmId: null }),
@@ -1861,10 +1881,13 @@ class LiveApp extends React.Component {
   smsBar(s, key, phone, opts = {}) {
     const B = s.smsBtns;
     key = String(key || '').replace(/^C/, '');
-    if (!B || !B.enabled || !B.buttons.length || !key || !CAN('calls', 'edit')) return { show: false };
+    if (!B || !key || !CAN('calls', 'edit')) return { show: false };
+    // switched off in settings: the patient file still shows the card, with the reason and a way to the settings
+    if (!B.enabled || !B.buttons.length) return opts.always ? { show: true, off: true, on: false, offText: !B.enabled ? 'ارسال پیامک در تنظیمات خاموش است' : 'هیچ قالب پیامکی فعال نیست', canSettings: canPage('vsms'), goSettings: () => this.setState({ page: 'vsms' }), buttons: [], note: 'هر پیامک برای هر تماس یک بار', offNote: 'دکمه‌های پیامک بعد از روشن کردن در تنظیمات اینجا نمایش داده می‌شوند' } : { show: false };
     const fa = n => String(n).replace(/\d/g, x => '۰۱۲۳۴۵۶۷۸۹'[x]);
     if (!(s.smsSent || {})[key] && !opts.sentFromCall && this._smsAsked !== key) { this._smsAsked = key; setTimeout(() => this.loadSmsSent([key]), 0); }
-    const sent = [...((s.smsSent || {})[key] || []), ...(opts.sentFromCall || [])].filter((x, i, a) => a.findIndex(y => y.t === x.t) === i);
+    // real sends first, so a test send of the same template never hides a real one
+    const sent = [...((s.smsSent || {})[key] || []), ...(opts.sentFromCall || [])].filter(x => B.dryRun || !x.dry).sort((a, b) => (a.dry ? 1 : 0) - (b.dry ? 1 : 0)).filter((x, i, a) => a.findIndex(y => y.t === x.t) === i);
     const mobile = /^09\d{9}$/.test(phone || '');
     const ICON = {
       calendar: 'M8 2v4M16 2v4M3 9h18M5 5h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2zM8 14h3v3H8z',
@@ -1879,7 +1902,7 @@ class LiveApp extends React.Component {
     const COL = { calendar: '#1d5a85', app: '#6a4b9c', missed: '#c2410c', pin: '#3d6a0c', card: '#8a5a00', heart: '#b42318', chat: '#2E2F31', star: '#8a5a00' };
     const busy = s.smsBusy || {};
     const buttons = B.buttons.map(b => {
-      const done = sent.find(x => x.t === b.id), k = key + ':' + b.id, run = busy[k];
+      const done = sent.find(x => x.t === b.id && (B.dryRun || !x.dry)), k = key + ':' + b.id, run = busy[k];
       const c = COL[b.icon] || '#2E2F31';
       const t = done ? new Date(done.at) : null;
       const state = done ? 'sent' : run ? 'busy' : !b.ready || !mobile ? 'off' : 'idle';
@@ -1902,7 +1925,7 @@ class LiveApp extends React.Component {
         },
       };
     });
-    return { show: true, buttons, dry: B.dryRun, sentN: fa(sent.length), hasSent: sent.length > 0, sentText: sent.map(x => x.title).join('، '), note: 'هر پیامک برای هر تماس یک بار' + (opts.forText ? ' · ' + opts.forText : '') };
+    return { show: true, on: true, off: false, buttons, dry: B.dryRun, sentN: fa(sent.length), hasSent: sent.length > 0, sentText: sent.map(x => x.title).join('، '), note: 'هر پیامک برای هر تماس یک بار' + (opts.forText ? ' · ' + opts.forText : '') };
   }
 
   // ---- SMS settings page

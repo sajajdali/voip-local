@@ -1081,6 +1081,17 @@ export default function AppView({ vm }) {
                           <span style={{fontSize: "11px", fontWeight: "800", padding: "3px 10px", borderRadius: "999px", background: "#eef7e3", color: "#3d6a0c"}}>{"✓ "}{vm.vbx?.sms?.sentN}{" ارسال شد"}</span>
                         </>) : null}
                       </div>
+                      {(vm.vbx?.sms?.off) ? (<>
+                        <div style={{display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap", background: "#f7f8f4", border: "1px dashed #d9dad6", borderRadius: "14px", padding: "12px 14px"}}>
+                          <div style={{flex: "1", minWidth: "180px"}}>
+                            <div style={{fontSize: "13px", fontWeight: "800", color: "#55585c"}}>{vm.vbx?.sms?.offText}</div>
+                            <div style={{fontSize: "11px", color: "#8b8e89", marginTop: "2px"}}>{vm.vbx?.sms?.offNote}</div>
+                          </div>
+                          {(vm.vbx?.sms?.canSettings) ? (<>
+                            <button onClick={vm.vbx?.sms?.goSettings} style={{border: "none", background: "#2E2F31", color: "#fff", padding: "8px 14px", borderRadius: "10px", fontSize: "12px", fontWeight: "700", cursor: "pointer", fontFamily: "inherit"}}>{"تنظیمات پیامک ←"}</button>
+                          </>) : null}
+                        </div>
+                      </>) : null}
                       <div style={{display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(150px,1fr))", gap: "8px"}}>
                         {(vm.vbx?.sms?.buttons || []).map((b, __i12) => <React.Fragment key={__i12}>
                           <button onClick={b?.send} title={b?.tip} style={{position: "relative", display: "flex", alignItems: "center", gap: "10px", textAlign: "right", background: b?.bg, border: `1.5px solid ${b?.bd}`, borderRadius: "14px", padding: "10px 11px", cursor: b?.cur, opacity: b?.op, transition: "all .18s", fontFamily: "inherit"}}>
@@ -1779,6 +1790,17 @@ export default function AppView({ vm }) {
                       <span style={{fontSize: "11px", fontWeight: "800", padding: "3px 10px", borderRadius: "999px", background: "#eef7e3", color: "#3d6a0c"}}>{"✓ "}{vm.pf2?.sms?.sentN}{" ارسال شد"}</span>
                     </>) : null}
                   </div>
+                  {(vm.pf2?.sms?.off) ? (<>
+                    <div style={{display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap", background: "#f7f8f4", border: "1px dashed #d9dad6", borderRadius: "14px", padding: "12px 14px"}}>
+                      <div style={{flex: "1", minWidth: "180px"}}>
+                        <div style={{fontSize: "13px", fontWeight: "800", color: "#55585c"}}>{vm.pf2?.sms?.offText}</div>
+                        <div style={{fontSize: "11px", color: "#8b8e89", marginTop: "2px"}}>{vm.pf2?.sms?.offNote}</div>
+                      </div>
+                      {(vm.pf2?.sms?.canSettings) ? (<>
+                        <button onClick={vm.pf2?.sms?.goSettings} style={{border: "none", background: "#2E2F31", color: "#fff", padding: "8px 14px", borderRadius: "10px", fontSize: "12px", fontWeight: "700", cursor: "pointer", fontFamily: "inherit"}}>{"تنظیمات پیامک ←"}</button>
+                      </>) : null}
+                    </div>
+                  </>) : null}
                   <div style={{display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(150px,1fr))", gap: "8px"}}>
                     {(vm.pf2?.sms?.buttons || []).map((b, __i10) => <React.Fragment key={__i10}>
                       <button onClick={b?.send} title={b?.tip} style={{position: "relative", display: "flex", alignItems: "center", gap: "10px", textAlign: "right", background: b?.bg, border: `1.5px solid ${b?.bd}`, borderRadius: "14px", padding: "10px 11px", cursor: b?.cur, opacity: b?.op, transition: "all .18s", fontFamily: "inherit"}}>
@@ -1844,10 +1866,13 @@ export default function AppView({ vm }) {
                 </div>
                 {(vm.pf2?.clin?.empty) ? (<>
                   <div style={{padding: "26px 22px", display: "flex", flexDirection: "column", gap: "8px", alignItems: "flex-start"}}>
-                    <div style={{fontWeight: "800", fontSize: "15px"}}>{"هنوز اطلاعات بالینی از سامانه بیماران نیامده است"}</div>
-                    <div style={{fontSize: "13px", color: "#6b6e72", lineHeight: "1.9", maxWidth: "680px"}}>
-                      {"وقتی API سامانه بیماران نام، کد ملی، تاریخ مشاوره، جراحی، برداشتن تامپون و اسپلینت، معاینات و مراجعات را بفرستد، این بخش خودکار پر می‌شود."}
-                    </div>
+                    {(vm.pf2?.crmMsg) ? (<>
+                      <div style={{fontWeight: "800", fontSize: "15px", color: vm.pf2?.crmFg}}>{vm.pf2?.crmTitle}</div>
+                    </>) : null}
+                    {(vm.pf2?.crmFound) ? (<>
+                      <div style={{fontWeight: "800", fontSize: "15px"}}>{"اطلاعات بالینی برای این بیمار در سامانه بیماران ثبت نشده است"}</div>
+                    </>) : null}
+                    <div style={{fontSize: "13px", color: "#6b6e72", lineHeight: "1.9", maxWidth: "680px"}}>{vm.pf2?.crmSub}</div>
                   </div>
                 </>) : null}
                 {(vm.pf2?.clin?.has) ? (<>
@@ -1916,20 +1941,22 @@ export default function AppView({ vm }) {
                     {(vm.pf2?.clin?.hasExams) ? (<>
                       <div>
                         <div style={{fontWeight: "800", fontSize: "15px", marginBottom: "10px"}}>{"تاریخ‌های معاینه"}</div>
-                        <div style={{display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(210px,1fr))", gap: "10px"}}>
+                        <div style={{display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(260px,1fr))", gap: "10px"}}>
                           {(vm.pf2?.clin?.exams || []).map((e, __i13) => <React.Fragment key={__i13}>
-                            <div style={{display: "flex", gap: "12px", alignItems: "center", border: "1px solid #e7e8e3", borderRadius: "16px", padding: "12px 14px", background: "#fff", opacity: e?.op}}>
-                              <div style={{width: "40px", height: "40px", borderRadius: "12px", background: e?.numBg, color: e?.numFg, display: "grid", placeItems: "center", fontWeight: "800", flexShrink: "0"}}>{e?.n}</div>
-                              <div style={{flex: "1", minWidth: "0"}}>
-                                <div style={{fontSize: "13px", fontWeight: "800", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis"}}>{e?.title}</div>
-                                <div style={{fontSize: "13px", marginTop: "2px"}}>
-                                  {e?.date}{" "}
-                                  <span style={{fontSize: "11px", color: "#6b6e72"}}>{e?.wday}{" "}{e?.time}</span>
+                            <div style={{display: "flex", gap: "12px", alignItems: "flex-start", border: "1px solid #e7e8e3", borderRadius: "16px", padding: "14px", background: "#fff", opacity: e?.op}}>
+                              <div style={{width: "42px", height: "42px", borderRadius: "13px", background: e?.numBg, color: e?.numFg, display: "grid", placeItems: "center", fontWeight: "800", fontSize: "15px", flexShrink: "0"}}>{e?.n}</div>
+                              <div style={{flex: "1", minWidth: "0", display: "flex", flexDirection: "column", gap: "6px"}}>
+                                <div style={{display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap"}}>
+                                  <span style={{fontSize: "14px", fontWeight: "800"}}>{e?.title}</span>
+                                  <span style={{fontSize: "10px", fontWeight: "800", padding: "2px 8px", whiteSpace: "nowrap", borderRadius: "999px", background: e?.modeBg, color: e?.modeFg}}>{e?.mode}</span>
                                 </div>
-                                <div style={{display: "flex", gap: "6px", alignItems: "center", marginTop: "4px"}}>
-                                  <span style={{fontSize: "10px", fontWeight: "800", padding: "2px 8px", whiteSpace: "nowrap", flexShrink: "0", borderRadius: "999px", background: e?.modeBg, color: e?.modeFg}}>{e?.mode}</span>
-                                  <span style={{fontSize: "10px", fontWeight: "800", padding: "2px 8px", whiteSpace: "nowrap", flexShrink: "0", borderRadius: "999px", background: e?.tagBg, color: e?.tagFg}}>{e?.tag}</span>
-                                  <span style={{fontSize: "11px", color: "#8b8e89"}}>{e?.rel}</span>
+                                <div style={{display: "flex", alignItems: "baseline", gap: "8px", flexWrap: "wrap"}}>
+                                  <span style={{fontSize: "15px", fontWeight: "800"}}>{e?.date}</span>
+                                  <span style={{fontSize: "12px", color: "#6b6e72", whiteSpace: "nowrap"}}>{e?.wday}{" · ساعت "}{e?.time}</span>
+                                </div>
+                                <div style={{display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap"}}>
+                                  <span style={{fontSize: "11px", fontWeight: "800", padding: "3px 10px", whiteSpace: "nowrap", borderRadius: "999px", background: e?.tagBg, color: e?.tagFg}}>{e?.tag}</span>
+                                  <span style={{fontSize: "11px", color: "#8b8e89", whiteSpace: "nowrap"}}>{e?.rel}</span>
                                 </div>
                               </div>
                             </div>
@@ -2021,12 +2048,6 @@ export default function AppView({ vm }) {
                     <button onClick={vm.pf2?.refresh} style={{border: "1px solid #e1e3dc", background: "#fff", color: "#3a3b3d", padding: "7px 12px", borderRadius: "10px", fontSize: "12px", fontWeight: "700", cursor: "pointer", fontFamily: "inherit"}}>{vm.pf2?.refreshText}</button>
                   </>) : null}
                 </div>
-                {(vm.pf2?.loading) ? (<>
-                  <div style={{fontSize: "13px", color: "#8b8e89"}}>{"در حال بارگذاری…"}</div>
-                </>) : null}
-                {(vm.pf2?.looking) ? (<>
-                  <div style={{fontSize: "12px", color: "#8b8e89"}}>{"در حال دریافت از سامانه بیماران…"}</div>
-                </>) : null}
                 {(vm.pf2?.hasFields) ? (<>
                   <div style={{display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(170px,1fr))", gap: "8px"}}>
                     {(vm.pf2?.fields || []).map((f, __i10) => <React.Fragment key={__i10}>
@@ -2037,8 +2058,11 @@ export default function AppView({ vm }) {
                     </React.Fragment>)}
                   </div>
                 </>) : null}
-                {(vm.pf2?.noFields) ? (<>
-                  <div style={{fontSize: "13px", color: "#8b8e89", lineHeight: "1.8"}}>{"سامانه بیماران برای این شماره اطلاعاتی برنگردانده است."}</div>
+                {(vm.pf2?.crmMsg) ? (<>
+                  <div style={{background: vm.pf2?.crmBg, borderRadius: "14px", padding: "12px 14px"}}>
+                    <div style={{fontSize: "14px", fontWeight: "800", color: vm.pf2?.crmFg}}>{vm.pf2?.crmTitle}</div>
+                    <div style={{fontSize: "12px", color: "#6b6e72", marginTop: "3px", lineHeight: "1.8"}}>{vm.pf2?.crmSub}</div>
+                  </div>
                 </>) : null}
               </div>
               {(vm.pf2?.hasReports) ? (<>
@@ -2121,6 +2145,17 @@ export default function AppView({ vm }) {
                       <span style={{fontSize: "11px", fontWeight: "800", padding: "3px 10px", borderRadius: "999px", background: "#eef7e3", color: "#3d6a0c"}}>{"✓ "}{vm.pf2?.sms?.sentN}{" ارسال شد"}</span>
                     </>) : null}
                   </div>
+                  {(vm.pf2?.sms?.off) ? (<>
+                    <div style={{display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap", background: "#f7f8f4", border: "1px dashed #d9dad6", borderRadius: "14px", padding: "12px 14px"}}>
+                      <div style={{flex: "1", minWidth: "180px"}}>
+                        <div style={{fontSize: "13px", fontWeight: "800", color: "#55585c"}}>{vm.pf2?.sms?.offText}</div>
+                        <div style={{fontSize: "11px", color: "#8b8e89", marginTop: "2px"}}>{vm.pf2?.sms?.offNote}</div>
+                      </div>
+                      {(vm.pf2?.sms?.canSettings) ? (<>
+                        <button onClick={vm.pf2?.sms?.goSettings} style={{border: "none", background: "#2E2F31", color: "#fff", padding: "8px 14px", borderRadius: "10px", fontSize: "12px", fontWeight: "700", cursor: "pointer", fontFamily: "inherit"}}>{"تنظیمات پیامک ←"}</button>
+                      </>) : null}
+                    </div>
+                  </>) : null}
                   <div style={{display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(150px,1fr))", gap: "8px"}}>
                     {(vm.pf2?.sms?.buttons || []).map((b, __i10) => <React.Fragment key={__i10}>
                       <button onClick={b?.send} title={b?.tip} style={{position: "relative", display: "flex", alignItems: "center", gap: "10px", textAlign: "right", background: b?.bg, border: `1.5px solid ${b?.bd}`, borderRadius: "14px", padding: "10px 11px", cursor: b?.cur, opacity: b?.op, transition: "all .18s", fontFamily: "inherit"}}>
@@ -2186,10 +2221,13 @@ export default function AppView({ vm }) {
                 </div>
                 {(vm.pf2?.clin?.empty) ? (<>
                   <div style={{padding: "26px 22px", display: "flex", flexDirection: "column", gap: "8px", alignItems: "flex-start"}}>
-                    <div style={{fontWeight: "800", fontSize: "15px"}}>{"هنوز اطلاعات بالینی از سامانه بیماران نیامده است"}</div>
-                    <div style={{fontSize: "13px", color: "#6b6e72", lineHeight: "1.9", maxWidth: "680px"}}>
-                      {"وقتی API سامانه بیماران نام، کد ملی، تاریخ مشاوره، جراحی، برداشتن تامپون و اسپلینت، معاینات و مراجعات را بفرستد، این بخش خودکار پر می‌شود."}
-                    </div>
+                    {(vm.pf2?.crmMsg) ? (<>
+                      <div style={{fontWeight: "800", fontSize: "15px", color: vm.pf2?.crmFg}}>{vm.pf2?.crmTitle}</div>
+                    </>) : null}
+                    {(vm.pf2?.crmFound) ? (<>
+                      <div style={{fontWeight: "800", fontSize: "15px"}}>{"اطلاعات بالینی برای این بیمار در سامانه بیماران ثبت نشده است"}</div>
+                    </>) : null}
+                    <div style={{fontSize: "13px", color: "#6b6e72", lineHeight: "1.9", maxWidth: "680px"}}>{vm.pf2?.crmSub}</div>
                   </div>
                 </>) : null}
                 {(vm.pf2?.clin?.has) ? (<>
@@ -2258,20 +2296,22 @@ export default function AppView({ vm }) {
                     {(vm.pf2?.clin?.hasExams) ? (<>
                       <div>
                         <div style={{fontWeight: "800", fontSize: "15px", marginBottom: "10px"}}>{"تاریخ‌های معاینه"}</div>
-                        <div style={{display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(210px,1fr))", gap: "10px"}}>
+                        <div style={{display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(260px,1fr))", gap: "10px"}}>
                           {(vm.pf2?.clin?.exams || []).map((e, __i13) => <React.Fragment key={__i13}>
-                            <div style={{display: "flex", gap: "12px", alignItems: "center", border: "1px solid #e7e8e3", borderRadius: "16px", padding: "12px 14px", background: "#fff", opacity: e?.op}}>
-                              <div style={{width: "40px", height: "40px", borderRadius: "12px", background: e?.numBg, color: e?.numFg, display: "grid", placeItems: "center", fontWeight: "800", flexShrink: "0"}}>{e?.n}</div>
-                              <div style={{flex: "1", minWidth: "0"}}>
-                                <div style={{fontSize: "13px", fontWeight: "800", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis"}}>{e?.title}</div>
-                                <div style={{fontSize: "13px", marginTop: "2px"}}>
-                                  {e?.date}{" "}
-                                  <span style={{fontSize: "11px", color: "#6b6e72"}}>{e?.wday}{" "}{e?.time}</span>
+                            <div style={{display: "flex", gap: "12px", alignItems: "flex-start", border: "1px solid #e7e8e3", borderRadius: "16px", padding: "14px", background: "#fff", opacity: e?.op}}>
+                              <div style={{width: "42px", height: "42px", borderRadius: "13px", background: e?.numBg, color: e?.numFg, display: "grid", placeItems: "center", fontWeight: "800", fontSize: "15px", flexShrink: "0"}}>{e?.n}</div>
+                              <div style={{flex: "1", minWidth: "0", display: "flex", flexDirection: "column", gap: "6px"}}>
+                                <div style={{display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap"}}>
+                                  <span style={{fontSize: "14px", fontWeight: "800"}}>{e?.title}</span>
+                                  <span style={{fontSize: "10px", fontWeight: "800", padding: "2px 8px", whiteSpace: "nowrap", borderRadius: "999px", background: e?.modeBg, color: e?.modeFg}}>{e?.mode}</span>
                                 </div>
-                                <div style={{display: "flex", gap: "6px", alignItems: "center", marginTop: "4px"}}>
-                                  <span style={{fontSize: "10px", fontWeight: "800", padding: "2px 8px", whiteSpace: "nowrap", flexShrink: "0", borderRadius: "999px", background: e?.modeBg, color: e?.modeFg}}>{e?.mode}</span>
-                                  <span style={{fontSize: "10px", fontWeight: "800", padding: "2px 8px", whiteSpace: "nowrap", flexShrink: "0", borderRadius: "999px", background: e?.tagBg, color: e?.tagFg}}>{e?.tag}</span>
-                                  <span style={{fontSize: "11px", color: "#8b8e89"}}>{e?.rel}</span>
+                                <div style={{display: "flex", alignItems: "baseline", gap: "8px", flexWrap: "wrap"}}>
+                                  <span style={{fontSize: "15px", fontWeight: "800"}}>{e?.date}</span>
+                                  <span style={{fontSize: "12px", color: "#6b6e72", whiteSpace: "nowrap"}}>{e?.wday}{" · ساعت "}{e?.time}</span>
+                                </div>
+                                <div style={{display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap"}}>
+                                  <span style={{fontSize: "11px", fontWeight: "800", padding: "3px 10px", whiteSpace: "nowrap", borderRadius: "999px", background: e?.tagBg, color: e?.tagFg}}>{e?.tag}</span>
+                                  <span style={{fontSize: "11px", color: "#8b8e89", whiteSpace: "nowrap"}}>{e?.rel}</span>
                                 </div>
                               </div>
                             </div>
@@ -2363,12 +2403,6 @@ export default function AppView({ vm }) {
                     <button onClick={vm.pf2?.refresh} style={{border: "1px solid #e1e3dc", background: "#fff", color: "#3a3b3d", padding: "7px 12px", borderRadius: "10px", fontSize: "12px", fontWeight: "700", cursor: "pointer", fontFamily: "inherit"}}>{vm.pf2?.refreshText}</button>
                   </>) : null}
                 </div>
-                {(vm.pf2?.loading) ? (<>
-                  <div style={{fontSize: "13px", color: "#8b8e89"}}>{"در حال بارگذاری…"}</div>
-                </>) : null}
-                {(vm.pf2?.looking) ? (<>
-                  <div style={{fontSize: "12px", color: "#8b8e89"}}>{"در حال دریافت از سامانه بیماران…"}</div>
-                </>) : null}
                 {(vm.pf2?.hasFields) ? (<>
                   <div style={{display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(170px,1fr))", gap: "8px"}}>
                     {(vm.pf2?.fields || []).map((f, __i10) => <React.Fragment key={__i10}>
@@ -2379,8 +2413,11 @@ export default function AppView({ vm }) {
                     </React.Fragment>)}
                   </div>
                 </>) : null}
-                {(vm.pf2?.noFields) ? (<>
-                  <div style={{fontSize: "13px", color: "#8b8e89", lineHeight: "1.8"}}>{"سامانه بیماران برای این شماره اطلاعاتی برنگردانده است."}</div>
+                {(vm.pf2?.crmMsg) ? (<>
+                  <div style={{background: vm.pf2?.crmBg, borderRadius: "14px", padding: "12px 14px"}}>
+                    <div style={{fontSize: "14px", fontWeight: "800", color: vm.pf2?.crmFg}}>{vm.pf2?.crmTitle}</div>
+                    <div style={{fontSize: "12px", color: "#6b6e72", marginTop: "3px", lineHeight: "1.8"}}>{vm.pf2?.crmSub}</div>
+                  </div>
                 </>) : null}
               </div>
               {(vm.pf2?.hasReports) ? (<>
@@ -7577,6 +7614,17 @@ export default function AppView({ vm }) {
                     <span style={{fontSize: "11px", fontWeight: "800", padding: "3px 10px", borderRadius: "999px", background: "#eef7e3", color: "#3d6a0c"}}>{"✓ "}{vm.cvm?.sms?.sentN}{" ارسال شد"}</span>
                   </>) : null}
                 </div>
+                {(vm.cvm?.sms?.off) ? (<>
+                  <div style={{display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap", background: "#f7f8f4", border: "1px dashed #d9dad6", borderRadius: "14px", padding: "12px 14px"}}>
+                    <div style={{flex: "1", minWidth: "180px"}}>
+                      <div style={{fontSize: "13px", fontWeight: "800", color: "#55585c"}}>{vm.cvm?.sms?.offText}</div>
+                      <div style={{fontSize: "11px", color: "#8b8e89", marginTop: "2px"}}>{vm.cvm?.sms?.offNote}</div>
+                    </div>
+                    {(vm.cvm?.sms?.canSettings) ? (<>
+                      <button onClick={vm.cvm?.sms?.goSettings} style={{border: "none", background: "#2E2F31", color: "#fff", padding: "8px 14px", borderRadius: "10px", fontSize: "12px", fontWeight: "700", cursor: "pointer", fontFamily: "inherit"}}>{"تنظیمات پیامک ←"}</button>
+                    </>) : null}
+                  </div>
+                </>) : null}
                 <div style={{display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(150px,1fr))", gap: "8px"}}>
                   {(vm.cvm?.sms?.buttons || []).map((b, __i9) => <React.Fragment key={__i9}>
                     <button onClick={b?.send} title={b?.tip} style={{position: "relative", display: "flex", alignItems: "center", gap: "10px", textAlign: "right", background: b?.bg, border: `1.5px solid ${b?.bd}`, borderRadius: "14px", padding: "10px 11px", cursor: b?.cur, opacity: b?.op, transition: "all .18s", fontFamily: "inherit"}}>

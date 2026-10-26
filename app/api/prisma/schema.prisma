@@ -209,3 +209,11 @@ model SmsLog {
   @@index([callKey])
   @@index([phone])
 }
+
+/// Last CRM lookup per number, including «no file» answers (Patient keeps only callers the CRM knows).
+model CrmCheck {
+  phone String   @id
+  at    DateTime @updatedAt
+  found Boolean
+  error String?
+}

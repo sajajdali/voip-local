@@ -148,8 +148,10 @@ export class PatientsService {
         const { name, surgery, raw } = await this.fetchCrm(phone, s);
         this.fails = 0;
         await this.store(phone, name, surgery, raw);
+        await this.check(phone, !!name, null);
       } catch (e) {
         this.lastError = (e as Error).name === 'TimeoutError' ? 'سامانه بیماران در زمان تعیین‌شده جواب نداد' : (e as Error).message;
+        await this.check(phone, null, this.lastError);
         // repeated failures: leave the CRM alone for five minutes
         if (++this.fails >= 3) { this.pausedUntil = Date.now() + 5 * 60e3; this.fails = 0; }
         this.log.warn('CRM lookup failed: ' + this.lastError);
@@ -175,6 +177,14 @@ export class PatientsService {
   }
 
   isLooking(phone: string) { return this.inflight.has(phone); }
+
+  /** Remember the outcome of a lookup (found = null: the CRM could not be asked; keeps the last known answer). */
+  async check(phone: string, found: boolean | null, error: string | null) {
+    const prev = await this.db.crmCheck.findUnique({ where: { phone } });
+    const f = found ?? prev?.found ?? false;
+    await this.db.crmCheck.upsert({ where: { phone }, create: { phone, found: f, error }, update: { found: f, error } }).catch(() => {});
+    this.bus.emit('patient', { phone });
+  }
 
   /** Wait (bounded) for a lookup that is still running for this caller. */
   async waitLookup(phone: string, ms: number) {
@@ -310,14 +320,19 @@ export class PatientCardController {
   @Get(':phone/card')
   async card(@Param('phone') phone: string) {
     const p = String(phone).replace(/\D/g, '');
-    const [pt, s, reports] = await Promise.all([
+    const [pt, s, reports, chk] = await Promise.all([
       this.db.patient.findUnique({ where: { phone: p } }), this.patients.settings(),
       this.db.callReport.findMany({ where: { phone: p }, orderBy: { createdAt: 'desc' }, take: 20 }),
+      this.db.crmCheck.findUnique({ where: { phone: p } }),
     ]);
     const days = daysSince(pt?.surgery);
+    // crm: on (connection off) · mobile (only mobiles are looked up) · found / none / never / error
+    const crmState = !s.enabled ? 'off' : !/^09\d{9}$/.test(p) ? 'nomobile' : this.patients.isLooking(p) ? 'looking'
+      // the newest answer wins: a later «no file» or failure is shown over an older stored file
+      : chk && (!pt?.crmAt || chk.at >= pt.crmAt) ? (chk.found ? 'found' : chk.error ? (pt?.crm ? 'found' : 'error') : 'none') : pt?.crm ? 'found' : 'never';
     return {
       phone: p, known: !!pt, name: pt?.name || '', source: pt?.source || '', surgery: pt?.surgery || null, days, surgeryNote: surgeryNote(days, false),
-      crmOn: s.enabled, looking: this.patients.isLooking(p), crmAt: pt?.crmAt || null, fields: crmFields(pt?.crm).filter(f => !CLIN_KEYS.has(f.key.split('.').pop()!)), clinical: clinicalOf(pt?.crm),
+      crmOn: s.enabled, crmState, checkedAt: chk?.at || pt?.crmAt || null, checkError: chk?.error || '', looking: this.patients.isLooking(p), crmAt: pt?.crmAt || null, fields: crmFields(pt?.crm).filter(f => !CLIN_KEYS.has(f.key.split('.').pop()!)), clinical: clinicalOf(pt?.crm),
       reports: reports.map(r => ({ id: r.id, callId: r.callId, cat: r.cat, outcome: r.outcome, text: r.text, followUp: r.followUp || '', by: r.userName, userId: r.userId, at: r.createdAt })),
     };
   }
@@ -333,8 +348,15 @@ export class PatientCardController {
     if (!s.enabled || !s.url) throw new BadRequestException('اتصال به سامانه بیماران در تنظیمات فعال نیست');
     if ((this.last.get(p) || 0) > Date.now() - 60e3) throw new BadRequestException('همین الان به‌روزرسانی شد؛ یک دقیقه دیگر دوباره امتحان کنید');
     this.last.set(p, Date.now());
-    const r = await this.patients.fetchCrm(p, s);
-    await this.patients.store(p, r.name, r.surgery, r.raw);
+    try {
+      const r = await this.patients.fetchCrm(p, s);
+      await this.patients.store(p, r.name, r.surgery, r.raw);
+      await this.patients.check(p, !!r.name, null);
+    } catch (e) {
+      const msg = (e as Error).name === 'TimeoutError' ? 'سامانه بیماران در زمان تعیین‌شده جواب نداد' : (e as Error).message;
+      await this.patients.check(p, null, msg);
+      throw new BadRequestException(msg);
+    }
     return this.card(p);
   }
 }

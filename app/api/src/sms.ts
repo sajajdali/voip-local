@@ -120,7 +120,8 @@ export class SmsService {
     const to = String(phone || '').replace(/\D/g, '').replace(/^98/, '0');
     if (!key) throw new BadRequestException('تماس مشخص نیست');
     if (!/^09\d{9}$/.test(to)) throw new BadRequestException('پیامک فقط به شماره موبایل فرستاده می‌شود');
-    const done = await this.db.smsLog.findFirst({ where: { callKey: key, templateId, ok: true } });
+    // a test-mode send never blocks the real one
+    const done = await this.db.smsLog.findFirst({ where: { callKey: key, templateId, ok: true, ...(s.dryRun ? {} : { dryRun: false }) } });
     if (done) throw new BadRequestException('«' + t.title + '» برای این تماس قبلاً ارسال شده است');
     const ctx = await this.context(to, me);
     const params = t.params.map(p => (p.kind === 'text' ? p.v : ctx[p.v] ?? ''));
