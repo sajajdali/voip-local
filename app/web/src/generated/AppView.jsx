@@ -3135,6 +3135,9 @@ export default function AppView({ vm }) {
                       {(vm.sm?.hasBalance) ? (<>
                         <div style={{fontSize: "20px", fontWeight: "800", color: "#232425", marginTop: "2px"}}>{vm.sm?.balance}</div>
                       </>) : null}
+                      {(vm.sm?.hasPkg) ? (<>
+                        <div style={{fontSize: "11px", color: "#6b6e72", marginTop: "2px"}}>{vm.sm?.pkg}</div>
+                      </>) : null}
                     </div>
                     <button onClick={vm.sm?.checkBalance} style={{border: "1px solid #e1e3dc", background: "#fff", color: "#3a3b3d", padding: "8px 12px", borderRadius: "10px", fontSize: "12px", fontWeight: "700", cursor: "pointer", fontFamily: "inherit"}}>{vm.sm?.balText}</button>
                   </div>

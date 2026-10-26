@@ -88,7 +88,9 @@ export class SmsService {
     if (r.status === 401 || r.status === 403) throw new BadRequestException('توکن پنل پیامک پذیرفته نشد');
     const d: any = await r.json().catch(() => null);
     if (r.status !== 200 || !d || d.status !== true || !d.data || !('ballance' in d.data)) throw new BadRequestException('پاسخ نامعتبر از پنل پیامک (' + r.status + ')');
-    return { balance: d.data.ballance };
+    // the service sends the credit already formatted («5,116,271»), plus the package and its end date
+    const x = d.data;
+    return { balance: String(x.ballance ?? ''), package: String(x.package || ''), endAt: String(x.end_at || ''), packageOk: x.package_status !== false };
   }
 
   /** Values for one caller: CRM data (name, next appointment, surgery) and the sending user. */

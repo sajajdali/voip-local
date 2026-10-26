@@ -1928,8 +1928,8 @@ class LiveApp extends React.Component {
       statusBg: !f.enabled ? '#f2f3ef' : f.dryRun ? '#fcf3e0' : '#eef5e3', statusFg: !f.enabled ? '#55585c' : f.dryRun ? '#8a5a00' : '#3d6a0c',
       tokenHint: d.hasToken ? 'توکن ذخیره شده (' + d.tokenHint + ')؛ برای تغییر، توکن جدید را وارد کنید' : 'توکن API حساب SHSMS', token: s.smsToken || '', setToken: e => this.setState({ smsToken: e.target.value }),
       timeout: f.timeoutSec, setTimeout: e => put({ timeoutSec: Math.min(30, Math.max(5, parseInt(e.target.value, 10) || 15)) }),
-      balance: s.smsBal == null ? '' : s.smsBal, hasBalance: s.smsBal != null, balBusy: !!s.smsBalBusy, balText: s.smsBalBusy ? 'در حال استعلام…' : 'استعلام اعتبار',
-      checkBalance: async () => { this.setState({ smsBalBusy: true }); try { const r = await api('/sms/budget'); this.setState({ smsBal: fa(Number(r.balance).toLocaleString('en')), smsBalBusy: false }); } catch (e) { this.setState({ smsBalBusy: false }); this.toast(e.message); } },
+      balance: s.smsBal == null ? '' : s.smsBal, hasBalance: s.smsBal != null, pkg: s.smsPkg || '', hasPkg: !!s.smsPkg, balBusy: !!s.smsBalBusy, balText: s.smsBalBusy ? 'در حال استعلام…' : 'استعلام اعتبار',
+      checkBalance: async () => { this.setState({ smsBalBusy: true }); try { const r = await api('/sms/budget'); this.setState({ smsBal: fa(r.balance) + ' تومان', smsPkg: [r.package, r.endAt ? 'تا ' + fa(r.endAt) : ''].filter(Boolean).join(' · ') + (r.packageOk ? '' : ' · بسته غیرفعال'), smsBalBusy: false }); } catch (e) { this.setState({ smsBalBusy: false }); this.toast(e.message); } },
       vars: VARS, preview: bar,
       templates: f.templates.map((t, i) => ({
         n: fa(i + 1), title: t.title, template: t.template, on: t.on, onT: tg(t.on), tog: () => putT(i, { on: !t.on }),
