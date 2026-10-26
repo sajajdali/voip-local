@@ -1707,6 +1707,29 @@ export default function AppView({ vm }) {
               <div style={{fontSize: "13px", color: "#6b6e72"}}>
                 {"هنوز تماس ثبت‌شده‌ای از این شماره نیست؛ بعد از پایان تماس فعلی، تاریخچه اینجا نمایش داده می‌شود."}
               </div>
+              {(vm.pf2?.live?.has) ? (<>
+                <div style={{background: "linear-gradient(120deg,#233318,#2E2F31)", color: "#fff", borderRadius: "20px", padding: "14px 18px", display: "flex", alignItems: "center", gap: "14px", flexWrap: "wrap", boxShadow: "0 12px 30px rgba(46,47,49,.18)"}}>
+                  <span style={{width: "12px", height: "12px", borderRadius: "50%", background: "#8DC63F", animation: "cc-pulse 1.4s infinite", flexShrink: "0"}} />
+                  <div style={{flex: "1", minWidth: "180px"}}>
+                    <div style={{fontSize: "12px", color: "#8DC63F", fontWeight: "700"}}>{"این بیمار الان پشت خط است"}</div>
+                    <div style={{fontSize: "15px", fontWeight: "800", marginTop: "2px"}}>
+                      {vm.pf2?.live?.text}{" "}
+                      <span style={{fontSize: "13px", color: "#c9cbc6", fontWeight: "600", direction: "ltr", display: "inline-block"}}>{vm.pf2?.live?.timer}</span>
+                    </div>
+                  </div>
+                  {(vm.pf2?.live?.canLive) ? (<>
+                    <button onClick={vm.pf2?.live?.goLive} style={{border: "1px solid rgba(255,255,255,.22)", background: "transparent", color: "#fff", padding: "9px 14px", borderRadius: "12px", fontSize: "12px", fontWeight: "700", cursor: "pointer", fontFamily: "inherit"}}>{"تماس‌های زنده"}</button>
+                  </>) : null}
+                  {(vm.pf2?.live?.canListen) ? (<>
+                    <button onClick={vm.pf2?.live?.listen} style={{border: "none", background: vm.pf2?.live?.btnBg, color: vm.pf2?.live?.btnFg, padding: "10px 16px", borderRadius: "12px", fontSize: "13px", fontWeight: "800", cursor: "pointer", display: "flex", alignItems: "center", gap: "8px", fontFamily: "inherit"}}>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M3 14v-2a9 9 0 0 1 18 0v2M3 14a2 2 0 0 1 2-2h1v7H5a2 2 0 0 1-2-2zM21 14a2 2 0 0 0-2-2h-1v7h1a2 2 0 0 0 2-2z" />
+                      </svg>
+                      {vm.pf2?.live?.label}
+                    </button>
+                  </>) : null}
+                </div>
+              </>) : null}
               <div style={{background: "#fff", border: "1px solid #e7e8e3", borderRadius: "24px", overflow: "hidden", boxShadow: "0 1px 2px rgba(20,20,20,.03)"}}>
                 <div style={{background: "linear-gradient(120deg,#2E2F31 0%,#33402a 100%)", color: "#fff", padding: "18px 22px", display: "flex", alignItems: "center", gap: "14px", flexWrap: "wrap"}}>
                   <div style={{width: "46px", height: "46px", borderRadius: "15px", background: "rgba(141,198,63,.18)", color: "#8DC63F", display: "grid", placeItems: "center", flexShrink: "0"}}>
@@ -1991,6 +2014,29 @@ export default function AppView({ vm }) {
                   </React.Fragment>)}
                 </div>
               </div>
+              {(vm.pf2?.live?.has) ? (<>
+                <div style={{background: "linear-gradient(120deg,#233318,#2E2F31)", color: "#fff", borderRadius: "20px", padding: "14px 18px", display: "flex", alignItems: "center", gap: "14px", flexWrap: "wrap", boxShadow: "0 12px 30px rgba(46,47,49,.18)"}}>
+                  <span style={{width: "12px", height: "12px", borderRadius: "50%", background: "#8DC63F", animation: "cc-pulse 1.4s infinite", flexShrink: "0"}} />
+                  <div style={{flex: "1", minWidth: "180px"}}>
+                    <div style={{fontSize: "12px", color: "#8DC63F", fontWeight: "700"}}>{"این بیمار الان پشت خط است"}</div>
+                    <div style={{fontSize: "15px", fontWeight: "800", marginTop: "2px"}}>
+                      {vm.pf2?.live?.text}{" "}
+                      <span style={{fontSize: "13px", color: "#c9cbc6", fontWeight: "600", direction: "ltr", display: "inline-block"}}>{vm.pf2?.live?.timer}</span>
+                    </div>
+                  </div>
+                  {(vm.pf2?.live?.canLive) ? (<>
+                    <button onClick={vm.pf2?.live?.goLive} style={{border: "1px solid rgba(255,255,255,.22)", background: "transparent", color: "#fff", padding: "9px 14px", borderRadius: "12px", fontSize: "12px", fontWeight: "700", cursor: "pointer", fontFamily: "inherit"}}>{"تماس‌های زنده"}</button>
+                  </>) : null}
+                  {(vm.pf2?.live?.canListen) ? (<>
+                    <button onClick={vm.pf2?.live?.listen} style={{border: "none", background: vm.pf2?.live?.btnBg, color: vm.pf2?.live?.btnFg, padding: "10px 16px", borderRadius: "12px", fontSize: "13px", fontWeight: "800", cursor: "pointer", display: "flex", alignItems: "center", gap: "8px", fontFamily: "inherit"}}>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M3 14v-2a9 9 0 0 1 18 0v2M3 14a2 2 0 0 1 2-2h1v7H5a2 2 0 0 1-2-2zM21 14a2 2 0 0 0-2-2h-1v7h1a2 2 0 0 0 2-2z" />
+                      </svg>
+                      {vm.pf2?.live?.label}
+                    </button>
+                  </>) : null}
+                </div>
+              </>) : null}
               <div style={{background: "#fff", border: "1px solid #e7e8e3", borderRadius: "24px", overflow: "hidden", boxShadow: "0 1px 2px rgba(20,20,20,.03)"}}>
                 <div style={{background: "linear-gradient(120deg,#2E2F31 0%,#33402a 100%)", color: "#fff", padding: "18px 22px", display: "flex", alignItems: "center", gap: "14px", flexWrap: "wrap"}}>
                   <div style={{width: "46px", height: "46px", borderRadius: "15px", background: "rgba(141,198,63,.18)", color: "#8DC63F", display: "grid", placeItems: "center", flexShrink: "0"}}>
@@ -3652,12 +3698,23 @@ export default function AppView({ vm }) {
                           </React.Fragment>)}
                         </div>
                       </>) : null}
-                      <button onClick={c?.listen} style={{background: c?.btnBg, color: "#fff", border: "none", padding: "11px 14px", borderRadius: "14px", fontSize: "13px", fontWeight: "800", cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px"}}>
-                        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M3 14v-2a9 9 0 0 1 18 0v2M3 14a2 2 0 0 1 2-2h1v7H5a2 2 0 0 1-2-2zM21 14a2 2 0 0 0-2-2h-1v7h1a2 2 0 0 0 2-2z" />
-                        </svg>
-                        {c?.listenLabel}
-                      </button>
+                      <div style={{display: "flex", gap: "8px"}}>
+                        {(c?.hasFile) ? (<>
+                          <button onClick={c?.openFile} title="نمایش پرونده" style={{background: "#fff", color: "#2E2F31", border: "1px solid #e1e3dc", padding: "11px 14px", borderRadius: "14px", fontSize: "13px", fontWeight: "800", cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: "6px"}}>
+                            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z" />
+                              <path d="M14 3v6h6M9 13h6M9 17h4" />
+                            </svg>
+                            {"پرونده"}
+                          </button>
+                        </>) : null}
+                        <button onClick={c?.listen} style={{background: c?.btnBg, color: "#fff", border: "none", padding: "11px 14px", borderRadius: "14px", fontSize: "13px", fontWeight: "800", cursor: "pointer", fontFamily: "inherit", flex: "1", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px"}}>
+                          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M3 14v-2a9 9 0 0 1 18 0v2M3 14a2 2 0 0 1 2-2h1v7H5a2 2 0 0 1-2-2zM21 14a2 2 0 0 0-2-2h-1v7h1a2 2 0 0 0 2-2z" />
+                          </svg>
+                          {c?.listenLabel}
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </React.Fragment>)}
@@ -3699,6 +3756,14 @@ export default function AppView({ vm }) {
                           <div style={{fontSize: "13px", fontWeight: "700", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap"}}>{o?.callWho}</div>
                         </div>
                         <span style={{fontSize: "15px", fontWeight: "800", direction: "ltr"}}>{o?.callTimer}</span>
+                        {(o?.callFile) ? (<>
+                          <button onClick={o?.openCallFile} title="نمایش پرونده" style={{background: "#fff", color: "#2E2F31", border: "1px solid #e1e3dc", padding: "6px 8px", borderRadius: "10px", cursor: "pointer", display: "grid", placeItems: "center"}}>
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z" />
+                              <path d="M14 3v6h6M9 13h6M9 15h4" />
+                            </svg>
+                          </button>
+                        </>) : null}
                         <button onClick={o?.listen} style={{background: o?.listenBg, color: "#fff", border: "none", padding: "7px 11px", borderRadius: "10px", fontSize: "12px", fontWeight: "700", cursor: "pointer", fontFamily: "inherit"}}>{o?.listenLabel}</button>
                       </div>
                     </>) : null}

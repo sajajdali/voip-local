@@ -1169,6 +1169,7 @@ class LiveApp extends React.Component {
         total: clock(now - c.since), showTotal: talk && !!c.talkSince,
         isTalk: talk, notTalk: !talk, isRing: c.stateKey === 'ring', eq,
         listen: () => this.startListen(c), on, off: !on,
+        hasFile: /^0\d{6,}$/.test(c.phone || ''), openFile: () => this.openFileByPhone(c.phone),
         listenLabel: on ? (s.lsOn ? 'در حال شنیدن — قطع' : 'در حال اتصال…') : 'گوش بده',
         cardBg: on ? '#232425' : '#fff', cardFg: on ? '#f2f3ef' : '#232425', subFg: on ? '#b8bab5' : '#6b6e72',
         cardBd: on ? '#7FB536' : '#e7e8e3', shadow: on ? '0 14px 34px rgba(46,47,49,.28)' : '0 1px 2px rgba(0,0,0,.04)',
@@ -1201,6 +1202,7 @@ class LiveApp extends React.Component {
         isTalk: key === 'talk', isRing: key === 'ring', isOff: key === 'off', hasCall: !!call, op: key === 'off' ? 0.6 : 1,
         callWho: call ? who(call) : '', callTimer: call && call.talkSince ? clock(now - call.talkSince) : '', ringWho: ringFor ? ' از ' + who(ringFor) : '',
         listen: () => call && this.startListen(call), listenLabel: on ? 'قطع شنود' : 'گوش بده', listenBg: on ? '#e0574a' : '#2E2F31',
+        callFile: !!call && /^0\d{6,}$/.test(call.phone || ''), openCallFile: () => call && this.openFileByPhone(call.phone),
         ans: fa(ans.length), talk: talkSec ? clock(talkSec * 1000) : '—', last: last ? fa(last) : '—',
         dev: devName(e.dev), hasDev: !!e.dev,
       };
@@ -1798,6 +1800,16 @@ class LiveApp extends React.Component {
         try { const r = await api('/patients/' + encodeURIComponent(phone) + '/refresh', {}); this.setState(st => ({ cardBusy: false, popCards: { ...(st.popCards || {}), [phone]: r } })); this.toast('اطلاعات از سامانه بیماران به‌روز شد'); }
         catch (e) { this.setState({ cardBusy: false }); this.toast(e.message); }
       },
+      live: (() => {
+        const c = (s.liveCalls || []).find(x => x.phone === phone) || (s.pops || []).find(x => x.phone === phone);
+        if (!c) return { has: false };
+        const on = s.lsId === c.id, canListen = CAN('live', 'edit') && ['talk', 'queue', 'ring', 'ivr', 'vm'].includes(c.stateKey);
+        const ST = { talk: 'در حال مکالمه' + (c.with ? ' با ' + c.with : ''), ring: 'در حال زنگ خوردن', queue: 'در صف ' + (c.queue || 'انتظار'), ivr: 'در منوی تلفنی', vm: 'در حال گذاشتن پیام صوتی' };
+        const t = Math.max(0, Math.floor((Date.now() - (c.talkSince || c.since)) / 1000));
+        return { has: true, text: ST[c.stateKey] || c.state || 'تماس برقرار است', timer: fa(Math.floor(t / 60) + ':' + String(t % 60).padStart(2, '0')),
+          canListen, listen: () => this.startListen(c), label: on ? (s.lsOn ? 'در حال شنیدن — قطع' : 'در حال اتصال…') : 'گوش دادن به تماس', btnBg: on ? '#e0574a' : '#8DC63F', btnFg: on ? '#fff' : '#1f2021',
+          goLive: () => this.setState({ page: 'live' }), canLive: canPage('live') };
+      })(),
       reports, hasReports: reports.length > 0, repCount: fa(reports.length), clin: this.clinicalVals(s, d && d.clinical, phone),
       call: () => this.startCall({ name: (d && d.name) || phone, phone, phoneRaw: phone, vmId: null }),
       back: () => this.setState({ page: s.prevPage || 'calls' }),
