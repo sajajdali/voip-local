@@ -1689,7 +1689,6 @@ class LiveApp extends React.Component {
         lastRep: lastRep ? '«' + lastRep.text.slice(0, 90) + (lastRep.text.length > 90 ? '…' : '') + '» — ' + lastRep.by : '', hasRep: !!lastRep,
         bd: mine && !ended ? '#8DC63F' : '#e7e8e3', ring: mine && !ended ? '0 0 0 3px rgba(141,198,63,.25),' : '', mineText: mine && !ended ? 'برای داخلی شما' : '', mine: mine && !ended, op: ended ? 0.82 : 1,
         open: () => this.openFileByPhone(c.phone), close: () => this.setState({ popHide: { ...hide, [c.id]: true } }),
-        sms: this.smsBar(s, c.id, c.phone),
       };
     });
     const more = all.length - cards.length;

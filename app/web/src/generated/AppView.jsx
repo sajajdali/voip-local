@@ -7241,27 +7241,6 @@ export default function AppView({ vm }) {
                     </React.Fragment>)}
                   </div>
                 </>) : null}
-              </div>
-              <div style={{padding: "0 14px 4px"}}>
-                {(p?.sms?.show) ? (<>
-                  <div style={{display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: "5px"}}>
-                    {(p?.sms?.buttons || []).map((b, __i10) => <React.Fragment key={__i10}>
-                      <button onClick={b?.send} title={b?.tip} style={{display: "flex", flexDirection: "column", alignItems: "center", gap: "3px", background: b?.bg, border: `1.5px solid ${b?.bd}`, borderRadius: "11px", padding: "6px 4px", cursor: b?.cur, opacity: b?.op, fontFamily: "inherit"}}>
-                        <span style={{width: "24px", height: "24px", borderRadius: "8px", background: b?.iconBg, color: b?.iconFg, display: "grid", placeItems: "center"}}>
-                          {(b?.notSent) ? (<>
-                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d={b?.path} /></svg>
-                          </>) : null}
-                          {(b?.isSent) ? (<>
-                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round"><path d="M5 12.5l4.5 4.5L19 7.5" /></svg>
-                          </>) : null}
-                        </span>
-                        <span style={{fontSize: "10px", fontWeight: "700", color: "#3a3b3d", lineHeight: "1.3", textAlign: "center"}}>{b?.title}</span>
-                      </button>
-                    </React.Fragment>)}
-                  </div>
-                </>) : null}
-              </div>
-              <div onClick={p?.open} style={{padding: "4px 14px 12px", display: "flex", flexDirection: "column", gap: "9px", cursor: "pointer"}}>
                 {(p?.looking) ? (<>
                   <div style={{fontSize: "11px", color: "#8b8e89"}}>{"در حال دریافت اطلاعات از سامانه بیماران…"}</div>
                 </>) : null}
