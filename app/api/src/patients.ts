@@ -285,7 +285,9 @@ export function clinicalOf(raw: any) {
   const list = (v: any) => (Array.isArray(v) ? v : []).slice(0, 500);
   // status codes of the clinic system (0 pending … 8 online visit done); status_title is shown as sent
   const st = (x: any) => ({ status: x.status === null || x.status === undefined || x.status === '' ? null : Number(x.status), statusTitle: str(x.status_title) });
-  const exams = list(get('exams')).map((x: any) => (typeof x === 'object' && x ? { id: x.id ?? null, date: str(x.date || x.at), time: str(x.time), title: str(x.title || x.type), ...st(x) } : { id: null, date: str(x), time: '', title: '', status: null, statusTitle: '' }));
+  // online vs in-person: an explicit flag / service id when the API sends one, otherwise the service title
+  const online = (x: any) => (x.is_online === true || x.is_online === 1 ? true : x.is_online === false || x.is_online === 0 ? false : +x.service_id === 19 ? true : x.service_id != null ? false : null);
+  const exams = list(get('exams')).map((x: any) => (typeof x === 'object' && x ? { id: x.id ?? null, date: str(x.date || x.at), time: str(x.time), title: str(x.title || x.type), online: online(x), ...st(x) } : { id: null, date: str(x), time: '', title: '', online: null, status: null, statusTitle: '' }));
   const visits = list(get('visits')).map((x: any) => (typeof x === 'object' && x ? {
     id: x.id ?? null, type: str(x.type || x.title), date: str(x.date || x.at), time: str(x.time), ...st(x),
     apptNote: str(x.appointment_note ?? x.note), procNotes: (Array.isArray(x.procedure_notes) ? x.procedure_notes : []).map(str).filter(Boolean),

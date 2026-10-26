@@ -1738,17 +1738,35 @@ class LiveApp extends React.Component {
         state: done ? 'انجام شد' : future ? 'آینده' : 'ثبت نشده', stBg: done ? '#eef5e3' : future ? '#e5eff7' : '#f2f3ef', stFg: done ? '#3d6a0c' : future ? '#1d5a85' : '#8b8e89', op: p ? 1 : 0.55 };
     };
     const okEx = exams.filter(x => x.p && !dead(x));
+    const online = x => !!x && (x.online === true || (x.online !== false && (x.status === 8 || /آنلاین|online/i.test((x.title || '') + (x.type || '')))));
+    // a step's real state comes from its appointment in the clinic system, not from the date alone
+    const visitOn = (p, re) => p && visits.find(v => v.p && v.p.j === p.j && re.test(v.type || ''));
+    const byVisit = (n, v) => {
+      if (!v || !n.has) return n;
+      const fut = v.p.d > today;
+      if (went(v)) return { ...n, state: 'انجام شد', stBg: '#eef5e3', stFg: '#3d6a0c' };
+      if (dead(v)) return { ...n, state: v.statusTitle || STN[v.status], stBg: '#fdeceb', stFg: '#b42318', dot: '#fff', fg: n.ring };
+      return { ...n, state: fut ? 'آینده · ' + (v.statusTitle || STN[v.status] || '') : v.statusTitle || STN[v.status] || 'نوبت', stBg: '#e5eff7', stFg: '#1d5a85', dot: '#fff', fg: n.ring };
+    };
     const lastExam = okEx.filter(x => x.p.d <= today).pop(), nextExam = okEx.find(x => x.p.d > today);
+    // one step per kind of examination: the next one if any, otherwise the last one
+    const examStep = (key, label, list, col) => {
+      const nx = list.find(x => x.p.d > today), ls = list.filter(x => x.p.d <= today).pop(), x = nx || ls;
+      const doneN = list.filter(went).length;
+      const n = node(key, label, x ? x.p : null, !x ? '' : nx ? (list.length > 1 ? fa(doneN) + ' از ' + fa(list.length) + ' انجام شده · ' : '') + rel(nx.p, surg) : (list.length > 1 ? fa(list.length) + ' معاینه · ' : '') + rel(ls.p, surg), col);
+      if (!x) return n;
+      if (nx) return { ...n, state: 'آینده · ' + (nx.statusTitle || STN[nx.status] || ''), stBg: '#e5eff7', stFg: '#1d5a85' };
+      return went(ls) ? { ...n, state: 'انجام شد', stBg: '#eef5e3', stFg: '#3d6a0c' } : { ...n, state: ls.statusTitle || STN[ls.status] || 'نوبت', stBg: '#e5eff7', stFg: '#1d5a85', dot: '#fff', fg: col };
+    };
     const steps = [
-      node('c', 'مشاوره', cons, cons && surg ? rel(cons, surg) : cons ? days(cons.d, today) + ' روز پیش' : '', '#6a4b9c'),
+      byVisit(node('c', 'مشاوره', cons, cons && surg ? rel(cons, surg) : cons ? days(cons.d, today) + ' روز پیش' : '', '#6a4b9c'), visitOn(cons, /مشاوره/)),
       { ...node('s', 'جراحی', surg, surg ? (days(surg.d, today) >= 0 ? days(surg.d, today) + ' روز پیش' : 'در ' + days(today, surg.d) + ' روز آینده') : '', '#3d6a0c'),
         // a past surgery date alone is not proof: only has_completed_surgery confirms the operation
         ...(surg && surg.d <= today && !D.completed ? { state: 'نوبت جراحی', stBg: '#e5eff7', stFg: '#1d5a85' } : {}) },
-      node('t', 'برداشتن تامپون', tamp, rel(tamp, surg), '#1d5a85'),
-      node('p', 'برداشتن اسپلینت', spl, rel(spl, surg), '#8a5a00'),
-      { ...node('e', 'معاینات', lastExam ? lastExam.p : nextExam ? nextExam.p : null, exams.length ? exams.filter(went).length + ' انجام‌شده از ' + exams.length + (nextExam ? ' · بعدی ' + nextExam.p.j.slice(5) : '') : '', '#b42318'),
-        // a past examination counts as done only when the patient attended (status 4 / 8)
-        ...(lastExam && !went(lastExam) && !nextExam ? { state: lastExam.statusTitle || STN[lastExam.status] || 'حضور ثبت نشده', stBg: '#fcf3e0', stFg: '#8a5a00', dot: '#fff', fg: '#b42318' } : {}) },
+      byVisit(node('t', 'برداشتن تامپون', tamp, rel(tamp, surg), '#1d5a85'), visitOn(tamp, /تامپون/)),
+      byVisit(node('p', 'برداشتن اسپلینت', spl, rel(spl, surg), '#8a5a00'), visitOn(spl, /اسپلینت/)),
+      examStep('e', 'معاینه بعد از عمل', okEx.filter(x => !online(x)), '#b42318'),
+      examStep('o', 'معاینه آنلاین', okEx.filter(online), '#6a4b9c'),
     ].map((x, i, a) => ({ ...x, n: fa(i + 1), line: i < a.length - 1 }));
     const since = surg ? days(surg.d, today) : null;
     const stats = [
@@ -1767,7 +1785,7 @@ class LiveApp extends React.Component {
       steps, stats,
       exams: exams.map((x, i) => {
         const fut = !!x.p && x.p.d > today, c = STS[x.status] || (fut ? STS[1] : STS[0]);
-        return { n: fa(i + 1), title: x.title || 'معاینه', date: x.p ? fa(x.p.j) : 'بدون تاریخ', wday: x.p ? wd(x.p.d) : '', time: x.time || (x.p && x.p.time) ? fa(x.time || x.p.time) : '', rel: x.p ? fa(rel(x.p, surg)) : '',
+        return { n: fa(i + 1), mode: online(x) ? 'آنلاین' : 'حضوری', modeBg: online(x) ? '#f0ebf8' : '#f2f3ef', modeFg: online(x) ? '#6a4b9c' : '#55585c', title: x.title || 'معاینه', date: x.p ? fa(x.p.j) : 'بدون تاریخ', wday: x.p ? wd(x.p.d) : '', time: x.time || (x.p && x.p.time) ? fa(x.time || x.p.time) : '', rel: x.p ? fa(rel(x.p, surg)) : '',
           tag: x.statusTitle || STN[x.status] || (fut ? 'آینده' : '—'), tagBg: c[0], tagFg: c[1], op: dead(x) ? 0.55 : 1, numBg: went(x) ? '#eef5e3' : dead(x) ? '#f2f3ef' : '#fdeceb', numFg: went(x) ? '#3d6a0c' : dead(x) ? '#8b8e89' : '#b42318' };
       }),
       hasExams: exams.length > 0,

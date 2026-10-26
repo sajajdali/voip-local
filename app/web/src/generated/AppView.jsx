@@ -1927,6 +1927,7 @@ export default function AppView({ vm }) {
                                   <span style={{fontSize: "11px", color: "#6b6e72"}}>{e?.wday}{" "}{e?.time}</span>
                                 </div>
                                 <div style={{display: "flex", gap: "6px", alignItems: "center", marginTop: "4px"}}>
+                                  <span style={{fontSize: "10px", fontWeight: "800", padding: "2px 8px", whiteSpace: "nowrap", flexShrink: "0", borderRadius: "999px", background: e?.modeBg, color: e?.modeFg}}>{e?.mode}</span>
                                   <span style={{fontSize: "10px", fontWeight: "800", padding: "2px 8px", whiteSpace: "nowrap", flexShrink: "0", borderRadius: "999px", background: e?.tagBg, color: e?.tagFg}}>{e?.tag}</span>
                                   <span style={{fontSize: "11px", color: "#8b8e89"}}>{e?.rel}</span>
                                 </div>
@@ -2268,6 +2269,7 @@ export default function AppView({ vm }) {
                                   <span style={{fontSize: "11px", color: "#6b6e72"}}>{e?.wday}{" "}{e?.time}</span>
                                 </div>
                                 <div style={{display: "flex", gap: "6px", alignItems: "center", marginTop: "4px"}}>
+                                  <span style={{fontSize: "10px", fontWeight: "800", padding: "2px 8px", whiteSpace: "nowrap", flexShrink: "0", borderRadius: "999px", background: e?.modeBg, color: e?.modeFg}}>{e?.mode}</span>
                                   <span style={{fontSize: "10px", fontWeight: "800", padding: "2px 8px", whiteSpace: "nowrap", flexShrink: "0", borderRadius: "999px", background: e?.tagBg, color: e?.tagFg}}>{e?.tag}</span>
                                   <span style={{fontSize: "11px", color: "#8b8e89"}}>{e?.rel}</span>
                                 </div>
