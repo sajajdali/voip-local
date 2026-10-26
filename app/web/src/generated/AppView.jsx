@@ -58,6 +58,18 @@ export default function AppView({ vm }) {
               <span style={{fontSize: "11px", padding: "2px 8px", borderRadius: "99px", background: "#e0574a", color: "#fff"}}>{vm.nav?.unreached?.count}</span>
             </div>
           </>) : null}
+          {(vm.can?.refs) ? (<>
+            <div onClick={vm.nav?.refs?.go} style={{display: "flex", alignItems: "center", gap: "12px", padding: "11px 14px", borderRadius: "12px", cursor: "pointer", background: vm.nav?.refs?.bg, color: vm.nav?.refs?.fg, fontSize: "14px", fontWeight: "600"}}>
+              <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M4 17v-2a4 4 0 0 1 4-4h12" />
+                <path d="M16 7l4 4-4 4" />
+              </svg>
+              <span style={{flex: "1"}}>{"ارجاع‌شده‌ها"}</span>
+              {(vm.nav?.refs?.count) ? (<>
+                <span style={{fontSize: "11px", padding: "2px 8px", borderRadius: "99px", background: "#2a78d6", color: "#fff"}}>{vm.nav?.refs?.count}</span>
+              </>) : null}
+            </div>
+          </>) : null}
           {(vm.can?.anyReports) ? (<>
             <div onClick={vm.nav?.toggleRep} style={{display: "flex", alignItems: "center", gap: "12px", padding: "11px 14px", borderRadius: "12px", cursor: "pointer", background: vm.nav?.repBg, color: "#d9dad6", fontSize: "14px", fontWeight: "600"}}>
               <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M4 20V10M10 20V4M16 20v-7M21 20H3" /></svg>
@@ -416,6 +428,7 @@ export default function AppView({ vm }) {
                       {(vm.showAi) ? (<>
                         <th style={{padding: "11px 16px", fontSize: "12px", color: "#6b6e72", fontWeight: "600", textAlign: "right", background: "#f7f8f5"}}>{"تحلیل AI"}</th>
                       </>) : null}
+                      <th style={{padding: "11px 16px", fontSize: "12px", color: "#6b6e72", fontWeight: "600", textAlign: "right", background: "#f7f8f5"}}>{"ارجاع"}</th>
                       <th style={{padding: "11px 16px", fontSize: "12px", color: "#6b6e72", fontWeight: "600", textAlign: "center", background: "#f7f8f5"}}>{"پخش"}</th>
                     </tr>
                   </thead>
@@ -472,6 +485,23 @@ export default function AppView({ vm }) {
                             </>) : null}
                           </td>
                         </>) : null}
+                        <td style={{padding: "11px 12px", borderTop: "1px solid #eeefeb", whiteSpace: "nowrap"}}>
+                          {(row?.refOpen) ? (<>
+                            <button onClick={row?.onRefOpen} title={row?.refTip} style={{display: "inline-flex", alignItems: "center", gap: "5px", border: "1px solid #c9dcec", background: "#e5eff7", color: "#1d5a85", padding: "4px 10px", borderRadius: "999px", fontSize: "11px", fontWeight: "800", cursor: "pointer", fontFamily: "inherit"}}>
+                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M4 17v-2a4 4 0 0 1 4-4h12" />
+                                <path d="M16 7l4 4-4 4" />
+                              </svg>
+                              {row?.refText}
+                            </button>
+                          </>) : null}
+                          {(row?.refDone) ? (<>
+                            <button onClick={row?.onRefOpen} title={row?.refTip} style={{display: "inline-flex", alignItems: "center", gap: "5px", border: "1px solid #cfe4ad", background: "#eef7e3", color: "#3d6a0c", padding: "4px 10px", borderRadius: "999px", fontSize: "11px", fontWeight: "800", cursor: "pointer", fontFamily: "inherit"}}>{"✓ "}{row?.refText}</button>
+                          </>) : null}
+                          {(row?.noRef) ? (<>
+                            <span style={{color: "#c9cbc6"}}>{"—"}</span>
+                          </>) : null}
+                        </td>
                         <td style={{padding: "11px 16px", borderTop: "1px solid #eeefeb", textAlign: "center"}}>
                           {(row?.hasVoice) ? (<>
                             <button onClick={row?.onPlay} title="پخش ضبط مکالمه" style={{width: "36px", height: "36px", borderRadius: "50%", border: "none", background: row?.playBg, color: row?.playFg, display: "inline-grid", placeItems: "center", cursor: "pointer"}}>
@@ -490,6 +520,14 @@ export default function AppView({ vm }) {
                             <button onClick={row?.onDel} title="حذف تماس" style={{width: "32px", height: "32px", marginRight: "6px", borderRadius: "10px", border: "1px solid #f1c9c4", background: "#fff", color: "#b42318", display: "inline-grid", placeItems: "center", cursor: "pointer", verticalAlign: "middle"}}>
                               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                 <path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3" />
+                              </svg>
+                            </button>
+                          </>) : null}
+                          {(row?.canRefer) ? (<>
+                            <button onClick={row?.onRefer} title="ارجاع تماس به داخلی دیگر" style={{width: "32px", height: "32px", marginRight: "6px", borderRadius: "10px", border: "1px solid #d9d0ec", background: "#fff", color: "#6a4b9c", display: "inline-grid", placeItems: "center", cursor: "pointer", verticalAlign: "middle"}}>
+                              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M4 17v-2a4 4 0 0 1 4-4h12" />
+                                <path d="M16 7l4 4-4 4" />
                               </svg>
                             </button>
                           </>) : null}
@@ -1304,6 +1342,111 @@ export default function AppView({ vm }) {
                   </>) : null}
                 </div>
               </>) : null}
+            </div>
+          </div>
+        </>) : null}
+        {(vm.is?.refs) ? (<>
+          <div style={{display: "flex", flexDirection: "column", gap: "18px"}}>
+            <div style={{display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: "16px", flexWrap: "wrap"}}>
+              <div>
+                <h1 style={{margin: "0", fontSize: "28px", fontWeight: "800"}}>{"ارجاع‌شده‌ها"}</h1>
+                <div style={{fontSize: "14px", color: "#6b6e72", marginTop: "6px"}}>{"تماس‌هایی که برای رسیدگی ارجاع شده‌اند؛ هر قدم با نام و زمان ثبت می‌شود"}</div>
+              </div>
+              {(vm.rf?.myExt) ? (<>
+                <span style={{fontSize: "12px", fontWeight: "700", background: "#fff", border: "1px solid #e1e3dc", borderRadius: "999px", padding: "6px 12px"}}>{"داخلی شما: "}{vm.rf?.myExt}</span>
+              </>) : null}
+            </div>
+            <div style={{display: "flex", gap: "8px", flexWrap: "wrap", alignItems: "center"}}>
+              {(vm.rf?.boxes || []).map((b, __i7) => <React.Fragment key={__i7}>
+                <button onClick={b?.pick} style={{border: `1px solid ${b?.bd}`, background: b?.bg, color: b?.fg, padding: "9px 16px", borderRadius: "12px", fontSize: "13px", fontWeight: "800", cursor: "pointer", fontFamily: "inherit"}}>{b?.label}</button>
+              </React.Fragment>)}
+              <span style={{flex: "1"}} />
+              <div style={{display: "flex", gap: "6px"}}>
+                {(vm.rf?.statuses || []).map((b, __i8) => <React.Fragment key={__i8}>
+                  <button onClick={b?.pick} style={{border: `1px solid ${b?.bd}`, background: b?.bg, color: b?.fg, padding: "6px 12px", borderRadius: "999px", fontSize: "12px", fontWeight: "700", cursor: "pointer", fontFamily: "inherit"}}>{b?.label}</button>
+                </React.Fragment>)}
+              </div>
+              <input value={vm.rf?.q} onChange={vm.rf?.setQ} placeholder="نام، شماره، موضوع یا داخلی…" style={{border: "1px solid #e1e3dc", borderRadius: "12px", padding: "9px 12px", fontSize: "13px", outline: "none", background: "#fff", fontFamily: "inherit", width: "220px"}} />
+            </div>
+            {(vm.rf?.noExt) ? (<>
+              <div style={{background: "#fcf3e0", color: "#8a5a00", borderRadius: "12px", padding: "10px 14px", fontSize: "13px", fontWeight: "600"}}>
+                {"برای حساب شما داخلی تعریف نشده؛ ارجاع‌ها به داخلی‌ها فرستاده می‌شوند. از «کاربران و دسترسی‌ها» برای خودتان داخلی ثبت کنید."}
+              </div>
+            </>) : null}
+            {(vm.rf?.hasStats) ? (<>
+              <div style={{display: "flex", flexDirection: "column", gap: "12px"}}>
+                <div style={{fontWeight: "800", fontSize: "15px"}}>
+                  {"گزارش ارجاع‌ها "}
+                  <span style={{fontSize: "12px", color: "#8b8e89", fontWeight: "500"}}>{vm.rf?.stats?.range}</span>
+                </div>
+                <div style={{display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(150px,1fr))", gap: "10px"}}>
+                  {(vm.rf?.stats?.kpis || []).map((k, __i9) => <React.Fragment key={__i9}>
+                    <div style={{background: "#fff", border: "1px solid #e7e8e3", borderRadius: "16px", padding: "12px 14px"}}>
+                      <div style={{fontSize: "12px", color: "#6b6e72"}}>{k?.label}</div>
+                      <div style={{fontSize: "22px", fontWeight: "800", color: k?.color, marginTop: "3px"}}>{k?.value}</div>
+                      <div style={{fontSize: "11px", color: "#8b8e89"}}>{k?.sub}</div>
+                    </div>
+                  </React.Fragment>)}
+                </div>
+                <div style={{display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,300px),1fr))", gap: "12px"}}>
+                  {(vm.rf?.statsLists || []).map((L, __i9) => <React.Fragment key={__i9}>
+                    <div style={{background: "#fff", border: "1px solid #e7e8e3", borderRadius: "16px", padding: "14px 16px", display: "flex", flexDirection: "column", gap: "8px"}}>
+                      <div style={{fontWeight: "800", fontSize: "13px"}}>{L?.title}</div>
+                      {(L?.rows || []).map((r, __i11) => <React.Fragment key={__i11}>
+                        <div style={{display: "flex", flexDirection: "column", gap: "3px"}}>
+                          <div style={{display: "flex", justifyContent: "space-between", fontSize: "12px"}}>
+                            <span style={{fontWeight: "700"}}>{r?.label}</span>
+                            <span style={{color: "#6b6e72"}}>{r?.n}{" · انجام "}{r?.done}</span>
+                          </div>
+                          <div style={{height: "8px", background: "#f2f3ef", borderRadius: "99px", overflow: "hidden"}}>
+                            <div style={{height: "100%", width: r?.w, background: "#d9d0ec", borderRadius: "99px", position: "relative", overflow: "hidden"}}>
+                              <div style={{position: "absolute", top: "0", bottom: "0", right: "0", width: r?.dw, background: "#8DC63F"}} />
+                            </div>
+                          </div>
+                        </div>
+                      </React.Fragment>)}
+                    </div>
+                  </React.Fragment>)}
+                </div>
+              </div>
+            </>) : null}
+            {(vm.rf?.loading) ? (<>
+              <div style={{padding: "40px", textAlign: "center", color: "#8b8e89"}}>{"در حال بارگذاری…"}</div>
+            </>) : null}
+            {(vm.rf?.empty) ? (<>
+              <div style={{background: "#fff", border: "1px dashed #d9dad6", borderRadius: "20px", padding: "40px", textAlign: "center", color: "#6b6e72", fontSize: "14px"}}>{vm.rf?.emptyText}</div>
+            </>) : null}
+            <div style={{display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(min(100%,360px),1fr))", gap: "12px"}}>
+              {(vm.rf?.items || []).map((r, __i7) => <React.Fragment key={__i7}>
+                <div onClick={r?.open} style={{position: "relative", background: "#fff", border: `1.5px solid ${r?.bd}`, borderRadius: "18px", padding: "14px 16px 14px 14px", cursor: "pointer", display: "flex", flexDirection: "column", gap: "8px", overflow: "hidden", opacity: r?.op}}>
+                  <span style={{position: "absolute", top: "0", bottom: "0", right: "0", width: "4px", background: r?.stripe}} />
+                  <div style={{display: "flex", alignItems: "center", gap: "8px"}}>
+                    {(r?.newDot) ? (<>
+                      <span style={{width: "9px", height: "9px", borderRadius: "50%", background: "#2a78d6", animation: "cc-pulse 1.4s infinite", flexShrink: "0"}} />
+                    </>) : null}
+                    <span style={{fontSize: "14px", fontWeight: "800", flex: "1", minWidth: "0", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis"}}>{r?.topic}</span>
+                    {(r?.urgent) ? (<>
+                      <span style={{fontSize: "10px", fontWeight: "800", background: "#d92d20", color: "#fff", borderRadius: "999px", padding: "2px 8px"}}>{"فوری"}</span>
+                    </>) : null}
+                    <span style={{fontSize: "11px", fontWeight: "800", padding: "3px 9px", borderRadius: "999px", background: r?.stBg, color: r?.stFg, whiteSpace: "nowrap"}}>{r?.stLabel}</span>
+                  </div>
+                  <div style={{display: "flex", alignItems: "baseline", gap: "8px", flexWrap: "wrap"}}>
+                    <span style={{fontSize: "13px", fontWeight: "700"}}>{r?.name}</span>
+                    <span style={{fontSize: "12px", color: "#6b6e72", direction: "ltr"}}>{r?.phone}</span>
+                    <span style={{fontSize: "11px", color: "#8b8e89", marginRight: "auto"}}>{"تماس "}{r?.callText}</span>
+                  </div>
+                  <div style={{display: "flex", alignItems: "center", gap: "6px", fontSize: "12px", color: "#55585c", flexWrap: "wrap"}}>
+                    <span style={{fontWeight: "700"}}>{r?.from}</span>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6a4b9c" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{transform: "scaleX(-1)"}}>
+                      <path d="M4 17v-2a4 4 0 0 1 4-4h12" />
+                      <path d="M16 7l4 4-4 4" />
+                    </svg>
+                    <span style={{fontWeight: "700"}}>{r?.to}</span>
+                    <span style={{fontSize: "11px", color: "#8b8e89", marginRight: "auto"}}>{r?.when}</span>
+                  </div>
+                  <div style={{fontSize: "12px", color: "#3a3b3d", background: "#f7f8f4", borderRadius: "10px", padding: "7px 10px", lineHeight: "1.7"}}>{r?.last}</div>
+                </div>
+              </React.Fragment>)}
             </div>
           </div>
         </>) : null}
@@ -7262,6 +7405,212 @@ export default function AppView({ vm }) {
           </>) : null}
         </div>
       </>) : null}
+      {(vm.rfm?.show) ? (<>
+        <div onClick={vm.rfm?.close} style={{position: "fixed", inset: "0", background: "rgba(20,21,22,.5)", zIndex: "60"}} />
+        <div style={{position: "fixed", top: "50%", left: "50%", transform: "translate(-50%,-50%)", width: "min(560px,calc(100% - 32px))", maxHeight: "calc(100vh - 40px)", background: "#fff", borderRadius: "24px", zIndex: "61", boxShadow: "0 30px 80px rgba(0,0,0,.25)", display: "flex", flexDirection: "column", overflow: "hidden"}}>
+          <div style={{padding: "18px 22px", display: "flex", alignItems: "center", gap: "12px", background: "linear-gradient(120deg,#2E2F31,#3a3148)", color: "#fff"}}>
+            <div style={{width: "44px", height: "44px", borderRadius: "14px", background: "rgba(173,150,230,.2)", color: "#c9b8f2", display: "grid", placeItems: "center", flexShrink: "0"}}>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M4 17v-2a4 4 0 0 1 4-4h12" />
+                <path d="M16 7l4 4-4 4" />
+              </svg>
+            </div>
+            <div style={{flex: "1", minWidth: "0"}}>
+              <div style={{fontSize: "12px", color: "#c9b8f2", fontWeight: "700"}}>{"ارجاع تماس"}</div>
+              <div style={{fontWeight: "800", fontSize: "17px", marginTop: "2px"}}>{vm.rfm?.name}</div>
+              <div style={{fontSize: "12px", color: "#c9cbc6", marginTop: "2px"}}>
+                <span style={{direction: "ltr", display: "inline-block"}}>{vm.rfm?.phone}</span>
+                {" · "}{vm.rfm?.when}{" · "}{vm.rfm?.stLabel}
+              </div>
+            </div>
+            <button onClick={vm.rfm?.close} style={{width: "34px", height: "34px", borderRadius: "10px", border: "1px solid rgba(255,255,255,.2)", background: "transparent", cursor: "pointer", color: "#fff"}}>{"✕"}</button>
+          </div>
+          <div style={{padding: "18px 22px", overflow: "auto", display: "flex", flexDirection: "column", gap: "16px"}}>
+            <div>
+              <div style={{fontSize: "13px", fontWeight: "800", marginBottom: "8px"}}>{"۱. به کدام داخلی؟"}</div>
+              {(vm.rfm?.loading) ? (<>
+                <div style={{fontSize: "12px", color: "#8b8e89"}}>{"در حال دریافت داخلی‌ها…"}</div>
+              </>) : null}
+              <div style={{display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(150px,1fr))", gap: "8px", maxHeight: "220px", overflow: "auto", padding: "2px"}}>
+                {(vm.rfm?.exts || []).map((e, __i8) => <React.Fragment key={__i8}>
+                  <div onClick={e?.pick} style={{position: "relative", border: `1.5px solid ${e?.bd}`, background: e?.bg, borderRadius: "14px", padding: "10px 12px", cursor: "pointer", display: "flex", flexDirection: "column", gap: "3px"}}>
+                    <div style={{display: "flex", alignItems: "center", gap: "6px"}}>
+                      <span style={{width: "8px", height: "8px", borderRadius: "50%", background: e?.dot, flexShrink: "0"}} />
+                      <span style={{fontSize: "15px", fontWeight: "800"}}>{e?.ext}</span>
+                      <span style={{marginRight: "auto", fontWeight: "800", color: "#3d6a0c"}}>{e?.mark}</span>
+                    </div>
+                    <div style={{fontSize: "12px", fontWeight: "700", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis"}}>{e?.name}</div>
+                    {(e?.hasTitle) ? (<>
+                      <div style={{fontSize: "10px", color: "#6b6e72"}}>{e?.title}</div>
+                    </>) : null}
+                    <div style={{fontSize: "10px", color: "#8b8e89"}}>{e?.st}</div>
+                  </div>
+                </React.Fragment>)}
+              </div>
+            </div>
+            <div>
+              <div style={{fontSize: "13px", fontWeight: "800", marginBottom: "8px"}}>{"۲. موضوع ارجاع"}</div>
+              <div style={{display: "flex", gap: "6px", flexWrap: "wrap"}}>
+                {(vm.rfm?.topics || []).map((o, __i8) => <React.Fragment key={__i8}>
+                  <button onClick={o?.pick} style={{border: `1px solid ${o?.bd}`, background: o?.bg, color: o?.fg, padding: "6px 12px", borderRadius: "999px", fontSize: "12px", fontWeight: "700", cursor: "pointer", fontFamily: "inherit"}}>{o?.label}</button>
+                </React.Fragment>)}
+              </div>
+            </div>
+            <div style={{display: "flex", alignItems: "center", gap: "8px"}}>
+              <span style={{fontSize: "13px", fontWeight: "800"}}>{"اولویت"}</span>
+              {(vm.rfm?.prios || []).map((o, __i7) => <React.Fragment key={__i7}>
+                <button onClick={o?.pick} style={{border: `1px solid ${o?.bd}`, background: o?.bg, color: o?.fg, padding: "6px 12px", borderRadius: "999px", fontSize: "12px", fontWeight: "700", cursor: "pointer", fontFamily: "inherit"}}>{o?.label}</button>
+              </React.Fragment>)}
+            </div>
+            <div>
+              <div style={{display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: "8px"}}>
+                <span style={{fontSize: "13px", fontWeight: "800"}}>{"۳. توضیح دقیق ارجاع"}</span>
+                <span style={{fontSize: "11px", color: vm.rfm?.countFg}}>{vm.rfm?.count}</span>
+              </div>
+              <textarea value={vm.rfm?.text} onChange={vm.rfm?.setText} rows="4" placeholder="بیمار چه خواسته و گیرنده دقیقاً چه کاری باید انجام دهد؟" style={{width: "100%", boxSizing: "border-box", border: "1px solid #e1e3dc", borderRadius: "12px", padding: "10px 12px", fontSize: "13px", fontFamily: "inherit", lineHeight: "1.8", resize: "vertical", outline: "none", background: "#fff"}} />
+            </div>
+            {(vm.rfm?.hasErr) ? (<>
+              <div style={{background: "#fdeceb", color: "#b42318", borderRadius: "10px", padding: "8px 12px", fontSize: "13px", fontWeight: "700"}}>{vm.rfm?.err}</div>
+            </>) : null}
+          </div>
+          <div style={{padding: "14px 22px 18px", display: "flex", gap: "8px", justifyContent: "flex-end", borderTop: "1px solid #eeefeb"}}>
+            <button onClick={vm.rfm?.close} style={{border: "none", padding: "11px 16px", borderRadius: "12px", fontSize: "13px", fontWeight: "800", cursor: "pointer", fontFamily: "inherit", background: "#fff", border: "1px solid #e1e3dc", color: "#2E2F31"}}>{"انصراف"}</button>
+            <button onClick={vm.rfm?.go} style={{border: "none", padding: "11px 16px", borderRadius: "12px", fontSize: "13px", fontWeight: "800", cursor: "pointer", fontFamily: "inherit", background: "#6a4b9c", color: "#fff", opacity: vm.rfm?.goOp}}>{vm.rfm?.goText}</button>
+          </div>
+        </div>
+      </>) : null}
+      {(vm.rfd?.show) ? (<>
+        <div onClick={vm.rfd?.close} style={{position: "fixed", inset: "0", background: "rgba(20,21,22,.5)", zIndex: "55"}} />
+        <div style={{position: "fixed", top: "0", bottom: "0", right: "0", width: "min(620px,100%)", background: "#f4f5f1", zIndex: "56", boxShadow: "-24px 0 60px rgba(0,0,0,.18)", display: "flex", flexDirection: "column"}}>
+          {(vm.rfd?.loading) ? (<>
+            <div style={{padding: "40px", textAlign: "center", color: "#8b8e89"}}>{"در حال بارگذاری…"}</div>
+          </>) : null}
+          {(vm.rfd?.ready) ? (<>
+            <div style={{background: "linear-gradient(120deg,#2E2F31,#3a3148)", color: "#fff", padding: "18px 20px", display: "flex", flexDirection: "column", gap: "12px"}}>
+              <div style={{display: "flex", alignItems: "center", gap: "10px"}}>
+                <div style={{flex: "1", minWidth: "0"}}>
+                  <div style={{fontSize: "12px", color: "#c9b8f2", fontWeight: "700"}}>{"ارجاع تماس"}</div>
+                  <div style={{fontSize: "19px", fontWeight: "800", marginTop: "2px"}}>{vm.rfd?.title}</div>
+                </div>
+                {(vm.rfd?.urgent) ? (<>
+                  <span style={{fontSize: "11px", fontWeight: "800", background: "#d92d20", color: "#fff", padding: "4px 10px", borderRadius: "999px"}}>{"فوری"}</span>
+                </>) : null}
+                <span style={{fontSize: "12px", fontWeight: "800", background: vm.rfd?.stBg, color: vm.rfd?.stFg, padding: "5px 12px", borderRadius: "999px"}}>{vm.rfd?.stLabel}</span>
+                <button onClick={vm.rfd?.close} style={{width: "34px", height: "34px", borderRadius: "10px", border: "1px solid rgba(255,255,255,.2)", background: "transparent", cursor: "pointer", color: "#fff"}}>{"✕"}</button>
+              </div>
+              <div style={{display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", fontSize: "12px"}}>
+                <div style={{background: "rgba(255,255,255,.07)", borderRadius: "12px", padding: "8px 10px"}}>
+                  <div style={{color: "#b8bab5", fontSize: "10px"}}>{"بیمار"}</div>
+                  <div style={{fontWeight: "800", marginTop: "2px"}}>
+                    {vm.rfd?.name}{" "}
+                    <span style={{direction: "ltr", display: "inline-block", color: "#c9cbc6", fontWeight: "600"}}>{vm.rfd?.phone}</span>
+                  </div>
+                </div>
+                <div style={{background: "rgba(255,255,255,.07)", borderRadius: "12px", padding: "8px 10px"}}>
+                  <div style={{color: "#b8bab5", fontSize: "10px"}}>{"تماس"}</div>
+                  <div style={{fontWeight: "800", marginTop: "2px"}}>{vm.rfd?.callText}</div>
+                </div>
+                <div style={{background: "rgba(255,255,255,.07)", borderRadius: "12px", padding: "8px 10px"}}>
+                  <div style={{color: "#b8bab5", fontSize: "10px"}}>{"ارجاع‌دهنده"}</div>
+                  <div style={{fontWeight: "800", marginTop: "2px"}}>{vm.rfd?.from}</div>
+                </div>
+                <div style={{background: "rgba(255,255,255,.07)", borderRadius: "12px", padding: "8px 10px"}}>
+                  <div style={{color: "#b8bab5", fontSize: "10px"}}>{"الان در دست"}</div>
+                  <div style={{fontWeight: "800", marginTop: "2px"}}>{vm.rfd?.to}</div>
+                </div>
+              </div>
+              <div style={{display: "flex", gap: "6px", flexWrap: "wrap"}}>
+                <button onClick={vm.rfd?.call} style={{border: "none", background: "#8DC63F", color: "#1f2021", padding: "8px 12px", borderRadius: "10px", fontSize: "12px", fontWeight: "800", cursor: "pointer", fontFamily: "inherit"}}>{"تماس با بیمار"}</button>
+                {(vm.rfd?.hasRec) ? (<>
+                  <button onClick={vm.rfd?.play} style={{border: "1px solid rgba(255,255,255,.22)", background: "transparent", color: "#fff", padding: "8px 12px", borderRadius: "10px", fontSize: "12px", fontWeight: "700", cursor: "pointer", fontFamily: "inherit"}}>{"▶ پخش مکالمه"}</button>
+                </>) : null}
+                <button onClick={vm.rfd?.openCall} style={{border: "1px solid rgba(255,255,255,.22)", background: "transparent", color: "#fff", padding: "8px 12px", borderRadius: "10px", fontSize: "12px", fontWeight: "700", cursor: "pointer", fontFamily: "inherit"}}>{"جزئیات تماس و تحلیل AI"}</button>
+                <button onClick={vm.rfd?.openFile} style={{border: "1px solid rgba(255,255,255,.22)", background: "transparent", color: "#fff", padding: "8px 12px", borderRadius: "10px", fontSize: "12px", fontWeight: "700", cursor: "pointer", fontFamily: "inherit"}}>{"پرونده بیمار"}</button>
+              </div>
+            </div>
+            <div style={{flex: "1", minHeight: "0", overflow: "auto", padding: "16px 18px", display: "flex", flexDirection: "column", gap: "14px"}}>
+              {(vm.rfd?.hasResult) ? (<>
+                <div style={{background: "#eef7e3", border: "1px solid #cfe4ad", borderRadius: "16px", padding: "12px 14px"}}>
+                  <div style={{fontSize: "12px", fontWeight: "800", color: "#3d6a0c"}}>{"تعیین تکلیف شد: انجام شد"}</div>
+                  <div style={{fontSize: "13px", marginTop: "4px", lineHeight: "1.9", whiteSpace: "pre-wrap"}}>{vm.rfd?.result}</div>
+                </div>
+              </>) : null}
+              {(vm.rfd?.hasActions) ? (<>
+                <div style={{background: "#fff", border: "1px solid #e7e8e3", borderRadius: "18px", padding: "14px 16px", display: "flex", flexDirection: "column", gap: "12px"}}>
+                  <div style={{fontWeight: "800", fontSize: "14px"}}>{"اقدام روی این ارجاع"}</div>
+                  <div style={{display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(130px,1fr))", gap: "8px"}}>
+                    {(vm.rfd?.actions || []).map((a, __i10) => <React.Fragment key={__i10}>
+                      <button onClick={a?.pick} style={{border: `1.5px solid ${a?.col}`, background: a?.bg, color: a?.fg, padding: "10px 8px", borderRadius: "12px", fontSize: "12px", fontWeight: "800", cursor: "pointer", fontFamily: "inherit"}}>{a?.label}</button>
+                    </React.Fragment>)}
+                  </div>
+                  {(vm.rfd?.hasForm) ? (<>
+                    <div style={{borderTop: "1px dashed #d9dad6", paddingTop: "12px", display: "flex", flexDirection: "column", gap: "10px"}}>
+                      <div style={{fontSize: "13px", fontWeight: "800", color: vm.rfd?.form?.col}}>{vm.rfd?.form?.title}</div>
+                      {(vm.rfd?.form?.needExt) ? (<>
+                        <div style={{display: "flex", gap: "6px", flexWrap: "wrap", maxHeight: "140px", overflow: "auto"}}>
+                          {(vm.rfd?.form?.exts || []).map((e, __i13) => <React.Fragment key={__i13}>
+                            <button onClick={e?.pick} style={{display: "inline-flex", alignItems: "center", gap: "6px", border: `1px solid ${e?.bd}`, background: e?.bg, color: e?.fg, padding: "6px 12px", borderRadius: "999px", fontSize: "12px", fontWeight: "700", cursor: "pointer", fontFamily: "inherit"}}>
+                              <span style={{width: "7px", height: "7px", borderRadius: "50%", background: e?.dot}} />
+                              {e?.label}
+                            </button>
+                          </React.Fragment>)}
+                        </div>
+                        <div style={{display: "flex", gap: "6px", flexWrap: "wrap"}}>
+                          {(vm.rfd?.form?.topics || []).map((o, __i13) => <React.Fragment key={__i13}>
+                            <button onClick={o?.pick} style={{border: `1px solid ${o?.bd}`, background: o?.bg, color: o?.fg, padding: "4px 10px", borderRadius: "999px", fontSize: "11px", fontWeight: "700", cursor: "pointer", fontFamily: "inherit"}}>{o?.label}</button>
+                          </React.Fragment>)}
+                        </div>
+                      </>) : null}
+                      <div style={{display: "flex", justifyContent: "flex-end"}}>
+                        <span style={{fontSize: "11px", color: vm.rfd?.form?.countFg}}>{vm.rfd?.form?.count}</span>
+                      </div>
+                      <textarea value={vm.rfd?.form?.text} onChange={vm.rfd?.form?.setText} rows="3" placeholder={vm.rfd?.form?.ph} style={{width: "100%", boxSizing: "border-box", border: "1px solid #e1e3dc", borderRadius: "12px", padding: "10px 12px", fontSize: "13px", fontFamily: "inherit", lineHeight: "1.8", resize: "vertical", outline: "none", background: "#fff"}} />
+                      {(vm.rfd?.form?.hasErr) ? (<>
+                        <div style={{background: "#fdeceb", color: "#b42318", borderRadius: "10px", padding: "8px 12px", fontSize: "12px", fontWeight: "700"}}>{vm.rfd?.form?.err}</div>
+                      </>) : null}
+                      <div style={{display: "flex", gap: "8px", justifyContent: "flex-end"}}>
+                        <button onClick={vm.rfd?.form?.cancel} style={{border: "none", padding: "11px 16px", borderRadius: "12px", fontSize: "13px", fontWeight: "800", cursor: "pointer", fontFamily: "inherit", padding: "9px 14px", background: "#fff", border: "1px solid #e1e3dc", color: "#2E2F31"}}>{"انصراف"}</button>
+                        <button onClick={vm.rfd?.form?.go} style={{border: "none", padding: "11px 16px", borderRadius: "12px", fontSize: "13px", fontWeight: "800", cursor: "pointer", fontFamily: "inherit", padding: "9px 18px", background: vm.rfd?.form?.col, color: "#fff", opacity: vm.rfd?.form?.goOp}}>{vm.rfd?.form?.goText}</button>
+                      </div>
+                    </div>
+                  </>) : null}
+                </div>
+              </>) : null}
+              <div style={{background: "#fff", border: "1px solid #e7e8e3", borderRadius: "18px", padding: "16px 18px"}}>
+                <div style={{fontWeight: "800", fontSize: "14px", marginBottom: "14px"}}>{"مسیر ارجاع"}</div>
+                {(vm.rfd?.events || []).map((e, __i8) => <React.Fragment key={__i8}>
+                  <div style={{display: "flex", gap: "12px", position: "relative"}}>
+                    <div style={{display: "flex", flexDirection: "column", alignItems: "center", flexShrink: "0", width: "34px"}}>
+                      <div style={{width: "34px", height: "34px", borderRadius: "11px", background: e?.col, color: "#fff", display: "grid", placeItems: "center", flexShrink: "0"}}>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d={e?.path} /></svg>
+                      </div>
+                      {(e?.line) ? (<>
+                        <div style={{flex: "1", width: "2px", background: "#e7e8e3", margin: "4px 0", minHeight: "14px"}} />
+                      </>) : null}
+                    </div>
+                    <div style={{flex: "1", minWidth: "0", paddingBottom: "14px"}}>
+                      <div style={{display: "flex", alignItems: "baseline", gap: "6px", flexWrap: "wrap"}}>
+                        <span style={{fontSize: "13px", fontWeight: "800"}}>{e?.by}</span>
+                        <span style={{fontSize: "12px", fontWeight: "700", color: e?.col}}>{e?.label}</span>
+                        {(e?.hasTo) ? (<>
+                          <span style={{fontSize: "12px", fontWeight: "700"}}>{e?.to}</span>
+                        </>) : null}
+                        <span style={{fontSize: "11px", color: "#8b8e89", marginRight: "auto"}}>{e?.at}</span>
+                      </div>
+                      {(e?.hasTopic) ? (<>
+                        <span style={{display: "inline-block", marginTop: "5px", fontSize: "11px", fontWeight: "700", background: "#f2f3ef", borderRadius: "999px", padding: "2px 9px"}}>{e?.topic}</span>
+                      </>) : null}
+                      {(e?.hasText) ? (<>
+                        <div style={{marginTop: "6px", fontSize: "13px", lineHeight: "1.9", background: "#f7f8f4", borderRadius: "12px", padding: "8px 12px", whiteSpace: "pre-wrap"}}>{e?.text}</div>
+                      </>) : null}
+                    </div>
+                  </div>
+                </React.Fragment>)}
+              </div>
+            </div>
+          </>) : null}
+        </div>
+      </>) : null}
       {(vm.dp?.show) ? (<>
         <div onClick={vm.dp?.close} style={{position: "fixed", inset: "0", background: "rgba(20,21,22,.5)", zIndex: "60"}} />
         <div style={{position: "fixed", top: "50%", left: "50%", transform: "translate(-50%,-50%)", width: "min(440px,calc(100% - 32px))", maxHeight: "calc(100vh - 48px)", background: "#fff", borderRadius: "22px", zIndex: "61", boxShadow: "0 30px 80px rgba(0,0,0,.25)", display: "flex", flexDirection: "column", overflow: "hidden"}}>
@@ -7413,6 +7762,15 @@ export default function AppView({ vm }) {
               </svg>
               {"پرونده"}
             </button>
+            {(vm.cvm?.canRefer) ? (<>
+              <button onClick={vm.cvm?.refer} title="ارجاع تماس" style={{height: "36px", padding: "0 12px", borderRadius: "10px", border: "1px solid #d9d0ec", background: "#f6f2fb", cursor: "pointer", color: "#6a4b9c", display: "flex", alignItems: "center", gap: "6px", fontSize: "12px", fontWeight: "800", fontFamily: "inherit"}}>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M4 17v-2a4 4 0 0 1 4-4h12" />
+                  <path d="M16 7l4 4-4 4" />
+                </svg>
+                {vm.cvm?.referLabel}
+              </button>
+            </>) : null}
             {(vm.cvm?.canDel) ? (<>
               <button onClick={vm.cvm?.del} title="حذف تماس" style={{width: "36px", height: "36px", borderRadius: "10px", border: "1px solid #f1c9c4", background: "#fff", cursor: "pointer", color: "#b42318", display: "grid", placeItems: "center"}}>
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

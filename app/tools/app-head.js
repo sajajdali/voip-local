@@ -9,9 +9,10 @@ import { TODAY, MONTH_START, jAdd, jWeekday, jLong, WD_NAMES, jStr, jToDate, pad
 const since24 = () => { const d = new Date(Date.now() - 24 * 3600e3); return jStr(d) + ' ' + jpad(d.getHours()) + ':' + jpad(d.getMinutes()); };
 
 let ME = { id: '', name: '', ext: '', role: 'operator', perms: {} };
+const REF_TOPICS_FA = { appt: 'نوبت‌دهی / تغییر نوبت', postop: 'پیگیری بعد از عمل', medical: 'سؤال پزشکی', finance: 'امور مالی و پرداخت', complaint: 'شکایت / نارضایتی', doctor: 'درخواست تماس با پزشک', docs: 'مدارک و پرونده', urgent: 'موضوع فوری / اورژانسی', other: 'سایر' };
 let SECTIONS = [];
 // page → the permission section that guards it
-const PAGE_SECTION = { calls: 'calls', file: 'calls', inbound: 'inbound', live: 'live', voice: 'voice', unreached: 'unreached', reports: 'reports', days: 'reports', creports: 'calls', vvm: 'vvm', vsms: 'vsms', survey: 'survey', ai: 'ai', aiconv: 'aiconv', sys: 'sys', usage: 'usage', users: 'users', vai: 'vai', vagent: 'vagent', vcrm: 'vcrm', vapi: 'vapi', vbackup: 'vbackup', vsurvey: 'vsurvey', vext: 'vext', vtrunk: 'vtrunk', vqueue: 'vqueue', vivr: 'vivr', vsound: 'vsound', vroute: 'vroute', vout: 'vout', vtime: 'vtime', vring: 'vring', vfollow: 'vfollow', vblack: 'vblack' };
+const PAGE_SECTION = { calls: 'calls', file: 'calls', inbound: 'inbound', live: 'live', voice: 'voice', unreached: 'unreached', reports: 'reports', days: 'reports', creports: 'calls', vvm: 'vvm', vsms: 'vsms', refs: 'refer', survey: 'survey', ai: 'ai', aiconv: 'aiconv', sys: 'sys', usage: 'usage', users: 'users', vai: 'vai', vagent: 'vagent', vcrm: 'vcrm', vapi: 'vapi', vbackup: 'vbackup', vsurvey: 'vsurvey', vext: 'vext', vtrunk: 'vtrunk', vqueue: 'vqueue', vivr: 'vivr', vsound: 'vsound', vroute: 'vroute', vout: 'vout', vtime: 'vtime', vring: 'vring', vfollow: 'vfollow', vblack: 'vblack' };
 const VOIP_SECTIONS = ['vext', 'vtrunk', 'vqueue', 'vivr', 'vsound', 'vroute', 'vout', 'vtime', 'vring', 'vfollow', 'vblack', 'vsurvey', 'vvm'];
 const SETTING_SECTIONS = [...VOIP_SECTIONS, 'vai', 'vagent', 'vcrm', 'vapi', 'usage', 'vbackup', 'sys', 'users'];
 const CAN = (section, action = 'view') => ME.role === 'admin' || !!(ME.perms && ME.perms[section] && ME.perms[section].includes(action));
@@ -63,6 +64,8 @@ class LiveApp extends React.Component {
     this.sock.on('liveaudio', b => this.playLivePcm(b));
     this.sock.on('sms', x => { if (x && x.callKey) this.loadSmsSent([x.callKey]); else this.loadSmsButtons(); });
     this.loadSmsButtons();
+    this.sock.on('referrals', () => { this.loadRefCount(); if (this.state.page === 'refs') this.loadRefs(); if (this.state.rfOpen) this.loadRefDetail(this.state.rfOpen); this.reloadCalls(); });
+    this.loadRefCount();
     this.sock.on('liveaudio:start', () => this.setState({ lsOn: true }));
     this.sock.on('liveaudio:end', e => { if (e.reason) this.toast(e.reason); this.stopListen(true); });
     // a newer panel build on the server: offer to load it (the page itself never reloads on its own)
@@ -138,6 +141,7 @@ class LiveApp extends React.Component {
     if (s.page === 'users' && prev.page !== 'users') this.loadUsers();
     if (s.page === 'creports' && prev.page !== 'creports') this.loadCReports();
     if (s.page === 'vsms' && prev.page !== 'vsms') this.loadSmsSettings();
+    if (s.page === 'refs' && (prev.page !== 'refs' || prev.rfF !== s.rfF)) this.loadRefs();
     if (s.cvId && s.cvId !== prev.cvId) this.loadCallReports(s.cvId);
     // a page this user may not open: go to the first one they may
     if (!canPage(s.page)) { const first = ['calls', 'inbound', 'voice', 'unreached', 'live', 'reports', 'survey', 'ai', 'aiconv', 'settings'].find(canPage); if (first && first !== s.page) this.setState({ page: first }); }
@@ -1980,6 +1984,169 @@ class LiveApp extends React.Component {
     } };
   }
 
+  // ---- «ارجاع تماس»: refer a call to an extension; the inbox, the timeline and the manager's report
+  async loadRefCount() { if (!CAN('refer')) return; try { const d = await api('/referrals/count'); this.setState({ refCount: d }); } catch (e) { /* ignore */ } }
+
+  async askRefer(c) {
+    if (!CAN('refer', 'add')) { this.toast('اجازه ارجاع تماس را ندارید'); return; }
+    if (c.ref && c.ref.status === 'open') { this.openRef(c.ref.id); this.toast('این تماس ارجاع باز دارد؛ از همین‌جا ادامه دهید'); return; }
+    this.setState({ rfNew: { call: c, ext: '', topic: '', priority: 'normal', text: '', busy: false, err: '' } });
+    if (!this.state.rfTargets) try { const t = await api('/referrals/targets'); this.setState({ rfTargets: t }); } catch (e) { this.toast(e.message); }
+  }
+
+  referModalVals(s) {
+    const d = s.rfNew;
+    if (!d) return { rfm: { show: false } };
+    const fa = n => String(n).replace(/\d/g, x => '۰۱۲۳۴۵۶۷۸۹'[x]);
+    const set = o => this.setState({ rfNew: { ...d, err: '', ...o } });
+    const live = Object.fromEntries((s.exts || []).map(e => [e.n, e.st]));
+    const ST = { online: ['آزاد', '#7FB536'], busy: ['در مکالمه', '#e0a83a'], offline: ['آفلاین', '#c9cbc6'] };
+    const T = REF_TOPICS_FA;
+    const ok = d.ext && d.topic && d.text.trim().length >= 10;
+    const c = d.call;
+    return { rfm: {
+      show: true, name: c.name, phone: c.phone, when: fa(c.date) + ' ساعت ' + fa(c.time), stLabel: c.status ? c.status.label : '',
+      loading: !s.rfTargets,
+      exts: (s.rfTargets || []).filter(t => !t.me).map(t => { const on = d.ext === t.ext, [lb, dot] = ST[live[t.ext]] || ST.offline; return {
+        ext: fa(t.ext), name: t.name || 'داخلی ' + fa(t.ext), title: t.title || '', hasTitle: !!t.title, st: lb, dot, mark: on ? '✓' : '',
+        bd: on ? '#2E2F31' : '#e7e8e3', bg: on ? '#f4f9ec' : '#fff', pick: () => set({ ext: t.ext }) }; }),
+      topics: Object.entries(T).map(([k, label]) => ({ label, bg: d.topic === k ? '#2E2F31' : '#fff', fg: d.topic === k ? '#fff' : '#3a3b3d', bd: d.topic === k ? '#2E2F31' : '#e1e3dc', pick: () => set({ topic: k, ...(k === 'urgent' ? { priority: 'urgent' } : {}) }) })),
+      prios: [['normal', 'عادی'], ['urgent', 'فوری']].map(([k, label]) => ({ label, bg: d.priority === k ? (k === 'urgent' ? '#b42318' : '#2E2F31') : '#fff', fg: d.priority === k ? '#fff' : '#3a3b3d', bd: d.priority === k ? (k === 'urgent' ? '#b42318' : '#2E2F31') : '#e1e3dc', pick: () => set({ priority: k }) })),
+      text: d.text, setText: e => set({ text: e.target.value }), count: fa(d.text.trim().length) + ' / حداقل ۱۰ حرف', countFg: d.text.trim().length >= 10 ? '#3d6a0c' : '#8b8e89',
+      err: d.err, hasErr: !!d.err, goOp: ok && !d.busy ? 1 : 0.5,
+      goText: d.busy ? 'در حال ارجاع…' : d.ext ? 'ارجاع به داخلی ' + fa(d.ext) : 'ارجاع تماس',
+      close: () => this.setState({ rfNew: null }),
+      go: async () => {
+        if (!d.ext) return set({ err: 'داخلی مقصد را انتخاب کنید' });
+        if (!d.topic) return set({ err: 'موضوع ارجاع را انتخاب کنید' });
+        if (d.text.trim().length < 10) return set({ err: 'توضیح ارجاع را دقیق بنویسید (حداقل ۱۰ حرف)' });
+        set({ busy: true });
+        try { await api('/referrals', { callId: c.id, ext: d.ext, topic: d.topic, priority: d.priority, text: d.text }); this.setState({ rfNew: null }); this.toast('تماس به داخلی ' + fa(d.ext) + ' ارجاع شد'); this.reloadCalls(); }
+        catch (e) { this.setState({ rfNew: { ...d, busy: false, err: e.message } }); }
+      },
+    } };
+  }
+
+  async loadRefs() {
+    const f = this.state.rfF || {};
+    try {
+      const q = '?box=' + (f.box || 'mine') + (f.from ? '&from=' + encodeURIComponent(f.from) + '&to=' + encodeURIComponent(f.to || TODAY) : '');
+      const d = await api('/referrals' + q);
+      this.setState({ rfData: d });
+      if (d.canAll && (f.box || 'mine') === 'all') { const st = await api('/referrals/stats/summary?from=' + encodeURIComponent(f.from || jAdd(-29)) + '&to=' + encodeURIComponent(f.to || TODAY)); this.setState({ rfStats: st }); }
+    } catch (e) { this.toast('دریافت ارجاع‌ها ناموفق بود: ' + e.message); }
+  }
+
+  async openRef(id) {
+    this.setState({ rfOpen: id, rfAct: null, rfDetail: null });
+    if (!this.state.rfTargets && CAN('refer', 'add')) api('/referrals/targets').then(t => this.setState({ rfTargets: t })).catch(() => {});
+    await this.loadRefDetail(id);
+    api('/referrals/' + id + '/seen', {}).catch(() => {});
+  }
+
+  async loadRefDetail(id) { try { const d = await api('/referrals/' + id); this.setState(st => (st.rfOpen === id ? { rfDetail: d } : null)); } catch (e) { this.toast(e.message); this.setState({ rfOpen: null }); } }
+
+  refsVals(s) {
+    const fa = n => String(n).replace(/\d/g, x => '۰۱۲۳۴۵۶۷۸۹'[x]);
+    // box / dates go to the server; status and search filter locally
+    const f = { box: 'mine', from: '', to: '', ...(s.rfF || {}), status: 'open', q: '', ...(s.rfL || {}) };
+    const setF = o => this.setState({ rfF: { box: f.box, from: f.from, to: f.to, ...o } });
+    const setL = o => this.setState({ rfL: { status: f.status, q: f.q, ...o } });
+    const d = s.rfData;
+    const ago = t => { const m = Math.round((Date.now() - new Date(t)) / 60000); return m < 1 ? 'همین الان' : m < 60 ? fa(m) + ' دقیقه پیش' : m < 1440 ? fa(Math.round(m / 60)) + ' ساعت پیش' : fa(Math.round(m / 1440)) + ' روز پیش'; };
+    const KL = { create: 'ارجاع داد', note: 'اقدام ثبت کرد', forward: 'ارجاع داد', return: 'برگرداند', done: 'انجام شد', reopen: 'دوباره باز کرد', seen: 'مشاهده کرد' };
+    const q = f.q.trim(), qd = q.replace(/\s/g, '');
+    const items = d ? d.items.filter(r => (f.status === 'all' || r.status === f.status) && (!q || (r.name || '').includes(q) || r.phoneRaw.includes(qd) || r.topicLabel.includes(q) || r.toName.includes(q) || r.fromName.includes(q))) : [];
+    const cnt = st => (d ? d.items.filter(r => st === 'all' || r.status === st).length : 0);
+    const boxes = [['mine', 'ارجاع‌شده به من'], ['sent', 'ارجاع‌های من'], ...(d && d.canAll ? [['all', 'همه ارجاع‌ها']] : [])];
+    const pill = on => ({ bg: on ? '#2E2F31' : '#fff', fg: on ? '#fff' : '#3a3b3d', bd: on ? '#2E2F31' : '#e1e3dc' });
+    const st = s.rfStats;
+    const bar = (list, total) => list.slice(0, 8).map(x => ({ label: x.label, n: fa(x.n), open: fa(x.open), done: fa(x.done), w: Math.round(x.n / Math.max(1, total) * 100) + '%', dw: x.n ? Math.round(x.done / x.n * 100) + '%' : '0%' }));
+    return { rf: {
+      loading: !d, myExt: d && d.myExt ? fa(d.myExt) : '', noExt: !!d && !d.myExt && f.box === 'mine',
+      boxes: boxes.map(([k, label]) => ({ label: label + (k === 'mine' && d && d.myOpen ? ' · ' + fa(d.myOpen) : ''), ...pill(f.box === k), pick: () => setF({ box: k }) })),
+      statuses: [['open', 'باز'], ['done', 'انجام شده'], ['all', 'همه']].map(([k, label]) => ({ label: label + ' ' + fa(cnt(k)), ...pill(f.status === k), pick: () => setL({ status: k }) })),
+      q: f.q, setQ: e => setL({ q: e.target.value }),
+      items: items.map(r => {
+        const urgent = r.priority === 'urgent', done = r.status === 'done';
+        return {
+          id: r.id, name: r.name || 'شماره ناشناس', phone: r.phone, topic: r.topicLabel, urgent, done, open: !done,
+          to: r.toName + ' · داخلی ' + fa(r.toExt), from: r.fromName, when: ago(r.createdAt), upd: ago(r.updatedAt),
+          last: r.last ? (KL[r.last.kind] || r.last.kind) + ' — ' + r.last.by + (r.last.text ? ': ' + r.last.text.slice(0, 90) + (r.last.text.length > 90 ? '…' : '') : '') : '',
+          newDot: r.mine && !r.seen && !done, stLabel: done ? 'انجام شد' : r.mine ? 'منتظر رسیدگی شما' : 'باز', stBg: done ? '#eef5e3' : urgent ? '#fdeceb' : '#e5eff7', stFg: done ? '#3d6a0c' : urgent ? '#b42318' : '#1d5a85',
+          stripe: done ? '#8DC63F' : urgent ? '#d92d20' : '#2a78d6', bd: s.rfOpen === r.id ? '#2E2F31' : '#e7e8e3', op: done ? 0.85 : 1,
+          callText: r.call ? fa(r.call.date) + ' ' + fa(r.call.time) : '', open: () => this.openRef(r.id),
+        };
+      }),
+      empty: !!d && !items.length, emptyText: f.box === 'mine' ? (f.status === 'open' ? 'ارجاع بازی برای داخلی شما نیست 🎉' : 'ارجاعی پیدا نشد') : 'ارجاعی پیدا نشد',
+      hasStats: !!(st && d && d.canAll && f.box === 'all'),
+      stats: st ? {
+        kpis: [
+          { label: 'کل ارجاع‌ها', value: fa(st.total), color: '#232425' }, { label: 'باز', value: fa(st.open), sub: fa(st.unseen) + ' دیده‌نشده', color: '#1d5a85' },
+          { label: 'انجام شده', value: fa(st.done), sub: st.total ? fa(Math.round(st.done / st.total * 100)) + '٪' : '', color: '#3d6a0c' },
+          { label: 'زمان رسیدگی (میانه)', value: st.medianHours == null ? '—' : st.medianHours < 1 ? fa(Math.round(st.medianHours * 60)) + ' دقیقه' : fa(st.medianHours.toFixed(1)) + ' ساعت', color: '#8a5a00' },
+          { label: 'فوری', value: fa(st.urgent), color: '#b42318' }, { label: 'ارجاع دوباره / برگشتی', value: fa(st.forwarded) + ' / ' + fa(st.returned), color: '#6a4b9c' },
+        ],
+        range: fa(st.from) + ' تا ' + fa(st.to),
+      } : {},
+      statsLists: st ? [{ title: 'به تفکیک گیرنده', rows: bar(st.byAssignee, st.total) }, { title: 'به تفکیک موضوع', rows: bar(st.byTopic, st.total) }, { title: 'به تفکیک ارجاع‌دهنده', rows: bar(st.bySender, st.total) }] : [],
+    } };
+  }
+
+  refDetailVals(s) {
+    const id = s.rfOpen;
+    if (!id) return { rfd: { show: false } };
+    const d = s.rfDetail;
+    const fa = n => String(n).replace(/\d/g, x => '۰۱۲۳۴۵۶۷۸۹'[x]);
+    const at = t => { const x = new Date(t); return fa(jStr(x)) + ' · ' + fa(jpad(x.getHours()) + ':' + jpad(x.getMinutes())); };
+    const close = () => this.setState({ rfOpen: null, rfDetail: null, rfAct: null });
+    if (!d) return { rfd: { show: true, loading: true, ready: false, close } };
+    const EV = {
+      create: ['ارجاع داد', '#2a78d6', 'M5 12h14M13 6l6 6-6 6'], forward: ['ارجاع داد', '#6a4b9c', 'M5 12h14M13 6l6 6-6 6'], return: ['برگرداند', '#c2410c', 'M19 12H5M11 6l-6 6 6 6'],
+      note: ['اقدام ثبت کرد', '#55585c', 'M4 20h4l10-10-4-4L4 16zM13 7l4 4'], done: ['انجام شد', '#3d6a0c', 'M5 12.5l4.5 4.5L19 7.5'], reopen: ['دوباره باز کرد', '#8a5a00', 'M4 4v6h6M20 12a8 8 0 0 0-14.9-4'], seen: ['مشاهده کرد', '#9a9d97', 'M2 12s4-7 10-7 10 7 10 7-4 7-10 7-10-7-10-7zM12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z'],
+    };
+    const events = d.events.map((e, i, a) => { const [label, col, path] = EV[e.kind] || EV.note; return {
+      label, col, path, by: e.by + (e.byExt ? ' · داخلی ' + fa(e.byExt) : ''), at: at(e.at), text: e.text, hasText: !!e.text,
+      to: e.toExt ? (e.kind === 'return' ? 'به ' : 'به ') + (e.toName || '') + ' · داخلی ' + fa(e.toExt) : '', hasTo: !!e.toExt, topic: e.topic, hasTopic: !!e.topic && e.kind !== 'note',
+      small: e.kind === 'seen', big: e.kind !== 'seen', line: i < a.length - 1 }; });
+    const a = s.rfAct;
+    const setA = o => this.setState({ rfAct: { ...a, err: '', ...o } });
+    const run = async () => {
+      if (!a || a.busy) return;
+      setA({ busy: true });
+      try { const r = await api('/referrals/' + id + '/act', { action: a.kind, text: a.text, ext: a.ext, topic: a.topic }); this.setState({ rfDetail: r, rfAct: null }); this.toast({ note: 'اقدام ثبت شد', forward: 'ارجاع شد', return: 'به ارجاع‌دهنده برگردانده شد', done: 'ارجاع بسته شد: انجام شد', reopen: 'ارجاع دوباره باز شد' }[a.kind]); this.loadRefCount(); if (s.page === 'refs') this.loadRefs(); }
+      catch (e) { this.setState({ rfAct: { ...a, busy: false, err: e.message } }); }
+    };
+    const ACT = { note: ['ثبت اقدام / وضعیت', 'چه کاری انجام دادید؟ مثلاً با بیمار تماس گرفتم و…', '#2E2F31'], forward: ['ارجاع به داخلی دیگر', 'چرا به این داخلی ارجاع می‌دهید؟', '#6a4b9c'], return: ['برگرداندن به ارجاع‌دهنده', 'دلیل برگرداندن را بنویسید', '#c2410c'], done: ['تعیین تکلیف: انجام شد', 'نتیجه نهایی چه شد؟', '#3d6a0c'], reopen: ['باز کردن دوباره', 'چرا دوباره باز می‌شود؟', '#8a5a00'] };
+    const live = Object.fromEntries((s.exts || []).map(e => [e.n, e.st]));
+    const urgent = d.priority === 'urgent', done = d.status === 'done';
+    return { rfd: {
+      show: true, loading: false, ready: true, close,
+      title: d.topicLabel, name: d.name || 'شماره ناشناس', phone: d.phone, urgent, done, open: !done,
+      stLabel: done ? 'انجام شد' : 'باز · در داخلی ' + fa(d.toExt), stBg: done ? '#eef5e3' : urgent ? '#fdeceb' : '#e5eff7', stFg: done ? '#3d6a0c' : urgent ? '#b42318' : '#1d5a85',
+      to: d.toName + ' · داخلی ' + fa(d.toExt), from: d.fromName + (d.fromExt ? ' · داخلی ' + fa(d.fromExt) : ''), created: at(d.createdAt),
+      result: d.result, hasResult: done && !!d.result,
+      callText: d.call ? (d.call.dir === 'in' ? 'تماس ورودی ' : 'تماس خروجی ') + fa(d.call.date) + ' ساعت ' + fa(d.call.time) : 'تماس حذف شده',
+      openCall: () => { const c = this.calls.find(x => x.id === d.callId); if (c) { this.setState({ rfOpen: null }); this.openCall(c); } else this.toast('این تماس در فهرست بارگذاری‌شده نیست'); },
+      openFile: () => { close(); this.openFileByPhone(d.phoneRaw); },
+      call: () => this.startCall({ name: d.name || d.phoneRaw, phone: d.phone, phoneRaw: d.phoneRaw, vmId: null }),
+      hasRec: !!(d.call && d.call.hasRec), play: () => this.play(d.callId),
+      events,
+      canAct: d.canAct, canReopen: d.canReopen, canReturn: d.canReturn,
+      actions: [...(d.canAct ? [['note', '#2E2F31'], ['forward', '#6a4b9c'], ...(d.canReturn ? [['return', '#c2410c']] : []), ['done', '#3d6a0c']] : []), ...(d.canReopen ? [['reopen', '#8a5a00']] : [])]
+        .map(([k, col]) => ({ label: ACT[k][0], col, bg: a && a.kind === k ? col : '#fff', fg: a && a.kind === k ? '#fff' : col, pick: () => this.setState({ rfAct: a && a.kind === k ? null : { kind: k, text: '', ext: '', topic: '', busy: false, err: '' } }) })),
+      hasActions: !!(d.canAct || d.canReopen),
+      form: a ? {
+        title: ACT[a.kind][0], ph: ACT[a.kind][1], col: ACT[a.kind][2], text: a.text, setText: e => setA({ text: e.target.value }),
+        count: fa(a.text.trim().length) + ' / حداقل ۱۰ حرف', countFg: a.text.trim().length >= 10 ? '#3d6a0c' : '#8b8e89',
+        needExt: a.kind === 'forward', exts: (s.rfTargets || []).filter(t => t.ext !== d.toExt).map(t => { const on = a.ext === t.ext; return { label: (t.name || 'داخلی') + ' · ' + fa(t.ext), dot: { online: '#7FB536', busy: '#e0a83a' }[live[t.ext]] || '#c9cbc6', bg: on ? '#2E2F31' : '#fff', fg: on ? '#fff' : '#3a3b3d', bd: on ? '#2E2F31' : '#e1e3dc', pick: () => setA({ ext: t.ext }) }; }),
+        topics: Object.entries(REF_TOPICS_FA).map(([k, label]) => ({ label, bg: (a.topic || d.topic) === k ? '#2E2F31' : '#fff', fg: (a.topic || d.topic) === k ? '#fff' : '#3a3b3d', bd: (a.topic || d.topic) === k ? '#2E2F31' : '#e1e3dc', pick: () => setA({ topic: k }) })),
+        err: a.err, hasErr: !!a.err, go: run, goText: a.busy ? 'در حال ثبت…' : 'ثبت', goOp: a.text.trim().length >= 10 && (a.kind !== 'forward' || a.ext) ? 1 : 0.5,
+        cancel: () => this.setState({ rfAct: null }),
+      } : null, hasForm: !!a, noForm: !a,
+    } };
+  }
+
   // ---- «گزارش تماس»: what was discussed / done on a call
   async loadCallReports(id) {
     try { const d = await api('/call-reports/call/' + encodeURIComponent(id)); this.setState(st => ({ cvRep: { ...(st.cvRep || {}), [id]: d } })); }
@@ -2204,6 +2371,7 @@ class LiveApp extends React.Component {
     const isAdmin = CAN('ai', 'edit');
     return { upd, cvm: {
       show: true, barOk: false, close: () => this.setState({ cvId: null }),
+      canRefer: CAN('refer', 'add'), refer: () => this.askRefer(c), referLabel: c.ref && c.ref.status === 'open' ? 'ارجاع · ' + c.ref.ext : 'ارجاع',
       canDel: CAN('calls', 'delete'), del: () => this.askDelete([c], 'یک تماس'), rep: this.callReportVals(s, c), sms: this.smsBar(s, c.id, c.phoneRaw, { sentFromCall: c.sms }),
       isCur: s.pid === c.id, notCur: s.pid !== c.id,
       name: c.name, phone: c.phone, ini: c.ini, when: c.date + ' · ' + c.time, dir: c.dirLabel, queue: c.queue,

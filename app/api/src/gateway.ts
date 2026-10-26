@@ -23,7 +23,8 @@ export class LiveGateway implements OnGatewayConnection, OnGatewayDisconnect {
     bus.on('callpop', x => this.server && this.server.to('perm:calls').emit('callpop', x));
     bus.on('patient', x => this.server && this.server.to('perm:calls').emit('patient', x));
     bus.on('sms', x => this.server && this.server.to('perm:calls').emit('sms', x));
-    bus.on('notify', x => (x.role === '*' ? this.server.emit('notify', x) : this.server.to('role:' + x.role).emit('notify', x)));
+    bus.on('notify', x => (x.userId ? this.server.to('user:' + x.userId).emit('notify', x) : x.ext ? this.server.to('ext:' + x.ext).emit('notify', x) : x.role === '*' ? this.server.emit('notify', x) : this.server.to('role:' + x.role).emit('notify', x)));
+    bus.on('referrals', x => this.server && this.server.to('perm:refer').emit('referrals', x));
   }
 
   async handleConnection(s: Socket) {
@@ -32,6 +33,8 @@ export class LiveGateway implements OnGatewayConnection, OnGatewayDisconnect {
     if (!me) { s.disconnect(true); return; }
     s.join('user:' + me.id);
     s.join('role:' + me.role);
+    if (me.ext) s.join('ext:' + me.ext);
+    if (can(me, 'refer')) s.join('perm:refer');
     // live calls and VoIP setting changes only reach users allowed to see them
     if (Object.values(CONFIG_SECTION).some(sec => can(me, sec))) s.join('cfg');
     s.data.me = me;

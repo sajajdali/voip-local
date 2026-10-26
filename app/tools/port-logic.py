@@ -209,6 +209,11 @@ sub("...this.popVals(s),", "...this.popVals(s),...this.smsSettingsVals(s),")
 sub("canRep:CAN('calls','edit'),", "canRep:CAN('calls','edit'),hasSms:(c.sms||[]).length>0,smsText:(c.sms||[]).length.toLocaleString('fa-IR')+' پیامک',smsTip:(c.sms||[]).map(x=>x.title).join('، '),")
 # --- AI page: «open in voice inbox» goes to the redesigned page
 sub("openVm:()=>this.setState({page:'voice',vSel:c.id,vTab:'all'})", "openVm:()=>this.setState({page:'voice',vbSel:c.id,vbF:{tab:'all'}})")
+# --- call referrals: row icon + column, modal, page, detail
+sub("vsms:nv('vsms',''),", "vsms:nv('vsms',''),refs:nv('refs',(s.refCount&&s.refCount.open)||''),")
+sub("'vagent','aiconv','days','live','sys','usage','users','creports','vvm','vsms','file'].forEach", "'vagent','aiconv','days','live','sys','usage','users','creports','vvm','vsms','refs','file'].forEach")
+sub("...this.smsSettingsVals(s),", "...this.smsSettingsVals(s),...this.referModalVals(s),...this.refsVals(s),...this.refDetailVals(s),")
+sub("canRep:CAN('calls','edit'),", "canRep:CAN('calls','edit'),canRefer:CAN('refer','add'),onRefer:()=>this.askRefer(c),hasRef:!!c.ref,noRef:!c.ref,refOpen:!!(c.ref&&c.ref.status==='open'),refDone:!!(c.ref&&c.ref.status==='done'),refText:c.ref?(c.ref.status==='open'?'داخلی '+Number(c.ref.ext).toLocaleString('fa-IR').replace(/٬/g,''):'انجام شد'):'',refTip:c.ref?c.ref.topic+' · '+c.ref.name:'',onRefOpen:()=>c.ref&&this.openRef(c.ref.id),")
 head = (root / 'tools/app-head.js').read_text(encoding='utf-8')
 src = src.replace("export default class App extends React.Component {", "export default class App extends LiveApp {")
 (root / 'web/src/App.jsx').write_text(head + '\n' + src.strip() + '\n', encoding='utf-8')

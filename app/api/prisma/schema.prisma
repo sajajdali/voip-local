@@ -217,3 +217,45 @@ model CrmCheck {
   found Boolean
   error String?
 }
+
+/// «ارجاع»: a call handed to an extension with a topic and a written reason; every step is a ReferralEvent.
+model Referral {
+  id           Int       @id @default(autoincrement())
+  callId       String
+  phone        String
+  topic        String
+  priority     String    @default("normal") // normal | urgent
+  status       String    @default("open") // open | done
+  toExt        String
+  toName       String
+  fromUserId   String
+  fromName     String
+  fromExt      String?
+  seenAt       DateTime?
+  doneAt       DateTime?
+  result       String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  events       ReferralEvent[]
+
+  @@index([toExt, status])
+  @@index([callId])
+  @@index([createdAt])
+}
+
+model ReferralEvent {
+  id         Int      @id @default(autoincrement())
+  referralId Int
+  referral   Referral @relation(fields: [referralId], references: [id], onDelete: Cascade)
+  kind       String // create | note | forward | return | done | reopen | seen
+  text       String   @default("")
+  topic      String?
+  toExt      String?
+  toName     String?
+  userId     String
+  userName   String
+  userExt    String?
+  at         DateTime @default(now())
+
+  @@index([referralId])
+}

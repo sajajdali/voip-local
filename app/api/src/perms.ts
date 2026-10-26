@@ -13,6 +13,8 @@ export const SECTIONS: Section[] = [
   { key: 'live', label: 'تماس‌های زنده', group: 'مرکز تماس', actions: ['view', 'edit'], hint: { edit: 'گوش دادن به مکالمه' } },
   { key: 'voice', label: 'پیام‌های صوتی', group: 'مرکز تماس', actions: ['view', 'edit'], hint: { edit: 'پیگیری و ارجاع' } },
   { key: 'unreached', label: 'پیگیری‌نشده‌ها', group: 'مرکز تماس', actions: ['view'] },
+  { key: 'refer', label: 'ارجاع تماس', group: 'مرکز تماس', actions: ['view', 'add', 'edit'], hint: { add: 'ارجاع دادن تماس', edit: 'رسیدگی به ارجاع‌های داخلی خود' } },
+  { key: 'referall', label: 'همه ارجاع‌ها و گزارش ارجاع', group: 'مرکز تماس', actions: ['view'] },
   { key: 'reports', label: 'گزارش‌ها', group: 'مرکز تماس', actions: ['view'] },
   { key: 'survey', label: 'نظرسنجی', group: 'مرکز تماس', actions: ['view'] },
   { key: 'ai', label: 'تحلیل هوش مصنوعی', group: 'هوش مصنوعی', actions: ['view', 'edit'], hint: { edit: 'تحلیل دستی یک تماس' } },
@@ -48,8 +50,8 @@ export function rolePerms(role: string): Perms {
   const all: Perms = Object.fromEntries(SECTIONS.map(s => [s.key, [...s.actions]]));
   const pick = (keys: string[], extra: Record<string, Action[]> = {}) => ({ ...Object.fromEntries(keys.map(k => [k, ['view'] as Action[]])), ...extra });
   if (role === 'admin') return all;
-  if (role === 'supervisor') return pick(['calls', 'inbound', 'live', 'voice', 'unreached', 'reports', 'survey', 'ai', 'coach', 'aiconv'], { calls: ['view', 'edit'], voice: ['view', 'edit'], live: ['view', 'edit'] });
-  return pick(['calls', 'inbound', 'voice', 'unreached'], { calls: ['view', 'edit'], voice: ['view', 'edit'] });
+  if (role === 'supervisor') return pick(['calls', 'inbound', 'live', 'voice', 'unreached', 'reports', 'survey', 'ai', 'coach', 'aiconv', 'referall'], { calls: ['view', 'edit'], voice: ['view', 'edit'], live: ['view', 'edit'], refer: ['view', 'add', 'edit'] });
+  return pick(['calls', 'inbound', 'voice', 'unreached'], { calls: ['view', 'edit'], voice: ['view', 'edit'], refer: ['view', 'add', 'edit'] });
 }
 
 /** Keep only known sections and the actions each one supports; «view» is implied by any other action. */
