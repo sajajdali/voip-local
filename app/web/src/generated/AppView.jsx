@@ -2450,7 +2450,10 @@ export default function AppView({ vm }) {
               </div>
               <div style={{background: "#fff", border: "1px solid #e7e8e3", borderRadius: "22px", overflow: "hidden"}}>
                 <div style={{padding: "16px 18px", display: "flex", justifyContent: "space-between", alignItems: "center"}}>
-                  <span style={{fontWeight: "800", fontSize: "15px"}}>{"تاریخچه کامل تماس‌ها"}</span>
+                  <span>
+                    <span style={{fontWeight: "800", fontSize: "15px"}}>{"تاریخچه کامل تماس‌ها"}</span>
+                    <span style={{fontSize: "11px", color: "#8b8e89", marginRight: "8px"}}>{"برای دیدن جزئیات، گزارش و تحلیل هوش مصنوعی روی هر تماس کلیک کنید"}</span>
+                  </span>
                   <span style={{fontSize: "12px", color: "#6b6e72"}}>{vm.pf?.count}{" تماس"}</span>
                 </div>
                 <div style={{overflowX: "auto"}}>
@@ -2469,23 +2472,23 @@ export default function AppView({ vm }) {
                     <tbody>
                       {(vm.pf?.rows || []).map((row, __i11) => <React.Fragment key={__i11}>
                         <tr style={{background: row?.rowBg}}>
-                          <td style={{padding: "11px 16px", borderTop: "1px solid #eeefeb", fontSize: "13px"}}>
+                          <td onClick={row?.openCall} title="جزئیات و تحلیل AI این تماس" style={{cursor: "pointer", padding: "11px 16px", borderTop: "1px solid #eeefeb", fontSize: "13px"}}>
                             <div style={{fontWeight: "600"}}>{row?.date}</div>
                             <div style={{fontSize: "12px", color: "#6b6e72"}}>{row?.time}</div>
                           </td>
-                          <td style={{padding: "11px 16px", borderTop: "1px solid #eeefeb", fontSize: "13px"}}>
+                          <td onClick={row?.openCall} title="جزئیات و تحلیل AI این تماس" style={{cursor: "pointer", padding: "11px 16px", borderTop: "1px solid #eeefeb", fontSize: "13px"}}>
                             <div style={{fontWeight: "600"}}>{row?.dirLabel}</div>
                             <div style={{fontSize: "12px", color: "#6b6e72"}}>{row?.queue}</div>
                           </td>
-                          <td style={{padding: "11px 16px", borderTop: "1px solid #eeefeb", fontSize: "13px"}}>
+                          <td onClick={row?.openCall} title="جزئیات و تحلیل AI این تماس" style={{cursor: "pointer", padding: "11px 16px", borderTop: "1px solid #eeefeb", fontSize: "13px"}}>
                             <div>{row?.opName}</div>
                             <div style={{fontSize: "12px", color: "#6b6e72"}}>{"داخلی "}{row?.ext}</div>
                           </td>
-                          <td style={{padding: "11px 16px", borderTop: "1px solid #eeefeb", fontSize: "13px"}}>{row?.durText}</td>
-                          <td style={{padding: "11px 16px", borderTop: "1px solid #eeefeb", fontSize: "13px"}}>
+                          <td onClick={row?.openCall} title="جزئیات و تحلیل AI این تماس" style={{cursor: "pointer", padding: "11px 16px", borderTop: "1px solid #eeefeb", fontSize: "13px"}}>{row?.durText}</td>
+                          <td onClick={row?.openCall} title="جزئیات و تحلیل AI این تماس" style={{cursor: "pointer", padding: "11px 16px", borderTop: "1px solid #eeefeb", fontSize: "13px"}}>
                             <span style={{display: "inline-block", padding: "4px 10px", borderRadius: "999px", fontSize: "12px", fontWeight: "600", background: row?.status?.bg, color: row?.status?.fg, whiteSpace: "nowrap"}}>{row?.status?.label}</span>
                           </td>
-                          <td style={{padding: "11px 16px", borderTop: "1px solid #eeefeb", fontSize: "13px"}}>
+                          <td onClick={row?.openCall} title="جزئیات و تحلیل AI این تماس" style={{cursor: "pointer", padding: "11px 16px", borderTop: "1px solid #eeefeb", fontSize: "13px"}}>
                             {(row?.hasAi) ? (<>
                               <span style={{display: "inline-block", padding: "4px 10px", borderRadius: "8px", fontSize: "12px", fontWeight: "600", background: row?.aiBg, color: row?.aiFg, whiteSpace: "nowrap"}}>{row?.aiName}</span>
                             </>) : null}
