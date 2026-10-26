@@ -207,6 +207,8 @@ sub("vvm:nv('vvm',''),", "vvm:nv('vvm',''),vsms:nv('vsms',''),")
 sub("'vagent','aiconv','days','live','sys','usage','users','creports','vvm','file'].forEach", "'vagent','aiconv','days','live','sys','usage','users','creports','vvm','vsms','file'].forEach")
 sub("...this.popVals(s),", "...this.popVals(s),...this.smsSettingsVals(s),")
 sub("canRep:CAN('calls','edit'),", "canRep:CAN('calls','edit'),hasSms:(c.sms||[]).length>0,smsText:(c.sms||[]).length.toLocaleString('fa-IR')+' پیامک',smsTip:(c.sms||[]).map(x=>x.title).join('، '),")
+# --- AI page: «open in voice inbox» goes to the redesigned page
+sub("openVm:()=>this.setState({page:'voice',vSel:c.id,vTab:'all'})", "openVm:()=>this.setState({page:'voice',vbSel:c.id,vbF:{tab:'all'}})")
 head = (root / 'tools/app-head.js').read_text(encoding='utf-8')
 src = src.replace("export default class App extends React.Component {", "export default class App extends LiveApp {")
 (root / 'web/src/App.jsx').write_text(head + '\n' + src.strip() + '\n', encoding='utf-8')

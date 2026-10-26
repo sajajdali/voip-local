@@ -2652,10 +2652,17 @@ export default function AppView({ vm }) {
                       </>) : null}
                     </button>
                     <div style={{flex: "1", minWidth: "0"}}>
-                      <div style={{fontWeight: "700", fontSize: "14px"}}>{it?.name}</div>
+                      <div onClick={it?.openFile} style={{fontWeight: "700", fontSize: "14px", cursor: "pointer"}}>{it?.name}</div>
                       <div style={{fontSize: "12px", color: "#6b6e72"}}>{it?.date}{" · "}{it?.time}{" · "}{it?.opName}{" · "}{it?.durText}</div>
                     </div>
                     <span style={{fontSize: "11px", color: "#6b6e72"}}>{"دقت "}{it?.ai?.conf}{"%"}</span>
+                    <button onClick={it?.openFile} title="مشاهده پرونده" style={{height: "34px", padding: "0 10px", borderRadius: "10px", border: "1px solid #cfe4ad", background: "#f4f9ec", cursor: "pointer", color: "#3d6a0c", display: "flex", alignItems: "center", gap: "5px", fontSize: "12px", fontWeight: "800", fontFamily: "inherit", flexShrink: "0"}}>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z" />
+                        <path d="M14 3v6h6M9 13h6M9 17h4" />
+                      </svg>
+                      {"پرونده"}
+                    </button>
                   </div>
                   <div style={{display: "flex", gap: "6px", flexWrap: "wrap"}}>
                     <span style={{padding: "4px 10px", borderRadius: "8px", fontSize: "12px", fontWeight: "700", background: it?.aiBg, color: it?.aiFg}}>{it?.aiName}</span>
@@ -7377,6 +7384,13 @@ export default function AppView({ vm }) {
               <div onClick={vm.cvm?.openFile} style={{fontWeight: "800", fontSize: "17px", cursor: "pointer", textDecoration: "underline", textDecorationColor: "#cfe4ad", textUnderlineOffset: "5px"}}>{vm.cvm?.name}</div>
               <div style={{fontSize: "12px", color: "#6b6e72", direction: "ltr", textAlign: "right"}}>{vm.cvm?.phone}</div>
             </div>
+            <button onClick={vm.cvm?.openFile} title="مشاهده پرونده" style={{height: "36px", padding: "0 12px", borderRadius: "10px", border: "1px solid #cfe4ad", background: "#f4f9ec", cursor: "pointer", color: "#3d6a0c", display: "flex", alignItems: "center", gap: "6px", fontSize: "12px", fontWeight: "800", fontFamily: "inherit"}}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z" />
+                <path d="M14 3v6h6M9 13h6M9 17h4" />
+              </svg>
+              {"پرونده"}
+            </button>
             {(vm.cvm?.canDel) ? (<>
               <button onClick={vm.cvm?.del} title="حذف تماس" style={{width: "36px", height: "36px", borderRadius: "10px", border: "1px solid #f1c9c4", background: "#fff", cursor: "pointer", color: "#b42318", display: "grid", placeItems: "center"}}>
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
