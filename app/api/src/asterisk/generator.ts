@@ -114,6 +114,9 @@ function pjsip(cfg: VoipConfig, warnings: string[]) {
     L.push(`[${id}]`, 'type=endpoint', 'transport=transport-udp', 'context=from-trunk', 'disallow=all', `allow=${codecs(t.codec).join(',')}`,
       `aors=${id}`, 'direct_media=no', 'rtp_symmetric=yes', 'force_rport=yes', 'rewrite_contact=yes', 'send_rpid=yes', 'trust_id_inbound=yes', `dtmf_mode=${['inband', 'info', 'auto', 'rfc4733'].includes(t.dtmf) ? t.dtmf : 'rfc4733'}`);
     if (hasAuth) L.push(`outbound_auth=${id}-auth`, `from_user=${safe(t.user)}`, `from_domain=${host}`);
+    // trunk reached over a second NIC: send RTP from (and advertise) that NIC's address
+    const media = String(t.media || '').replace(/[^0-9.]/g, '');
+    if (media) L.push(`media_address=${media}`, 'bind_rtp_to_media_address=yes');
     L.push('', `[${id}-identify]`, 'type=identify', `endpoint=${id}`, `match=${host.split(':')[0]}`, '');
   }
   return L.join('\n');
@@ -548,8 +551,13 @@ function dialplan(cfg: VoipConfig, opts: { hookUrl: string; hookSecret: string }
   ]);
   const outs = (cfg.oroutes || []).filter(r => r.on && cfg.trunks.some(t => t.id === r.trunk && t.on && t.type !== 'PRI / E1'));
   if (!(cfg.oroutes || []).length && trunk) outs.push({ id: 'default', pats: '0X.', trunk: trunk.id, prepend: '' });
+  // the provider shows whatever number we send (an extension came out as +9821102): send the line's own number
+  X('cc-trunk-cid', ['exten => s,1,Set(CALLERID(num)=${ARG1})', ' same => n,Set(CALLERID(name)=${ARG1})', ' same => n,Return()']);
   for (const r of outs) {
     const L2: string[] = [];
+    const rt = cfg.trunks.find(t => t.id === r.trunk);
+    const lineNum = digits(rt?.did) || digits(rt?.user);
+    const cidOpt = lineNum ? `b(cc-trunk-cid^s^1(${lineNum}))` : '';
     for (const raw of String(r.pats || '').split(/[,،\s]+/).filter(Boolean)) {
       const [pre, pat] = raw.includes('|') ? raw.split('|') : ['', raw];
       const p = (pre + pat).toUpperCase().replace(/[^0-9XNZ.*#+\[\]-]/g, '');
@@ -561,7 +569,7 @@ function dialplan(cfg: VoipConfig, opts: { hookUrl: string; hookSecret: string }
       L2.push(`exten => ${ext},1,GotoIf($["\${CC_DIR}"!=""]?dial)`, ' same => n,Set(__CC_DIR=out)', ' same => n,Set(__CC_START=${EPOCH})',
         ' same => n,Set(__CC_OPEXT=${FILTER(0-9,${CALLERID(num)})})', ' same => n,Set(__CC_QUEUE=تماس خروجی)',
         ' same => n,Set(CHANNEL(hangup_handler_push)=cc-hangup,s,1)', ` same => n(dial),Set(__CC_NUM=${num})`,
-        ` same => n,Dial(PJSIP/\${CC_NUM}@trunk-${sid(r.trunk)},60,TU(cc-callee-answer))`, ' same => n,Hangup()');
+        ` same => n,Dial(PJSIP/\${CC_NUM}@trunk-${sid(r.trunk)},60,TU(cc-callee-answer)${cidOpt})`, ' same => n,Hangup()');
     }
     if (L2.length) { X(`cc-out-${sid(r.id)}`, L2); internal.push(`include => cc-out-${sid(r.id)}`); }
   }

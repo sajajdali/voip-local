@@ -98,6 +98,7 @@ server {
   ssl_certificate_key $ETC/tls/key.pem;
   root $APP/web/dist;
   client_max_body_size 50m;
+  gzip on; gzip_comp_level 5; gzip_types text/css application/javascript application/json image/svg+xml;
   add_header X-Content-Type-Options nosniff always;
   add_header X-Frame-Options SAMEORIGIN always;
   location /api/backups/upload { client_max_body_size 20g; proxy_request_buffering off; proxy_pass http://127.0.0.1:3000; proxy_read_timeout 1h; proxy_send_timeout 1h; }
