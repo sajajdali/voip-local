@@ -264,6 +264,33 @@ export function crmFields(raw: any) {
   return out.slice(0, 40);
 }
 
+// clinical file: the field names the CRM is asked to send (a few common aliases are accepted)
+const CLIN: Record<string, string[]> = {
+  firstName: ['first_name', 'firstname'], lastName: ['last_name', 'lastname', 'family'], fullName: ['full_name', 'name'],
+  nationalCode: ['national_code', 'national_id', 'nid', 'melli_code'],
+  consultation: ['consultation_date', 'consult_date', 'first_consultation_date'],
+  surgery: ['surgery_date', 'last_surgery_date'],
+  tampon: ['tampon_removal_date', 'tampon_removed_at', 'tampon_date'],
+  splint: ['splint_removal_date', 'splint_removed_at', 'splint_date'],
+  exams: ['examinations', 'exams', 'examination_dates'],
+  visits: ['visits', 'appointments', 'visit_history'],
+};
+const CLIN_KEYS = new Set(Object.values(CLIN).flat().filter(k => k !== 'name'));
+
+/** The clinical part of the CRM answer, as plain strings (dates are converted to Jalali in the panel). */
+export function clinicalOf(raw: any) {
+  const src = raw && typeof raw === 'object' ? (raw.data && typeof raw.data === 'object' && !Array.isArray(raw.data) ? raw.data : raw) : {};
+  const get = (k: string) => { for (const a of CLIN[k]) if (src[a] !== undefined && src[a] !== null && src[a] !== '') return src[a]; return null; };
+  const str = (v: any) => (v === null || v === undefined ? '' : String(v).trim());
+  const list = (v: any) => (Array.isArray(v) ? v : []).slice(0, 200);
+  const exams = list(get('exams')).map((x: any) => (typeof x === 'object' && x ? { date: str(x.date || x.at), time: str(x.time), title: str(x.title || x.type || x.note) } : { date: str(x), time: '', title: '' })).filter(x => x.date);
+  const visits = list(get('visits')).map((x: any) => (typeof x === 'object' && x ? { type: str(x.type || x.title || x.reason), date: str(x.date || x.at), time: str(x.time), note: str(x.note || x.description), doctor: str(x.doctor) } : { type: '', date: str(x), time: '', note: '', doctor: '' })).filter(x => x.date);
+  return {
+    firstName: str(get('firstName')), lastName: str(get('lastName')), fullName: str(get('fullName')), nationalCode: str(get('nationalCode')).replace(/\D/g, ''),
+    consultation: str(get('consultation')), surgery: str(get('surgery')), tampon: str(get('tampon')), splint: str(get('splint')), exams, visits,
+  };
+}
+
 /** Caller card / patient file: what the CRM said, plus our own history of this number. */
 @Controller('patients')
 export class PatientCardController {
@@ -280,7 +307,7 @@ export class PatientCardController {
     const days = daysSince(pt?.surgery);
     return {
       phone: p, known: !!pt, name: pt?.name || '', source: pt?.source || '', surgery: pt?.surgery || null, days, surgeryNote: surgeryNote(days, false),
-      crmOn: s.enabled, looking: this.patients.isLooking(p), crmAt: pt?.crmAt || null, fields: crmFields(pt?.crm),
+      crmOn: s.enabled, looking: this.patients.isLooking(p), crmAt: pt?.crmAt || null, fields: crmFields(pt?.crm).filter(f => !CLIN_KEYS.has(f.key.split('.').pop()!)), clinical: clinicalOf(pt?.crm),
       reports: reports.map(r => ({ id: r.id, callId: r.callId, cat: r.cat, outcome: r.outcome, text: r.text, followUp: r.followUp || '', by: r.userName, userId: r.userId, at: r.createdAt })),
     };
   }

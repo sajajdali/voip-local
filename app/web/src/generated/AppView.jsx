@@ -1707,6 +1707,163 @@ export default function AppView({ vm }) {
               <div style={{fontSize: "13px", color: "#6b6e72"}}>
                 {"هنوز تماس ثبت‌شده‌ای از این شماره نیست؛ بعد از پایان تماس فعلی، تاریخچه اینجا نمایش داده می‌شود."}
               </div>
+              <div style={{background: "#fff", border: "1px solid #e7e8e3", borderRadius: "24px", overflow: "hidden", boxShadow: "0 1px 2px rgba(20,20,20,.03)"}}>
+                <div style={{background: "linear-gradient(120deg,#2E2F31 0%,#33402a 100%)", color: "#fff", padding: "18px 22px", display: "flex", alignItems: "center", gap: "14px", flexWrap: "wrap"}}>
+                  <div style={{width: "46px", height: "46px", borderRadius: "15px", background: "rgba(141,198,63,.18)", color: "#8DC63F", display: "grid", placeItems: "center", flexShrink: "0"}}>
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M9 3h6v4H9z" />
+                      <path d="M16 5h2a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h2" />
+                      <path d="M12 11v6M9 14h6" />
+                    </svg>
+                  </div>
+                  <div style={{flex: "1", minWidth: "180px"}}>
+                    <div style={{fontSize: "12px", color: "#8DC63F", fontWeight: "700"}}>{"پرونده بالینی · از سامانه بیماران"}</div>
+                    <div style={{fontSize: "20px", fontWeight: "800", marginTop: "2px"}}>{vm.pf2?.clin?.name}</div>
+                  </div>
+                  <button onClick={vm.pf2?.clin?.showDemo} style={{border: "1px solid rgba(255,255,255,.22)", background: "rgba(255,255,255,.06)", color: "#fff", padding: "8px 14px", borderRadius: "10px", fontSize: "12px", fontWeight: "700", cursor: "pointer", fontFamily: "inherit"}}>{vm.pf2?.clin?.demoLabel}</button>
+                </div>
+                {(vm.pf2?.clin?.demo) ? (<>
+                  <div style={{background: "#fcf3e0", color: "#8a5a00", fontSize: "12px", fontWeight: "700", padding: "8px 22px"}}>
+                    {"این‌ها داده نمونه برای دیدن طراحی است؛ اطلاعات واقعی بیمار بعد از ارسال از API سامانه بیماران اینجا نمایش داده می‌شود."}
+                  </div>
+                </>) : null}
+                {(vm.pf2?.clin?.empty) ? (<>
+                  <div style={{padding: "26px 22px", display: "flex", flexDirection: "column", gap: "8px", alignItems: "flex-start"}}>
+                    <div style={{fontWeight: "800", fontSize: "15px"}}>{"هنوز اطلاعات بالینی از سامانه بیماران نیامده است"}</div>
+                    <div style={{fontSize: "13px", color: "#6b6e72", lineHeight: "1.9", maxWidth: "680px"}}>
+                      {"وقتی API سامانه بیماران نام، کد ملی، تاریخ مشاوره، جراحی، برداشتن تامپون و اسپلینت، معاینات و مراجعات را بفرستد، این بخش خودکار پر می‌شود."}
+                    </div>
+                  </div>
+                </>) : null}
+                {(vm.pf2?.clin?.has) ? (<>
+                  <div style={{padding: "20px 22px", display: "flex", flexDirection: "column", gap: "20px"}}>
+                    <div style={{display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(150px,1fr))", gap: "10px"}}>
+                      <div style={{background: "#f7f8f4", borderRadius: "14px", padding: "12px 14px"}}>
+                        <div style={{fontSize: "11px", color: "#8b8e89"}}>{"نام"}</div>
+                        <div style={{fontSize: "15px", fontWeight: "800", marginTop: "4px"}}>{vm.pf2?.clin?.first}</div>
+                      </div>
+                      <div style={{background: "#f7f8f4", borderRadius: "14px", padding: "12px 14px"}}>
+                        <div style={{fontSize: "11px", color: "#8b8e89"}}>{"نام خانوادگی"}</div>
+                        <div style={{fontSize: "15px", fontWeight: "800", marginTop: "4px"}}>{vm.pf2?.clin?.last}</div>
+                      </div>
+                      <div style={{background: "#f7f8f4", borderRadius: "14px", padding: "12px 14px"}}>
+                        <div style={{display: "flex", justifyContent: "space-between", alignItems: "center"}}>
+                          <span style={{fontSize: "11px", color: "#8b8e89"}}>{"کد ملی"}</span>
+                          {(vm.pf2?.clin?.hasNid) ? (<>
+                            <button onClick={vm.pf2?.clin?.togNid} style={{border: "none", background: "transparent", color: "#1d5a85", fontSize: "11px", fontWeight: "700", cursor: "pointer", padding: "0", fontFamily: "inherit"}}>{vm.pf2?.clin?.nidBtn}</button>
+                          </>) : null}
+                        </div>
+                        <div style={{fontSize: "15px", fontWeight: "800", marginTop: "4px", letterSpacing: "1px", direction: "ltr", textAlign: "right"}}>{vm.pf2?.clin?.nid}</div>
+                      </div>
+                      <div style={{background: "#eef5e3", borderRadius: "14px", padding: "12px 14px"}}>
+                        <div style={{fontSize: "11px", color: "#3d6a0c"}}>{"تاریخ جراحی"}</div>
+                        <div style={{fontSize: "15px", fontWeight: "800", marginTop: "4px", color: "#2f520a"}}>
+                          {vm.pf2?.clin?.surgery}{" "}
+                          <span style={{fontSize: "11px", fontWeight: "600", color: "#55585c"}}>{vm.pf2?.clin?.surgeryW}</span>
+                        </div>
+                      </div>
+                      <div style={{background: "#f0ebf8", borderRadius: "14px", padding: "12px 14px"}}>
+                        <div style={{fontSize: "11px", color: "#6a4b9c"}}>{"تاریخ مشاوره"}</div>
+                        <div style={{fontSize: "15px", fontWeight: "800", marginTop: "4px", color: "#4b3478"}}>
+                          {vm.pf2?.clin?.consultation}{" "}
+                          <span style={{fontSize: "11px", fontWeight: "600", color: "#55585c"}}>{vm.pf2?.clin?.consW}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{fontWeight: "800", fontSize: "15px", marginBottom: "12px"}}>{"مسیر درمان"}</div>
+                      <div style={{display: "flex", gap: "0", overflowX: "auto", padding: "4px 2px 6px"}}>
+                        {(vm.pf2?.clin?.steps || []).map((t, __i12) => <React.Fragment key={__i12}>
+                          <div style={{flex: "1 0 118px", display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", gap: "6px", position: "relative", opacity: t?.op}}>
+                            {(t?.line) ? (<>
+                              <span style={{position: "absolute", top: "21px", left: "-50%", width: "100%", height: "3px", background: "#e7e8e3", zIndex: "0"}} />
+                            </>) : null}
+                            <div style={{position: "relative", zIndex: "1", width: "44px", height: "44px", borderRadius: "50%", background: t?.dot, border: `3px solid ${t?.ring}`, color: t?.fg, display: "grid", placeItems: "center", fontWeight: "800", fontSize: "15px", boxShadow: "0 0 0 5px #fff"}}>{t?.n}</div>
+                            <div style={{fontSize: "13px", fontWeight: "800"}}>{t?.label}</div>
+                            <div style={{fontSize: "14px", fontWeight: "800", color: "#232425"}}>{t?.date}</div>
+                            <div style={{fontSize: "11px", color: "#6b6e72", minHeight: "15px"}}>{t?.wday}</div>
+                            <div style={{fontSize: "11px", color: "#55585c", background: "#f7f8f4", borderRadius: "999px", padding: "3px 10px"}}>{t?.sub}</div>
+                            <span style={{fontSize: "10px", fontWeight: "800", padding: "2px 8px", borderRadius: "999px", background: t?.stBg, color: t?.stFg}}>{t?.state}</span>
+                          </div>
+                        </React.Fragment>)}
+                      </div>
+                    </div>
+                    <div style={{display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(170px,1fr))", gap: "10px"}}>
+                      {(vm.pf2?.clin?.stats || []).map((k, __i11) => <React.Fragment key={__i11}>
+                        <div style={{border: "1px solid #e7e8e3", borderRadius: "16px", padding: "14px 16px", position: "relative", overflow: "hidden"}}>
+                          <span style={{position: "absolute", top: "0", right: "0", bottom: "0", width: "4px", background: k?.color}} />
+                          <div style={{fontSize: "12px", color: "#6b6e72"}}>{k?.label}</div>
+                          <div style={{fontSize: "24px", fontWeight: "800", color: k?.color, marginTop: "4px"}}>{k?.value}</div>
+                          <div style={{fontSize: "11px", color: "#8b8e89", marginTop: "2px"}}>{k?.sub}</div>
+                        </div>
+                      </React.Fragment>)}
+                    </div>
+                    {(vm.pf2?.clin?.hasExams) ? (<>
+                      <div>
+                        <div style={{fontWeight: "800", fontSize: "15px", marginBottom: "10px"}}>{"تاریخ‌های معاینه"}</div>
+                        <div style={{display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(210px,1fr))", gap: "10px"}}>
+                          {(vm.pf2?.clin?.exams || []).map((e, __i13) => <React.Fragment key={__i13}>
+                            <div style={{display: "flex", gap: "12px", alignItems: "center", border: "1px solid #e7e8e3", borderRadius: "16px", padding: "12px 14px", background: "#fff"}}>
+                              <div style={{width: "40px", height: "40px", borderRadius: "12px", background: "#fdeceb", color: "#b42318", display: "grid", placeItems: "center", fontWeight: "800", flexShrink: "0"}}>{e?.n}</div>
+                              <div style={{flex: "1", minWidth: "0"}}>
+                                <div style={{fontSize: "13px", fontWeight: "800", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis"}}>{e?.title}</div>
+                                <div style={{fontSize: "13px", marginTop: "2px"}}>
+                                  {e?.date}{" "}
+                                  <span style={{fontSize: "11px", color: "#6b6e72"}}>{e?.wday}{" "}{e?.time}</span>
+                                </div>
+                                <div style={{display: "flex", gap: "6px", alignItems: "center", marginTop: "4px"}}>
+                                  <span style={{fontSize: "10px", fontWeight: "800", padding: "2px 8px", whiteSpace: "nowrap", flexShrink: "0", borderRadius: "999px", background: e?.tagBg, color: e?.tagFg}}>{e?.tag}</span>
+                                  <span style={{fontSize: "11px", color: "#8b8e89"}}>{e?.rel}</span>
+                                </div>
+                              </div>
+                            </div>
+                          </React.Fragment>)}
+                        </div>
+                      </div>
+                    </>) : null}
+                    {(vm.pf2?.clin?.hasVisits) ? (<>
+                      <div>
+                        <div style={{fontWeight: "800", fontSize: "15px", marginBottom: "10px"}}>{"سابقه مراجعات"}</div>
+                        <div style={{border: "1px solid #e7e8e3", borderRadius: "16px", overflow: "hidden"}}>
+                          <div style={{overflowX: "auto"}}>
+                            <table style={{width: "100%", borderCollapse: "collapse"}}>
+                              <thead>
+                                <tr>
+                                  <th style={{padding: "11px 12px", fontSize: "12px", fontWeight: "700", color: "#d9dad6", textAlign: "right", whiteSpace: "nowrap", background: "#2E2F31", width: "44px"}}>{"#"}</th>
+                                  <th style={{padding: "11px 12px", fontSize: "12px", fontWeight: "700", color: "#d9dad6", textAlign: "right", whiteSpace: "nowrap", background: "#2E2F31"}}>{"نوع مراجعه"}</th>
+                                  <th style={{padding: "11px 12px", fontSize: "12px", fontWeight: "700", color: "#d9dad6", textAlign: "right", whiteSpace: "nowrap", background: "#2E2F31"}}>{"تاریخ"}</th>
+                                  <th style={{padding: "11px 12px", fontSize: "12px", fontWeight: "700", color: "#d9dad6", textAlign: "right", whiteSpace: "nowrap", background: "#2E2F31"}}>{"روز"}</th>
+                                  <th style={{padding: "11px 12px", fontSize: "12px", fontWeight: "700", color: "#d9dad6", textAlign: "right", whiteSpace: "nowrap", background: "#2E2F31"}}>{"ساعت"}</th>
+                                  <th style={{padding: "11px 12px", fontSize: "12px", fontWeight: "700", color: "#d9dad6", textAlign: "right", whiteSpace: "nowrap", background: "#2E2F31"}}>{"نسبت به جراحی"}</th>
+                                  <th style={{padding: "11px 12px", fontSize: "12px", fontWeight: "700", color: "#d9dad6", textAlign: "right", whiteSpace: "nowrap", background: "#2E2F31"}}>{"توضیح"}</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {(vm.pf2?.clin?.visits || []).map((v, __i16) => <React.Fragment key={__i16}>
+                                  <tr style={{background: v?.rowBg}}>
+                                    <td style={{padding: "11px 12px", fontSize: "13px", borderBottom: "1px solid #f1f2ee", whiteSpace: "nowrap", color: "#8b8e89", fontWeight: "700"}}>{v?.n}</td>
+                                    <td style={{padding: "11px 12px", fontSize: "13px", borderBottom: "1px solid #f1f2ee", whiteSpace: "nowrap", fontWeight: "800"}}>
+                                      {v?.type}
+                                      {(v?.fut) ? (<>
+                                        <span style={{marginRight: "6px", fontSize: "10px", fontWeight: "800", padding: "2px 8px", borderRadius: "999px", background: "#e5eff7", color: "#1d5a85"}}>{"آینده"}</span>
+                                      </>) : null}
+                                    </td>
+                                    <td style={{padding: "11px 12px", fontSize: "13px", borderBottom: "1px solid #f1f2ee", whiteSpace: "nowrap", fontWeight: "700"}}>{v?.date}</td>
+                                    <td style={{padding: "11px 12px", fontSize: "13px", borderBottom: "1px solid #f1f2ee", whiteSpace: "nowrap", color: "#55585c"}}>{v?.wday}</td>
+                                    <td style={{padding: "11px 12px", fontSize: "13px", borderBottom: "1px solid #f1f2ee", whiteSpace: "nowrap", fontVariantNumeric: "tabular-nums"}}>{v?.time}</td>
+                                    <td style={{padding: "11px 12px", fontSize: "13px", borderBottom: "1px solid #f1f2ee", whiteSpace: "nowrap", color: "#6b6e72", fontSize: "12px"}}>{v?.rel}</td>
+                                    <td style={{padding: "11px 12px", fontSize: "13px", borderBottom: "1px solid #f1f2ee", whiteSpace: "nowrap", color: "#55585c", fontSize: "12px", whiteSpace: "normal", minWidth: "120px"}}>{v?.note}</td>
+                                  </tr>
+                                </React.Fragment>)}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                      </div>
+                    </>) : null}
+                  </div>
+                </>) : null}
+              </div>
               <div style={{background: "#fff", border: "1px solid #e7e8e3", borderRadius: "22px", padding: "18px 20px", display: "flex", flexDirection: "column", gap: "12px"}}>
                 <div style={{display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap"}}>
                   <div style={{width: "34px", height: "34px", borderRadius: "10px", background: "#eef5e3", color: "#3d6a0c", display: "grid", placeItems: "center"}}>
@@ -1805,6 +1962,163 @@ export default function AppView({ vm }) {
                     </div>
                   </React.Fragment>)}
                 </div>
+              </div>
+              <div style={{background: "#fff", border: "1px solid #e7e8e3", borderRadius: "24px", overflow: "hidden", boxShadow: "0 1px 2px rgba(20,20,20,.03)"}}>
+                <div style={{background: "linear-gradient(120deg,#2E2F31 0%,#33402a 100%)", color: "#fff", padding: "18px 22px", display: "flex", alignItems: "center", gap: "14px", flexWrap: "wrap"}}>
+                  <div style={{width: "46px", height: "46px", borderRadius: "15px", background: "rgba(141,198,63,.18)", color: "#8DC63F", display: "grid", placeItems: "center", flexShrink: "0"}}>
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M9 3h6v4H9z" />
+                      <path d="M16 5h2a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h2" />
+                      <path d="M12 11v6M9 14h6" />
+                    </svg>
+                  </div>
+                  <div style={{flex: "1", minWidth: "180px"}}>
+                    <div style={{fontSize: "12px", color: "#8DC63F", fontWeight: "700"}}>{"پرونده بالینی · از سامانه بیماران"}</div>
+                    <div style={{fontSize: "20px", fontWeight: "800", marginTop: "2px"}}>{vm.pf2?.clin?.name}</div>
+                  </div>
+                  <button onClick={vm.pf2?.clin?.showDemo} style={{border: "1px solid rgba(255,255,255,.22)", background: "rgba(255,255,255,.06)", color: "#fff", padding: "8px 14px", borderRadius: "10px", fontSize: "12px", fontWeight: "700", cursor: "pointer", fontFamily: "inherit"}}>{vm.pf2?.clin?.demoLabel}</button>
+                </div>
+                {(vm.pf2?.clin?.demo) ? (<>
+                  <div style={{background: "#fcf3e0", color: "#8a5a00", fontSize: "12px", fontWeight: "700", padding: "8px 22px"}}>
+                    {"این‌ها داده نمونه برای دیدن طراحی است؛ اطلاعات واقعی بیمار بعد از ارسال از API سامانه بیماران اینجا نمایش داده می‌شود."}
+                  </div>
+                </>) : null}
+                {(vm.pf2?.clin?.empty) ? (<>
+                  <div style={{padding: "26px 22px", display: "flex", flexDirection: "column", gap: "8px", alignItems: "flex-start"}}>
+                    <div style={{fontWeight: "800", fontSize: "15px"}}>{"هنوز اطلاعات بالینی از سامانه بیماران نیامده است"}</div>
+                    <div style={{fontSize: "13px", color: "#6b6e72", lineHeight: "1.9", maxWidth: "680px"}}>
+                      {"وقتی API سامانه بیماران نام، کد ملی، تاریخ مشاوره، جراحی، برداشتن تامپون و اسپلینت، معاینات و مراجعات را بفرستد، این بخش خودکار پر می‌شود."}
+                    </div>
+                  </div>
+                </>) : null}
+                {(vm.pf2?.clin?.has) ? (<>
+                  <div style={{padding: "20px 22px", display: "flex", flexDirection: "column", gap: "20px"}}>
+                    <div style={{display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(150px,1fr))", gap: "10px"}}>
+                      <div style={{background: "#f7f8f4", borderRadius: "14px", padding: "12px 14px"}}>
+                        <div style={{fontSize: "11px", color: "#8b8e89"}}>{"نام"}</div>
+                        <div style={{fontSize: "15px", fontWeight: "800", marginTop: "4px"}}>{vm.pf2?.clin?.first}</div>
+                      </div>
+                      <div style={{background: "#f7f8f4", borderRadius: "14px", padding: "12px 14px"}}>
+                        <div style={{fontSize: "11px", color: "#8b8e89"}}>{"نام خانوادگی"}</div>
+                        <div style={{fontSize: "15px", fontWeight: "800", marginTop: "4px"}}>{vm.pf2?.clin?.last}</div>
+                      </div>
+                      <div style={{background: "#f7f8f4", borderRadius: "14px", padding: "12px 14px"}}>
+                        <div style={{display: "flex", justifyContent: "space-between", alignItems: "center"}}>
+                          <span style={{fontSize: "11px", color: "#8b8e89"}}>{"کد ملی"}</span>
+                          {(vm.pf2?.clin?.hasNid) ? (<>
+                            <button onClick={vm.pf2?.clin?.togNid} style={{border: "none", background: "transparent", color: "#1d5a85", fontSize: "11px", fontWeight: "700", cursor: "pointer", padding: "0", fontFamily: "inherit"}}>{vm.pf2?.clin?.nidBtn}</button>
+                          </>) : null}
+                        </div>
+                        <div style={{fontSize: "15px", fontWeight: "800", marginTop: "4px", letterSpacing: "1px", direction: "ltr", textAlign: "right"}}>{vm.pf2?.clin?.nid}</div>
+                      </div>
+                      <div style={{background: "#eef5e3", borderRadius: "14px", padding: "12px 14px"}}>
+                        <div style={{fontSize: "11px", color: "#3d6a0c"}}>{"تاریخ جراحی"}</div>
+                        <div style={{fontSize: "15px", fontWeight: "800", marginTop: "4px", color: "#2f520a"}}>
+                          {vm.pf2?.clin?.surgery}{" "}
+                          <span style={{fontSize: "11px", fontWeight: "600", color: "#55585c"}}>{vm.pf2?.clin?.surgeryW}</span>
+                        </div>
+                      </div>
+                      <div style={{background: "#f0ebf8", borderRadius: "14px", padding: "12px 14px"}}>
+                        <div style={{fontSize: "11px", color: "#6a4b9c"}}>{"تاریخ مشاوره"}</div>
+                        <div style={{fontSize: "15px", fontWeight: "800", marginTop: "4px", color: "#4b3478"}}>
+                          {vm.pf2?.clin?.consultation}{" "}
+                          <span style={{fontSize: "11px", fontWeight: "600", color: "#55585c"}}>{vm.pf2?.clin?.consW}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{fontWeight: "800", fontSize: "15px", marginBottom: "12px"}}>{"مسیر درمان"}</div>
+                      <div style={{display: "flex", gap: "0", overflowX: "auto", padding: "4px 2px 6px"}}>
+                        {(vm.pf2?.clin?.steps || []).map((t, __i12) => <React.Fragment key={__i12}>
+                          <div style={{flex: "1 0 118px", display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", gap: "6px", position: "relative", opacity: t?.op}}>
+                            {(t?.line) ? (<>
+                              <span style={{position: "absolute", top: "21px", left: "-50%", width: "100%", height: "3px", background: "#e7e8e3", zIndex: "0"}} />
+                            </>) : null}
+                            <div style={{position: "relative", zIndex: "1", width: "44px", height: "44px", borderRadius: "50%", background: t?.dot, border: `3px solid ${t?.ring}`, color: t?.fg, display: "grid", placeItems: "center", fontWeight: "800", fontSize: "15px", boxShadow: "0 0 0 5px #fff"}}>{t?.n}</div>
+                            <div style={{fontSize: "13px", fontWeight: "800"}}>{t?.label}</div>
+                            <div style={{fontSize: "14px", fontWeight: "800", color: "#232425"}}>{t?.date}</div>
+                            <div style={{fontSize: "11px", color: "#6b6e72", minHeight: "15px"}}>{t?.wday}</div>
+                            <div style={{fontSize: "11px", color: "#55585c", background: "#f7f8f4", borderRadius: "999px", padding: "3px 10px"}}>{t?.sub}</div>
+                            <span style={{fontSize: "10px", fontWeight: "800", padding: "2px 8px", borderRadius: "999px", background: t?.stBg, color: t?.stFg}}>{t?.state}</span>
+                          </div>
+                        </React.Fragment>)}
+                      </div>
+                    </div>
+                    <div style={{display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(170px,1fr))", gap: "10px"}}>
+                      {(vm.pf2?.clin?.stats || []).map((k, __i11) => <React.Fragment key={__i11}>
+                        <div style={{border: "1px solid #e7e8e3", borderRadius: "16px", padding: "14px 16px", position: "relative", overflow: "hidden"}}>
+                          <span style={{position: "absolute", top: "0", right: "0", bottom: "0", width: "4px", background: k?.color}} />
+                          <div style={{fontSize: "12px", color: "#6b6e72"}}>{k?.label}</div>
+                          <div style={{fontSize: "24px", fontWeight: "800", color: k?.color, marginTop: "4px"}}>{k?.value}</div>
+                          <div style={{fontSize: "11px", color: "#8b8e89", marginTop: "2px"}}>{k?.sub}</div>
+                        </div>
+                      </React.Fragment>)}
+                    </div>
+                    {(vm.pf2?.clin?.hasExams) ? (<>
+                      <div>
+                        <div style={{fontWeight: "800", fontSize: "15px", marginBottom: "10px"}}>{"تاریخ‌های معاینه"}</div>
+                        <div style={{display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(210px,1fr))", gap: "10px"}}>
+                          {(vm.pf2?.clin?.exams || []).map((e, __i13) => <React.Fragment key={__i13}>
+                            <div style={{display: "flex", gap: "12px", alignItems: "center", border: "1px solid #e7e8e3", borderRadius: "16px", padding: "12px 14px", background: "#fff"}}>
+                              <div style={{width: "40px", height: "40px", borderRadius: "12px", background: "#fdeceb", color: "#b42318", display: "grid", placeItems: "center", fontWeight: "800", flexShrink: "0"}}>{e?.n}</div>
+                              <div style={{flex: "1", minWidth: "0"}}>
+                                <div style={{fontSize: "13px", fontWeight: "800", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis"}}>{e?.title}</div>
+                                <div style={{fontSize: "13px", marginTop: "2px"}}>
+                                  {e?.date}{" "}
+                                  <span style={{fontSize: "11px", color: "#6b6e72"}}>{e?.wday}{" "}{e?.time}</span>
+                                </div>
+                                <div style={{display: "flex", gap: "6px", alignItems: "center", marginTop: "4px"}}>
+                                  <span style={{fontSize: "10px", fontWeight: "800", padding: "2px 8px", whiteSpace: "nowrap", flexShrink: "0", borderRadius: "999px", background: e?.tagBg, color: e?.tagFg}}>{e?.tag}</span>
+                                  <span style={{fontSize: "11px", color: "#8b8e89"}}>{e?.rel}</span>
+                                </div>
+                              </div>
+                            </div>
+                          </React.Fragment>)}
+                        </div>
+                      </div>
+                    </>) : null}
+                    {(vm.pf2?.clin?.hasVisits) ? (<>
+                      <div>
+                        <div style={{fontWeight: "800", fontSize: "15px", marginBottom: "10px"}}>{"سابقه مراجعات"}</div>
+                        <div style={{border: "1px solid #e7e8e3", borderRadius: "16px", overflow: "hidden"}}>
+                          <div style={{overflowX: "auto"}}>
+                            <table style={{width: "100%", borderCollapse: "collapse"}}>
+                              <thead>
+                                <tr>
+                                  <th style={{padding: "11px 12px", fontSize: "12px", fontWeight: "700", color: "#d9dad6", textAlign: "right", whiteSpace: "nowrap", background: "#2E2F31", width: "44px"}}>{"#"}</th>
+                                  <th style={{padding: "11px 12px", fontSize: "12px", fontWeight: "700", color: "#d9dad6", textAlign: "right", whiteSpace: "nowrap", background: "#2E2F31"}}>{"نوع مراجعه"}</th>
+                                  <th style={{padding: "11px 12px", fontSize: "12px", fontWeight: "700", color: "#d9dad6", textAlign: "right", whiteSpace: "nowrap", background: "#2E2F31"}}>{"تاریخ"}</th>
+                                  <th style={{padding: "11px 12px", fontSize: "12px", fontWeight: "700", color: "#d9dad6", textAlign: "right", whiteSpace: "nowrap", background: "#2E2F31"}}>{"روز"}</th>
+                                  <th style={{padding: "11px 12px", fontSize: "12px", fontWeight: "700", color: "#d9dad6", textAlign: "right", whiteSpace: "nowrap", background: "#2E2F31"}}>{"ساعت"}</th>
+                                  <th style={{padding: "11px 12px", fontSize: "12px", fontWeight: "700", color: "#d9dad6", textAlign: "right", whiteSpace: "nowrap", background: "#2E2F31"}}>{"نسبت به جراحی"}</th>
+                                  <th style={{padding: "11px 12px", fontSize: "12px", fontWeight: "700", color: "#d9dad6", textAlign: "right", whiteSpace: "nowrap", background: "#2E2F31"}}>{"توضیح"}</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {(vm.pf2?.clin?.visits || []).map((v, __i16) => <React.Fragment key={__i16}>
+                                  <tr style={{background: v?.rowBg}}>
+                                    <td style={{padding: "11px 12px", fontSize: "13px", borderBottom: "1px solid #f1f2ee", whiteSpace: "nowrap", color: "#8b8e89", fontWeight: "700"}}>{v?.n}</td>
+                                    <td style={{padding: "11px 12px", fontSize: "13px", borderBottom: "1px solid #f1f2ee", whiteSpace: "nowrap", fontWeight: "800"}}>
+                                      {v?.type}
+                                      {(v?.fut) ? (<>
+                                        <span style={{marginRight: "6px", fontSize: "10px", fontWeight: "800", padding: "2px 8px", borderRadius: "999px", background: "#e5eff7", color: "#1d5a85"}}>{"آینده"}</span>
+                                      </>) : null}
+                                    </td>
+                                    <td style={{padding: "11px 12px", fontSize: "13px", borderBottom: "1px solid #f1f2ee", whiteSpace: "nowrap", fontWeight: "700"}}>{v?.date}</td>
+                                    <td style={{padding: "11px 12px", fontSize: "13px", borderBottom: "1px solid #f1f2ee", whiteSpace: "nowrap", color: "#55585c"}}>{v?.wday}</td>
+                                    <td style={{padding: "11px 12px", fontSize: "13px", borderBottom: "1px solid #f1f2ee", whiteSpace: "nowrap", fontVariantNumeric: "tabular-nums"}}>{v?.time}</td>
+                                    <td style={{padding: "11px 12px", fontSize: "13px", borderBottom: "1px solid #f1f2ee", whiteSpace: "nowrap", color: "#6b6e72", fontSize: "12px"}}>{v?.rel}</td>
+                                    <td style={{padding: "11px 12px", fontSize: "13px", borderBottom: "1px solid #f1f2ee", whiteSpace: "nowrap", color: "#55585c", fontSize: "12px", whiteSpace: "normal", minWidth: "120px"}}>{v?.note}</td>
+                                  </tr>
+                                </React.Fragment>)}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                      </div>
+                    </>) : null}
+                  </div>
+                </>) : null}
               </div>
               <div style={{background: "#fff", border: "1px solid #e7e8e3", borderRadius: "22px", padding: "18px 20px", display: "flex", flexDirection: "column", gap: "12px"}}>
                 <div style={{display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap"}}>
