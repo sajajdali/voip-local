@@ -14,6 +14,7 @@ model User {
   name      String
   role      String // admin | supervisor | operator | accounting | reception | emergency
   ext       String?
+  title     String? // shown under the name after login, instead of «role · extension»
   active    Boolean  @default(true)
   perms     Json? // {section: [view|add|edit|delete]}; empty = the role's defaults
   createdAt DateTime @default(now())

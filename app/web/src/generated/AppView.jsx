@@ -3843,6 +3843,10 @@ export default function AppView({ vm }) {
                       <input type="password" value={vm.uv?.form?.f?.password} onChange={vm.uv?.form?.set?.password} placeholder={vm.uv?.form?.passPh} autoComplete="new-password" style={{border: "1px solid #e1e3dc", borderRadius: "10px", padding: "10px 12px", fontSize: "13px", outline: "none", background: "#fff", color: "#232425", fontFamily: "inherit", width: "100%", direction: "ltr", textAlign: "left"}} />
                     </label>
                     <label style={{display: "flex", flexDirection: "column", gap: "6px", fontSize: "12px", color: "#6b6e72"}}>
+                      {"عنوان (زیر نام، بعد از ورود)"}
+                      <input value={vm.uv?.form?.f?.title} onChange={vm.uv?.form?.set?.title} placeholder="مثلاً مسئول پذیرش" style={{border: "1px solid #e1e3dc", borderRadius: "10px", padding: "10px 12px", fontSize: "13px", outline: "none", background: "#fff", color: "#232425", fontFamily: "inherit", width: "100%"}} />
+                    </label>
+                    <label style={{display: "flex", flexDirection: "column", gap: "6px", fontSize: "12px", color: "#6b6e72"}}>
                       {"داخلی (اختیاری)"}
                       <input value={vm.uv?.form?.f?.ext} onChange={vm.uv?.form?.set?.ext} placeholder="مثلاً 101" style={{border: "1px solid #e1e3dc", borderRadius: "10px", padding: "10px 12px", fontSize: "13px", outline: "none", background: "#fff", color: "#232425", fontFamily: "inherit", width: "100%", direction: "ltr", textAlign: "left"}} />
                     </label>
@@ -3920,6 +3924,9 @@ export default function AppView({ vm }) {
                         <tr style={{opacity: u?.op}}>
                           <td style={{padding: "11px 12px", fontSize: "13px", borderBottom: "1px solid #f1f2ee", whiteSpace: "nowrap"}}>
                             <div style={{fontWeight: "700"}}>{u?.name}</div>
+                            {(u?.hasTitle) ? (<>
+                              <div style={{fontSize: "12px", color: "#3d6a0c", fontWeight: "600"}}>{u?.title}</div>
+                            </>) : null}
                             <div style={{fontSize: "12px", color: "#6b6e72", direction: "ltr", textAlign: "right"}}>{u?.username}</div>
                           </td>
                           <td style={{padding: "11px 12px", fontSize: "13px", borderBottom: "1px solid #f1f2ee", whiteSpace: "nowrap"}}>{u?.ext}</td>

@@ -8,7 +8,7 @@ import { env } from './env';
 import { Action, Perms, can, permsOf } from './perms';
 import { PrismaService } from './prisma.service';
 
-export interface Me { id: string; name: string; role: string; ext: string | null; username: string; perms?: Perms }
+export interface Me { id: string; name: string; role: string; ext: string | null; username: string; title?: string | null; perms?: Perms }
 
 export const Roles = (...r: string[]) => SetMetadata('roles', r);
 /** Section permission; the action defaults from the HTTP method (GET view, POST add, PUT/PATCH edit, DELETE delete). */
@@ -55,7 +55,7 @@ export async function currentUser(db: PrismaService, id: string): Promise<Me | n
   const c = userCache.get(id);
   if (c && Date.now() - c.at < 15e3) return c.me;
   const u = await db.user.findUnique({ where: { id } });
-  const me: Me | null = u && u.active ? { id: u.id, name: u.name, role: u.role, ext: u.ext, username: u.username, perms: permsOf(u) } : null;
+  const me: Me | null = u && u.active ? { id: u.id, name: u.name, role: u.role, ext: u.ext, username: u.username, title: u.title, perms: permsOf(u) } : null;
   userCache.set(id, { at: Date.now(), me });
   return me;
 }
@@ -140,7 +140,7 @@ export class AuthController {
     const me: Me = { id: u.id, name: u.name, role: u.role, ext: u.ext, username: u.username };
     forgetUser(u.id);
     await this.db.auditLog.create({ data: { userId: u.id, userName: u.name, action: 'login', target: 'auth' } });
-    return { token: jwt.sign(me, env.jwtSecret, { expiresIn: '12h' }), me: { ...me, perms: permsOf(u) } };
+    return { token: jwt.sign(me, env.jwtSecret, { expiresIn: '12h' }), me: { ...me, title: u.title, perms: permsOf(u) } };
   }
 
   @Get('me')

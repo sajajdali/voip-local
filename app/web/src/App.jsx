@@ -1758,9 +1758,9 @@ class LiveApp extends React.Component {
     const when = iso => { if (!iso) return 'هرگز'; const t = new Date(iso); return fa(jStr(t) + ' · ' + jpad(t.getHours()) + ':' + jpad(t.getMinutes())); };
     const f = s.uEdit;
     const canAdd = CAN('users', 'add'), canEdit = CAN('users', 'edit'), canDel = CAN('users', 'delete');
-    const open = u => this.setState({ uEdit: u ? { id: u.id, username: u.username, name: u.name, ext: u.ext || '', role: u.role, active: u.active, password: '', perms: JSON.parse(JSON.stringify(u.perms || {})) } : { id: null, username: '', name: '', ext: '', role: 'operator', active: true, password: '', perms: JSON.parse(JSON.stringify(d.roles.find(r => r.id === 'operator').perms)) } });
+    const open = u => this.setState({ uEdit: u ? { id: u.id, username: u.username, name: u.name, title: u.title || '', ext: u.ext || '', role: u.role, active: u.active, password: '', perms: JSON.parse(JSON.stringify(u.perms || {})) } : { id: null, username: '', name: '', title: '', ext: '', role: 'operator', active: true, password: '', perms: JSON.parse(JSON.stringify(d.roles.find(r => r.id === 'operator').perms)) } });
     const users = d.users.map(u => ({
-      name: u.name, username: u.username, ext: u.ext ? fa(u.ext) : '—', role: ROLE[u.role] || u.role, custom: u.custom, roleTag: u.custom ? ROLE[u.role] + ' · سفارشی' : ROLE[u.role],
+      name: u.name, title: u.title || '', hasTitle: !!u.title, username: u.username, ext: u.ext ? fa(u.ext) : '—', role: ROLE[u.role] || u.role, custom: u.custom, roleTag: u.custom ? ROLE[u.role] + ' · سفارشی' : ROLE[u.role],
       roleBg: u.role === 'admin' ? '#2E2F31' : '#f2f3ef', roleFg: u.role === 'admin' ? '#8DC63F' : '#3a3b3d',
       active: u.active, inactive: !u.active, statusLabel: u.active ? 'فعال' : 'غیرفعال', statusBg: u.active ? '#eaf4dc' : '#f2f3ef', statusFg: u.active ? '#3d6a0c' : '#8b8e89',
       last: when(u.lastLogin), self: u.id === ME.id, op: u.active ? 1 : 0.6,
@@ -1797,14 +1797,14 @@ class LiveApp extends React.Component {
       const preset = r => () => setF({ role: r.id, perms: JSON.parse(JSON.stringify(r.perms)) });
       form = {
         isNew: !f.id, title: f.id ? 'ویرایش کاربر' : 'کاربر جدید', f, isAdmin, notAdmin: !isAdmin, self: f.id === ME.id,
-        set: Object.fromEntries(['name', 'username', 'password', 'ext'].map(k => [k, e => setF({ [k]: e.target.value })])),
+        set: Object.fromEntries(['name', 'title', 'username', 'password', 'ext'].map(k => [k, e => setF({ [k]: e.target.value })])),
         presets: d.roles.map(r => ({ label: r.label, click: preset(r), bg: f.role === r.id ? '#2E2F31' : '#fff', fg: f.role === r.id ? '#fff' : '#3a3b3d', bd: f.role === r.id ? '#2E2F31' : '#e1e3dc' })),
         activeT: { bg: f.active ? '#8DC63F' : '#d9dad6', j: f.active ? 'flex-end' : 'flex-start' }, toggleActive: () => f.id !== ME.id && setF({ active: !f.active }),
         groups, acts: ['view', 'add', 'edit', 'delete'].map(a => ({ label: ACT[a] })),
         passPh: f.id ? 'خالی بگذارید تا تغییر نکند' : 'حداقل ۶ کاراکتر',
         cancel: () => this.setState({ uEdit: null }),
         save: async () => {
-          const body = { name: f.name, username: f.username, ext: f.ext, role: f.role, active: f.active, perms: f.perms, ...(f.password ? { password: f.password } : {}) };
+          const body = { name: f.name, title: f.title, username: f.username, ext: f.ext, role: f.role, active: f.active, perms: f.perms, ...(f.password ? { password: f.password } : {}) };
           try { if (f.id) await api('/users/' + f.id, body, 'PUT'); else await api('/users', body); this.toast(f.id ? 'تغییرات کاربر ذخیره شد' : 'کاربر ساخته شد'); this.setState({ uEdit: null }); this.loadUsers(); }
           catch (e) { this.toast(e.message); }
         },
@@ -1955,7 +1955,8 @@ class LiveApp extends React.Component {
   meVals() {
     const self = (this.state.exts || []).find(e => e.n === ME.ext);
     return {
-      name: ME.name, ini: ini(ME.name), roleLabel: ROLE_LABEL[ME.role] || ME.role, extText: ME.ext ? ' · داخلی ' + ME.ext : '',
+      // a title set on the users page replaces «role · extension»
+      name: ME.name, ini: ini(ME.name), roleLabel: ME.title || ROLE_LABEL[ME.role] || ME.role, extText: ME.title ? '' : ME.ext ? ' · داخلی ' + ME.ext : '',
       dot: self && self.st !== 'offline' ? '#8DC63F' : '#b9bbb6', isAdmin: ME.role === 'admin',
       hasAlert: this.calls.some(c => c.st === 'voicemail' && (this.state.follow[c.id] || c.follow) === 'new'),
       logout: () => auth.logout(),

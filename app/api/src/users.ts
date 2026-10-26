@@ -22,7 +22,7 @@ export class UsersController {
     const last = new Map(logins.map(l => [l.userId, l._max.at]));
     return {
       sections: SECTIONS, roles: ROLES.map(r => ({ id: r, label: ROLE_LABEL[r], perms: rolePerms(r) })),
-      users: users.map(u => ({ id: u.id, username: u.username, name: u.name, role: u.role, ext: u.ext, active: u.active, perms: permsOf(u), custom: !!u.perms && u.role !== 'admin', lastLogin: last.get(u.id) || null })),
+      users: users.map(u => ({ id: u.id, username: u.username, name: u.name, title: u.title || '', role: u.role, ext: u.ext, active: u.active, perms: permsOf(u), custom: !!u.perms && u.role !== 'admin', lastLogin: last.get(u.id) || null })),
     };
   }
 
@@ -52,7 +52,7 @@ export class UsersController {
     if (!String(b.name || '').trim()) throw new BadRequestException('نام را وارد کنید');
     const role = b.role || 'operator';
     const u = await this.db.user.create({ data: {
-      username, name: String(b.name).trim().slice(0, 60), role, ext: b.ext ? String(b.ext) : null, active: b.active !== false,
+      username, name: String(b.name).trim().slice(0, 60), title: String(b.title || '').trim().slice(0, 60) || null, role, ext: b.ext ? String(b.ext) : null, active: b.active !== false,
       password: await bcrypt.hash(String(b.password), 10), perms: role === 'admin' ? undefined : (cleanPerms(b.perms) as any),
     } });
     await this.db.auditLog.create({ data: { userId: me.id, userName: me.name, action: 'user.create', target: u.username, detail: { role, perms: role === 'admin' ? 'all' : cleanPerms(b.perms) } as any } });
@@ -71,6 +71,7 @@ export class UsersController {
     if (b.username !== undefined) data.username = username;
     if (b.name !== undefined) data.name = String(b.name).trim().slice(0, 60) || cur.name;
     if (b.ext !== undefined) data.ext = b.ext ? String(b.ext) : null;
+    if (b.title !== undefined) data.title = String(b.title || '').trim().slice(0, 60) || null;
     if (b.password) data.password = await bcrypt.hash(String(b.password), 10);
     if (role === 'admin') data.perms = null; else if (b.perms !== undefined) data.perms = cleanPerms(b.perms);
     await this.db.user.update({ where: { id }, data });
