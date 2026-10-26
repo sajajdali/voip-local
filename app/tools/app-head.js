@@ -1743,7 +1743,7 @@ class LiveApp extends React.Component {
       node('c', 'مشاوره', cons, cons && surg ? rel(cons, surg) : cons ? days(cons.d, today) + ' روز پیش' : '', '#6a4b9c'),
       { ...node('s', 'جراحی', surg, surg ? (days(surg.d, today) >= 0 ? days(surg.d, today) + ' روز پیش' : 'در ' + days(today, surg.d) + ' روز آینده') : '', '#3d6a0c'),
         // a past surgery date alone is not proof: only has_completed_surgery confirms the operation
-        ...(surg && surg.d <= today && !D.completed ? { state: 'انجام عمل تأیید نشده', stBg: '#fcf3e0', stFg: '#8a5a00', dot: '#fff', fg: '#8a5a00', ring: '#e0a83a' } : {}) },
+        ...(surg && surg.d <= today && !D.completed ? { state: 'نوبت جراحی', stBg: '#e5eff7', stFg: '#1d5a85' } : {}) },
       node('t', 'برداشتن تامپون', tamp, rel(tamp, surg), '#1d5a85'),
       node('p', 'برداشتن اسپلینت', spl, rel(spl, surg), '#8a5a00'),
       { ...node('e', 'معاینات', lastExam ? lastExam.p : nextExam ? nextExam.p : null, exams.length ? exams.filter(went).length + ' انجام‌شده از ' + exams.length + (nextExam ? ' · بعدی ' + nextExam.p.j.slice(5) : '') : '', '#b42318'),
@@ -1752,7 +1752,7 @@ class LiveApp extends React.Component {
     ].map((x, i, a) => ({ ...x, n: fa(i + 1), line: i < a.length - 1 }));
     const since = surg ? days(surg.d, today) : null;
     const stats = [
-      { label: 'روز از جراحی', value: since == null ? '—' : since >= 0 ? fa(since) : 'جراحی آینده', sub: surg ? fa(surg.j) + (since >= 0 && !D.completed ? ' · انجام عمل تأیید نشده' : '') : 'تاریخ جراحی ثبت نشده', color: '#3d6a0c' },
+      { label: 'روز از جراحی', value: since == null ? '—' : since >= 0 ? fa(since) : 'جراحی آینده', sub: surg ? fa(surg.j) : 'تاریخ جراحی ثبت نشده', color: '#3d6a0c' },
       { label: 'از مشاوره تا جراحی', value: cons && surg ? (days(cons.d, surg.d) >= 0 ? fa(days(cons.d, surg.d)) + ' روز' : fa(-days(cons.d, surg.d)) + ' روز بعد از عمل') : '—', sub: cons ? 'مشاوره ' + fa(cons.j) + (surg && cons.d > surg.d ? ' · بعد از تاریخ جراحی' : '') : 'مشاوره ثبت نشده', color: '#6a4b9c' },
       { label: 'معاینات انجام‌شده', value: fa(exams.filter(went).length) + ' از ' + fa(exams.length), sub: nextExam ? 'معاینه بعدی ' + fa(nextExam.p.j) : lastExam ? 'آخرین ' + fa(lastExam.p.j) : 'معاینه‌ای ثبت نشده', color: '#b42318' },
       { label: 'حضور در نوبت‌ها', value: fa(visits.filter(went).length) + ' از ' + fa(visits.length), sub: visits.filter(dead).length ? fa(visits.filter(dead).length) + ' لغو / عدم حضور' : 'بدون لغو یا غیبت', color: '#1d5a85' },
