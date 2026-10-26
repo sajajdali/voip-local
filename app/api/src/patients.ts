@@ -1,6 +1,6 @@
 // Patient directory: names come from the clinic CRM, looked up once per inbound call and cached locally.
 // The CRM logs every lookup as a call, so it is asked exactly once per inbound call and never in bulk.
-import { BadRequestException, Body, Controller, Get, Injectable, Logger, Post, Put } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Get, Injectable, Logger, Param, Post, Put } from '@nestjs/common';
 import { CurrentUser, Me, Roles, Perm } from './auth';
 import { Bus } from './bus';
 import { PrismaService } from './prisma.service';
@@ -145,19 +145,9 @@ export class PatientsService {
       this.recent.set(phone, now);
       if (this.recent.size > 5000) for (const [k, t] of this.recent) if (t < now - 60e3) this.recent.delete(k);
       try {
-        const { name, surgery } = await this.fetchCrm(phone, s);
+        const { name, surgery, raw } = await this.fetchCrm(phone, s);
         this.fails = 0;
-        const cur = await this.db.patient.findUnique({ where: { phone } });
-        if (!cur && !name) return;
-        // a name typed in the panel wins; the surgery date always follows the CRM
-        const nextName = cur && (cur.source === 'manual' || !name) ? cur.name : name;
-        if (cur && cur.name === nextName && cur.surgery === surgery) return;
-        await this.db.patient.upsert({
-          where: { phone },
-          create: { phone, name: nextName, surgery, source: 'crm' },
-          update: { name: nextName, surgery, ...(cur && cur.source === 'manual' ? {} : { source: 'crm' }) },
-        });
-        this.bus.emit('calls', {});
+        await this.store(phone, name, surgery, raw);
       } catch (e) {
         this.lastError = (e as Error).name === 'TimeoutError' ? 'سامانه بیماران در زمان تعیین‌شده جواب نداد' : (e as Error).message;
         // repeated failures: leave the CRM alone for five minutes
@@ -167,6 +157,24 @@ export class PatientsService {
     })().catch(() => {}).finally(() => this.inflight.delete(phone));
     this.inflight.set(phone, job);
   }
+
+  /** Keep the CRM's answer (name, surgery and every other field it sends) for the caller card and the file. */
+  async store(phone: string, name: string, surgery: string | null, raw: any) {
+    const cur = await this.db.patient.findUnique({ where: { phone } });
+    if (!cur && !name) return;
+    // a name typed in the panel wins; the surgery date always follows the CRM
+    const nextName = cur && (cur.source === 'manual' || !name) ? cur.name : name;
+    const crm = raw && typeof raw === 'object' && JSON.stringify(raw).length < 20000 ? raw : null;
+    await this.db.patient.upsert({
+      where: { phone },
+      create: { phone, name: nextName, surgery, source: 'crm', crm, crmAt: new Date() },
+      update: { name: nextName, surgery, crm: crm ?? undefined, crmAt: new Date(), ...(cur && cur.source === 'manual' ? {} : { source: 'crm' }) },
+    });
+    this.bus.emit('patient', { phone });
+    if (!cur || cur.name !== nextName || cur.surgery !== surgery) this.bus.emit('calls', {});
+  }
+
+  isLooking(phone: string) { return this.inflight.has(phone); }
 
   /** Wait (bounded) for a lookup that is still running for this caller. */
   async waitLookup(phone: string, ms: number) {
@@ -228,5 +236,68 @@ export class CrmController {
     } catch (e) {
       return { ok: false, error: (e as Error).name === 'TimeoutError' ? 'سامانه بیماران در زمان تعیین‌شده جواب نداد' : (e as Error).message };
     }
+  }
+}
+
+// Persian labels for the CRM fields we know; anything else is shown with its own key
+const CRM_LABELS: Record<string, string> = {
+  name: 'نام', full_name: 'نام کامل', first_name: 'نام', last_name: 'نام خانوادگی', mobile: 'موبایل', phone: 'تلفن', email: 'ایمیل', city: 'شهر', age: 'سن', gender: 'جنسیت',
+  national_code: 'کد ملی', national_id: 'کد ملی', has_completed_surgery: 'جراحی انجام‌شده', last_surgery_date: 'تاریخ آخرین جراحی', days_since_surgery: 'روز از جراحی',
+  surgery_type: 'نوع جراحی', next_appointment: 'نوبت بعدی', last_visit: 'آخرین ویزیت', doctor: 'پزشک', status: 'وضعیت', file_number: 'شماره پرونده', patient_id: 'شناسه بیمار', notes: 'یادداشت',
+  call_count: 'تعداد تماس در سامانه بیماران', has_surgery_appointment: 'نوبت جراحی دارد', has_past_surgery_appointment: 'نوبت جراحی گذشته', has_future_surgery_appointment: 'نوبت جراحی آینده',
+};
+const SKIP = /^(success|ok|message|code|status_code|call_id)$/i;
+
+/** The CRM answer as label / value rows (nested objects flattened one level, national codes masked). */
+export function crmFields(raw: any) {
+  const out: { key: string; label: string; value: string }[] = [];
+  const add = (k: string, v: any, prefix = '') => {
+    if (v === null || v === undefined || v === '' || SKIP.test(k)) return;
+    if (Array.isArray(v)) { if (v.length && v.every(x => typeof x !== 'object')) add(k, v.join('، '), prefix); return; }
+    if (typeof v === 'object') { if (!prefix) for (const [k2, v2] of Object.entries(v)) add(k2, v2, k); return; }
+    let value = typeof v === 'boolean' ? (v ? 'بله' : 'خیر') : String(v).trim();
+    if (/national|melli|nid/i.test(k) && /\d{6,}/.test(value)) value = '•••••' + value.slice(-4);
+    if (value.length > 300) value = value.slice(0, 300) + '…';
+    out.push({ key: (prefix ? prefix + '.' : '') + k, label: CRM_LABELS[k] || k.replace(/_/g, ' '), value });
+  };
+  if (raw && typeof raw === 'object') for (const [k, v] of Object.entries(raw.data && typeof raw.data === 'object' && !Array.isArray(raw.data) ? raw.data : raw)) add(k, v);
+  return out.slice(0, 40);
+}
+
+/** Caller card / patient file: what the CRM said, plus our own history of this number. */
+@Controller('patients')
+export class PatientCardController {
+  constructor(private db: PrismaService, private patients: PatientsService) {}
+
+  @Perm('calls')
+  @Get(':phone/card')
+  async card(@Param('phone') phone: string) {
+    const p = String(phone).replace(/\D/g, '');
+    const [pt, s, reports] = await Promise.all([
+      this.db.patient.findUnique({ where: { phone: p } }), this.patients.settings(),
+      this.db.callReport.findMany({ where: { phone: p }, orderBy: { createdAt: 'desc' }, take: 20 }),
+    ]);
+    const days = daysSince(pt?.surgery);
+    return {
+      phone: p, known: !!pt, name: pt?.name || '', source: pt?.source || '', surgery: pt?.surgery || null, days, surgeryNote: surgeryNote(days, false),
+      crmOn: s.enabled, looking: this.patients.isLooking(p), crmAt: pt?.crmAt || null, fields: crmFields(pt?.crm),
+      reports: reports.map(r => ({ id: r.id, callId: r.callId, cat: r.cat, outcome: r.outcome, text: r.text, followUp: r.followUp || '', by: r.userName, userId: r.userId, at: r.createdAt })),
+    };
+  }
+
+  /** «به‌روزرسانی از سامانه بیماران» in the file: one fresh CRM request (at most once a minute per number). */
+  private last = new Map<string, number>();
+  @Perm('calls', 'edit')
+  @Post(':phone/refresh')
+  async refresh(@Param('phone') phone: string) {
+    const p = String(phone).replace(/\D/g, '');
+    if (!/^09\d{9}$/.test(p)) throw new BadRequestException('فقط شماره موبایل در سامانه بیماران جستجو می‌شود');
+    const s = await this.patients.settings();
+    if (!s.enabled || !s.url) throw new BadRequestException('اتصال به سامانه بیماران در تنظیمات فعال نیست');
+    if ((this.last.get(p) || 0) > Date.now() - 60e3) throw new BadRequestException('همین الان به‌روزرسانی شد؛ یک دقیقه دیگر دوباره امتحان کنید');
+    this.last.set(p, Date.now());
+    const r = await this.patients.fetchCrm(p, s);
+    await this.patients.store(p, r.name, r.surgery, r.raw);
+    return this.card(p);
   }
 }

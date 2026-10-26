@@ -645,6 +645,26 @@
 
   <!-- ===== FILE ===== -->
   <sc-if value="{{ is.file }}">
+  <sc-if value="{{ pf2.newCaller }}">
+  <div style="display:flex;flex-direction:column;gap:20px">
+    <div><button sc-camel-on-click="{{ pf2.back }}" style="display:flex;align-items:center;gap:6px;border:1px solid #e1e3dc;background:#fff;color:#3a3b3d;padding:8px 14px;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">→ بازگشت</button></div>
+    <div style="background:#2E2F31;color:#fff;border-radius:24px;padding:24px;display:flex;gap:16px;align-items:center;flex-wrap:wrap;box-shadow:0 14px 34px rgba(46,47,49,.18)"><div style="width:72px;height:72px;border-radius:22px;background:#8DC63F;color:#1f2021;display:grid;place-items:center;font-weight:800;font-size:22px">؟</div><div style="flex:1;min-width:180px"><div style="font-size:12px;color:#8DC63F;font-weight:700">پرونده بیمار · اولین تماس</div><div style="font-size:26px;font-weight:800;margin-top:2px">{{ pf2.name }}</div><div style="font-size:14px;color:#d9dad6;margin-top:4px;direction:ltr;text-align:right">{{ pf2.phone }}</div></div><button sc-camel-on-click="{{ pf2.call }}" style="border:none;background:#8DC63F;color:#1f2021;padding:11px 18px;border-radius:12px;font-size:13px;font-weight:800;cursor:pointer;font-family:inherit">تماس با بیمار</button></div>
+    <div style="font-size:13px;color:#6b6e72">هنوز تماس ثبت‌شده‌ای از این شماره نیست؛ بعد از پایان تماس فعلی، تاریخچه اینجا نمایش داده می‌شود.</div>
+    <div style="background:#fff;border:1px solid #e7e8e3;border-radius:22px;padding:18px 20px;display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><div style="width:34px;height:34px;border-radius:10px;background:#eef5e3;color:#3d6a0c;display:grid;place-items:center"><svg width="17" height="17" sc-camel-view-box="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="8" ry="3"></ellipse><path d="M4 5v6c0 1.7 3.6 3 8 3s8-1.3 8-3V5M4 11v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"></path></svg></div><div style="flex:1;min-width:160px"><div style="font-weight:800;font-size:15px">اطلاعات سامانه بیماران</div><div style="font-size:11px;color:#8b8e89;margin-top:2px">{{ pf2.crmAt }}</div></div><sc-if value="{{ pf2.hasSurgery }}"><span style="font-size:12px;font-weight:800;padding:5px 12px;border-radius:999px;background:#eef5e3;color:#3d6a0c">{{ pf2.surgery }}</span></sc-if><sc-if value="{{ pf2.canRefresh }}"><button sc-camel-on-click="{{ pf2.refresh }}" style="border:1px solid #e1e3dc;background:#fff;color:#3a3b3d;padding:7px 12px;border-radius:10px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">{{ pf2.refreshText }}</button></sc-if></div>
+      <sc-if value="{{ pf2.loading }}"><div style="font-size:13px;color:#8b8e89">در حال بارگذاری…</div></sc-if>
+      <sc-if value="{{ pf2.looking }}"><div style="font-size:12px;color:#8b8e89">در حال دریافت از سامانه بیماران…</div></sc-if>
+      <sc-if value="{{ pf2.hasFields }}"><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:8px"><sc-for list="{{ pf2.fields }}" as="f"><div style="background:#f7f8f4;border-radius:12px;padding:9px 12px;min-width:0"><div style="font-size:11px;color:#8b8e89">{{ f.label }}</div><div style="font-size:13px;font-weight:700;margin-top:3px;word-break:break-word">{{ f.value }}</div></div></sc-for></div></sc-if>
+      <sc-if value="{{ pf2.noFields }}"><div style="font-size:13px;color:#8b8e89;line-height:1.8">سامانه بیماران برای این شماره اطلاعاتی برنگردانده است.</div></sc-if>
+    </div>
+    <sc-if value="{{ pf2.hasReports }}">
+    <div style="background:#fff;border:1px solid #e7e8e3;border-radius:22px;padding:18px 20px;display:flex;flex-direction:column;gap:10px">
+      <div style="font-weight:800;font-size:15px">گزارش‌های ثبت‌شده برای این بیمار ({{ pf2.repCount }})</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:10px"><sc-for list="{{ pf2.reports }}" as="g"><div style="background:#fff;border:1px solid #e7e8e3;border-radius:16px;padding:12px 14px;display:flex;flex-direction:column;gap:8px"><div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap"><span style="font-size:11px;font-weight:800;padding:3px 9px;border-radius:999px;background:#f2f3ef;color:#3a3b3d">{{ g.cat }}</span><span style="font-size:11px;font-weight:800;padding:3px 9px;border-radius:999px;background:{{ g.outBg }};color:{{ g.outFg }}">{{ g.out }}</span><sc-if value="{{ g.hasFu }}"><span style="font-size:11px;font-weight:800;padding:3px 9px;border-radius:999px;background:{{ g.fuBg }};color:{{ g.fuFg }}">{{ g.fu }}</span></sc-if></div><div style="font-size:13px;line-height:1.9;white-space:pre-wrap">{{ g.text }}</div><div style="font-size:11px;color:#8b8e89">{{ g.by }} · {{ g.when }}</div></div></sc-for></div>
+    </div>
+    </sc-if>
+  </div>
+  </sc-if>
   <sc-if value="{{ pf.has }}">
   <div style="display:flex;flex-direction:column;gap:20px">
     <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><button sc-camel-on-click="{{ pf.back }}" style="display:flex;align-items:center;gap:6px;border:1px solid #e1e3dc;background:#fff;color:#3a3b3d;padding:8px 14px;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit"><svg width="15" height="15" sc-camel-view-box="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 6l6 6-6 6"></path></svg>بازگشت</button><span style="font-size:13px;color:#6b6e72">پرونده تماس‌گیرنده</span></div>
@@ -658,6 +678,20 @@
         <sc-for list="{{ pf.info }}" as="x"><div style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:12px 14px"><div style="font-size:11px;color:#b8bab5">{{ x.label }}</div><div style="font-size:15px;font-weight:700;margin-top:5px">{{ x.value }}</div></div></sc-for>
       </div>
     </div>
+    <div style="background:#fff;border:1px solid #e7e8e3;border-radius:22px;padding:18px 20px;display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><div style="width:34px;height:34px;border-radius:10px;background:#eef5e3;color:#3d6a0c;display:grid;place-items:center"><svg width="17" height="17" sc-camel-view-box="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="8" ry="3"></ellipse><path d="M4 5v6c0 1.7 3.6 3 8 3s8-1.3 8-3V5M4 11v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"></path></svg></div><div style="flex:1;min-width:160px"><div style="font-weight:800;font-size:15px">اطلاعات سامانه بیماران</div><div style="font-size:11px;color:#8b8e89;margin-top:2px">{{ pf2.crmAt }}</div></div><sc-if value="{{ pf2.hasSurgery }}"><span style="font-size:12px;font-weight:800;padding:5px 12px;border-radius:999px;background:#eef5e3;color:#3d6a0c">{{ pf2.surgery }}</span></sc-if><sc-if value="{{ pf2.canRefresh }}"><button sc-camel-on-click="{{ pf2.refresh }}" style="border:1px solid #e1e3dc;background:#fff;color:#3a3b3d;padding:7px 12px;border-radius:10px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">{{ pf2.refreshText }}</button></sc-if></div>
+      <sc-if value="{{ pf2.loading }}"><div style="font-size:13px;color:#8b8e89">در حال بارگذاری…</div></sc-if>
+      <sc-if value="{{ pf2.looking }}"><div style="font-size:12px;color:#8b8e89">در حال دریافت از سامانه بیماران…</div></sc-if>
+      <sc-if value="{{ pf2.hasFields }}"><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:8px"><sc-for list="{{ pf2.fields }}" as="f"><div style="background:#f7f8f4;border-radius:12px;padding:9px 12px;min-width:0"><div style="font-size:11px;color:#8b8e89">{{ f.label }}</div><div style="font-size:13px;font-weight:700;margin-top:3px;word-break:break-word">{{ f.value }}</div></div></sc-for></div></sc-if>
+      <sc-if value="{{ pf2.noFields }}"><div style="font-size:13px;color:#8b8e89;line-height:1.8">سامانه بیماران برای این شماره اطلاعاتی برنگردانده است.</div></sc-if>
+    </div>
+    <sc-if value="{{ pf2.hasReports }}">
+    <div style="background:#fff;border:1px solid #e7e8e3;border-radius:22px;padding:18px 20px;display:flex;flex-direction:column;gap:10px">
+      <div style="font-weight:800;font-size:15px">گزارش‌های ثبت‌شده برای این بیمار ({{ pf2.repCount }})</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:10px"><sc-for list="{{ pf2.reports }}" as="g"><div style="background:#fff;border:1px solid #e7e8e3;border-radius:16px;padding:12px 14px;display:flex;flex-direction:column;gap:8px"><div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap"><span style="font-size:11px;font-weight:800;padding:3px 9px;border-radius:999px;background:#f2f3ef;color:#3a3b3d">{{ g.cat }}</span><span style="font-size:11px;font-weight:800;padding:3px 9px;border-radius:999px;background:{{ g.outBg }};color:{{ g.outFg }}">{{ g.out }}</span><sc-if value="{{ g.hasFu }}"><span style="font-size:11px;font-weight:800;padding:3px 9px;border-radius:999px;background:{{ g.fuBg }};color:{{ g.fuFg }}">{{ g.fu }}</span></sc-if></div><div style="font-size:13px;line-height:1.9;white-space:pre-wrap">{{ g.text }}</div><div style="font-size:11px;color:#8b8e89">{{ g.by }} · {{ g.when }}</div></div></sc-for></div>
+    </div>
+    </sc-if>
+
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px">
       <sc-for list="{{ pf.kpis }}" as="k"><div style="background:#fff;border:1px solid #e7e8e3;border-radius:22px;padding:16px 18px"><div style="font-size:12px;color:#6b6e72">{{ k.label }}</div><div style="font-size:24px;font-weight:800;margin-top:4px">{{ k.value }}</div></div></sc-for>
     </div>
@@ -2034,6 +2068,31 @@
       <button sc-camel-on-click="{{ call.end }}" style="width:100%;border:none;background:#e0574a;color:#fff;padding:13px;border-radius:14px;font-size:14px;font-weight:800;cursor:pointer;font-family:inherit">پایان تماس و ذخیره ضبط</button>
     </sc-if>
   </div>
+</div>
+</sc-if>
+<sc-if value="{{ pop.show }}">
+<div style="position:fixed;left:20px;bottom:{{ pop.bottom }};z-index:44;width:min(360px,calc(100vw - 40px));display:flex;flex-direction:column-reverse;gap:10px;direction:rtl">
+  <sc-for list="{{ pop.cards }}" as="p">
+  <div style="background:#fff;border:1.5px solid {{ p.bd }};border-radius:20px;box-shadow:{{ p.ring }}0 18px 44px rgba(20,21,22,.22);overflow:hidden;opacity:{{ p.op }};animation:cc-fade .25s ease-out">
+    <div style="display:flex;align-items:center;gap:8px;padding:9px 12px;background:#f7f8f4;border-bottom:1px solid #eeefeb">
+      <span style="width:9px;height:9px;border-radius:50%;background:{{ p.stDot }};animation:{{ p.anim }};flex-shrink:0"></span>
+      <span style="flex:1;font-size:12px;font-weight:800;color:{{ p.stFg }};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ p.stText }}</span>
+      <sc-if value="{{ p.mine }}"><span style="font-size:10px;font-weight:800;color:#3d6a0c;background:#eef5e3;border-radius:999px;padding:2px 8px">{{ p.mineText }}</span></sc-if>
+      <span style="font-size:12px;color:#6b6e72;font-variant-numeric:tabular-nums">{{ p.timer }}</span>
+      <button sc-camel-on-click="{{ p.close }}" title="بستن" style="width:24px;height:24px;border-radius:7px;border:none;background:transparent;color:#8b8e89;cursor:pointer;font-size:13px">✕</button>
+    </div>
+    <div sc-camel-on-click="{{ p.open }}" style="padding:12px 14px;display:flex;flex-direction:column;gap:9px;cursor:pointer">
+      <div style="display:flex;align-items:center;gap:12px"><div style="width:46px;height:46px;border-radius:14px;background:#2E2F31;color:#8DC63F;display:grid;place-items:center;font-weight:800;font-size:14px;flex-shrink:0">{{ p.ini }}</div><div style="flex:1;min-width:0"><div style="font-size:16px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ p.name }}</div><div style="font-size:13px;color:#55585c;direction:ltr;text-align:right;margin-top:1px">{{ p.phone }}</div></div></div>
+      <div style="display:flex;gap:5px;flex-wrap:wrap"><sc-for list="{{ p.chips }}" as="c"><span style="font-size:11px;font-weight:700;padding:3px 9px;border-radius:999px;background:{{ c.bg }};color:{{ c.fg }}">{{ c.t }}</span></sc-for></div>
+      <sc-if value="{{ p.hasFields }}"><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px"><sc-for list="{{ p.fields }}" as="f"><div style="background:#f7f8f4;border-radius:10px;padding:6px 9px;min-width:0"><div style="font-size:10px;color:#8b8e89">{{ f.label }}</div><div style="font-size:12px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ f.value }}</div></div></sc-for></div></sc-if>
+      <sc-if value="{{ p.looking }}"><div style="font-size:11px;color:#8b8e89">در حال دریافت اطلاعات از سامانه بیماران…</div></sc-if>
+      <sc-if value="{{ p.hasLast }}"><div style="font-size:11px;color:#6b6e72">{{ p.lastText }}</div></sc-if>
+      <sc-if value="{{ p.hasRep }}"><div style="font-size:11px;color:#3a3b3d;background:#f2f6fb;border-radius:10px;padding:6px 9px;line-height:1.7">آخرین گزارش: {{ p.lastRep }}</div></sc-if>
+      <div style="display:flex;align-items:center;justify-content:center;gap:6px;background:#2E2F31;color:#fff;border-radius:12px;padding:9px;font-size:13px;font-weight:800">باز کردن پرونده کامل ←</div>
+    </div>
+  </div>
+  </sc-for>
+  <sc-if value="{{ pop.more }}"><button sc-camel-on-click="{{ pop.hideAll }}" style="align-self:flex-start;border:none;background:#2E2F31;color:#fff;padding:6px 12px;border-radius:999px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit">{{ pop.moreText }} · بستن همه</button></sc-if>
 </div>
 </sc-if>
 <sc-if value="{{ dp.show }}">

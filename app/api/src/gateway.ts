@@ -20,6 +20,8 @@ export class LiveGateway implements OnGatewayConnection, OnGatewayDisconnect {
     bus.on('cb', x => this.server.to('user:' + x.userId).emit('cb', x));
     // live calls carry patients' numbers: managers only
     bus.on('livecalls', x => this.server && this.server.to('perm:live').emit('livecalls', x));
+    bus.on('callpop', x => this.server && this.server.to('perm:calls').emit('callpop', x));
+    bus.on('patient', x => this.server && this.server.to('perm:calls').emit('patient', x));
     bus.on('notify', x => (x.role === '*' ? this.server.emit('notify', x) : this.server.to('role:' + x.role).emit('notify', x)));
   }
 
@@ -34,6 +36,7 @@ export class LiveGateway implements OnGatewayConnection, OnGatewayDisconnect {
     s.data.me = me;
     s.emit('live', this.ast.live);
     if (can(me, 'live')) { s.join('perm:live'); s.emit('livecalls', this.live.calls); }
+    if (can(me, 'calls')) { s.join('perm:calls'); s.emit('callpop', this.live.pops); }
   }
 
   handleDisconnect(s: Socket) { this.live.stopFor(s); }

@@ -52,6 +52,8 @@ class LiveApp extends React.Component {
     }, 200);
     this.sock = socket();
     this.sock.on('live', l => this.applyLive(l));
+    this.sock.on('callpop', list => this.onCallPop(Array.isArray(list) ? list : []));
+    this.sock.on('patient', x => { if (x && ((this.state.popCards || {})[x.phone] || this.state.fileKey === x.phone)) this.loadCard(x.phone); });
     this.sock.on('calls', x => { this.reloadCalls(); if (x && x.id && x.id === this.state.cvId) { this.loadInsight(x.id); this.loadCallReports(x.id); } if (this.state.page === 'creports') this.loadCReports(); });
     this.sock.on('workflow', w => this.applyRemote(w));
     this.sock.on('config', c => { if (c.by !== ME.id) this.applyRemote({ [c.key]: c.data }); });
@@ -1509,6 +1511,111 @@ class LiveApp extends React.Component {
     return { vbx: out };
   }
 
+  // ---- caller card: every inbound call shows in the corner; a click opens the full file
+  onCallPop(list) {
+    const prev = this.state.pops || [];
+    const ids = new Set(list.map(c => c.id));
+    const gone = { ...(this.state.popGone || {}) };
+    for (const c of prev) if (!ids.has(c.id)) gone[c.id] = { ...c, endedAt: Date.now() };
+    for (const c of list) if (!prev.some(p => p.id === c.id)) { delete gone[c.id]; this.loadCard(c.phone); }
+    this.setState({ pops: list, popGone: gone });
+    clearTimeout(this.popGoneT);
+    if (Object.keys(gone).length) this.popGoneT = setTimeout(() => {
+      const g = { ...(this.state.popGone || {}) };
+      for (const [id, c] of Object.entries(g)) if (Date.now() - c.endedAt > 20e3) delete g[id];
+      this.setState({ popGone: g });
+    }, 21e3);
+    clearInterval(this.popTick);
+    if (list.length) this.popTick = setInterval(() => this.setState({ popNow: Date.now() }), 1000);
+  }
+
+  async loadCard(phone, tries = 0) {
+    if (!/^0\d{6,}$/.test(phone || '')) return;
+    try {
+      const d = await api('/patients/' + encodeURIComponent(phone) + '/card');
+      this.setState(st => ({ popCards: { ...(st.popCards || {}), [phone]: d } }));
+      // the CRM lookup started with the call: ask again once it has answered
+      if (d.looking && tries < 3) setTimeout(() => this.loadCard(phone, tries + 1), 2500);
+    } catch (e) { /* no permission or offline: the card shows what the call carries */ }
+  }
+
+  openFileByPhone(phone) {
+    this.setState(s => ({ page: 'file', fileKey: phone, cvId: null, prevPage: s.page === 'file' ? s.prevPage : s.page }));
+    this.loadCard(phone);
+    try { window.scrollTo(0, 0); } catch (e) { /* ignore */ }
+  }
+
+  popVals(s) {
+    const fa = n => String(n).replace(/\d/g, x => '۰۱۲۳۴۵۶۷۸۹'[x]);
+    const clock = ms => { const t = Math.max(0, Math.floor(ms / 1000)); return fa(Math.floor(t / 60) + ':' + String(t % 60).padStart(2, '0')); };
+    const hide = s.popHide || {};
+    const all = [...(s.pops || []), ...Object.values(s.popGone || {}).filter(c => !(s.pops || []).some(p => p.id === c.id))].filter(c => !hide[c.id]);
+    const now = Date.now();
+    const SKIPF = /^(name|full_name|mobile|phone|has_completed_surgery|last_surgery_date|days_since_surgery)$/;
+    const cards = all.slice(-3).reverse().map(c => {
+      const d = (s.popCards || {})[c.phone] || null;
+      const hist = this.calls.filter(x => x.phoneRaw === c.phone);
+      const last = hist[0];
+      const vmOpen = hist.filter(x => x.st === 'voicemail' && !['done', 'invalid'].includes((s.follow || {})[x.id] || x.follow)).length;
+      const lastRep = d && d.reports && d.reports[0];
+      const ended = !!c.endedAt;
+      const mine = !!ME.ext && (c.ext === ME.ext || (c.ringExts || []).includes(ME.ext));
+      const ST = {
+        ring: ['در حال زنگ خوردن' + ((c.ringExts || []).length ? ' · داخلی ' + fa(c.ringExts.join('، ')) : ''), '#3d6a0c', '#8DC63F', true],
+        queue: ['در صف ' + (c.queue || 'انتظار'), '#8a5a00', '#e0a83a', true],
+        ivr: [c.state || 'در منوی تلفنی', '#1d5a85', '#5b9bd0', false],
+        talk: [(c.with ? 'در مکالمه با ' + c.with : 'در حال مکالمه'), '#1d5a85', '#2a78d6', false],
+        vm: ['در حال گذاشتن پیام صوتی', '#6a4b9c', '#8b6cc4', true],
+      };
+      const [stText, stFg, stDot, pulse] = ended ? ['تماس پایان یافت', '#55585c', '#b9bbb6', false] : ST[c.stateKey] || [c.state || 'در حال برقراری', '#55585c', '#9a9d97', false];
+      const name = (d && d.name) || c.name || '';
+      const chips = [];
+      if (d && d.surgeryNote) chips.push({ t: d.surgeryNote, bg: '#eef5e3', fg: '#3d6a0c' });
+      chips.push(hist.length ? { t: fa(hist.length) + ' تماس قبلی', bg: '#f2f3ef', fg: '#3a3b3d' } : { t: 'اولین تماس', bg: '#e5eff7', fg: '#1d5a85' });
+      const fv = k => d && (d.fields.find(f => f.key.split('.').pop() === k) || {}).value;
+      if (fv('has_future_surgery_appointment') === 'بله') chips.push({ t: 'نوبت جراحی آینده دارد', bg: '#f0ebf8', fg: '#6a4b9c' });
+      if (vmOpen) chips.push({ t: fa(vmOpen) + ' پیام صوتی باز', bg: '#fdeee4', fg: '#c2410c' });
+      if (lastRep && lastRep.outcome === 'follow') chips.push({ t: 'نیاز به پیگیری' + (lastRep.followUp ? ' · ' + fa(lastRep.followUp.slice(5)) : ''), bg: '#fcf3e0', fg: '#8a5a00' });
+      const fields = d ? d.fields.filter(f => !SKIPF.test(f.key.split('.').pop()) && f.value !== 'خیر' && !/^has_/.test(f.key.split('.').pop())).slice(0, 4).map(f => ({ label: f.label, value: f.value })) : [];
+      return {
+        id: c.id, name: name || 'شماره ناشناس', known: !!name, phone: c.phone.replace(/^(\d{4})(\d{3})(\d+)$/, '$1 $2 $3'), ini: name ? name.trim().split(/\s+/).slice(0, 2).map(w => w[0]).join(' ') : '؟',
+        stText, stFg, stDot, anim: pulse ? 'cc-pulse 1.4s infinite' : 'none', timer: ended ? '' : clock(now - (c.talkSince || c.since)),
+        chips, fields, hasFields: fields.length > 0, looking: !!(d && d.looking) || (!d && !ended), lastText: last ? 'آخرین تماس: ' + fa(last.date) + ' ' + fa(last.time) + ' · ' + last.status.label : '', hasLast: !!last,
+        lastRep: lastRep ? '«' + lastRep.text.slice(0, 90) + (lastRep.text.length > 90 ? '…' : '') + '» — ' + lastRep.by : '', hasRep: !!lastRep,
+        bd: mine && !ended ? '#8DC63F' : '#e7e8e3', ring: mine && !ended ? '0 0 0 3px rgba(141,198,63,.25),' : '', mineText: mine && !ended ? 'برای داخلی شما' : '', mine: mine && !ended, op: ended ? 0.82 : 1,
+        open: () => this.openFileByPhone(c.phone), close: () => this.setState({ popHide: { ...hide, [c.id]: true } }),
+      };
+    });
+    const more = all.length - cards.length;
+    return { pop: { show: cards.length > 0 && !!ME.id, bottom: s.pid ? '104px' : '20px', cards, more: more > 0, moreText: '+' + fa(more) + ' تماس دیگر', hideAll: () => this.setState({ popHide: { ...hide, ...Object.fromEntries(all.map(c => [c.id, true])) } }) } };
+  }
+
+  /** Patient file extras: the CRM's answer, a refresh button and this number's call reports. */
+  fileExtraVals(s, hasCalls) {
+    const fa = n => String(n).replace(/\d/g, x => '۰۱۲۳۴۵۶۷۸۹'[x]);
+    const phone = s.page === 'file' ? s.fileKey : null;
+    if (!phone) return { pf2: { has: false } };
+    const d = (s.popCards || {})[phone];
+    if (!d && this._cardFor !== phone) { this._cardFor = phone; setTimeout(() => this.loadCard(phone), 0); }
+    const ago = t => { if (!t) return ''; const dt = new Date(t); return fa(jStr(dt)) + ' ساعت ' + fa(jpad(dt.getHours()) + ':' + jpad(dt.getMinutes())); };
+    const reports = d ? d.reports.map(r => { const dt = new Date(r.at); return this.repCard({ ...r, date: jStr(dt), time: jpad(dt.getHours()) + ':' + jpad(dt.getMinutes()), edited: false }); }) : [];
+    return { pf2: {
+      has: true, loading: !d, newCaller: !hasCalls, phone: phone.replace(/^(\d{4})(\d{3})(\d+)$/, '$1 $2 $3'), name: (d && d.name) || 'شماره ناشناس',
+      crmOn: !!(d && d.crmOn), fields: d ? d.fields : [], hasFields: !!(d && d.fields.length), noFields: !!d && !d.fields.length,
+      crmAt: d && d.crmAt ? 'آخرین دریافت: ' + ago(d.crmAt) : 'هنوز از سامانه بیماران دریافت نشده', looking: !!(d && d.looking),
+      surgery: d ? d.surgeryNote : '', hasSurgery: !!(d && d.surgeryNote),
+      canRefresh: !!(d && d.crmOn) && CAN('calls', 'edit') && /^09\d{9}$/.test(phone), refreshing: !!s.cardBusy, refreshText: s.cardBusy ? 'در حال دریافت…' : 'به‌روزرسانی از سامانه بیماران',
+      refresh: async () => {
+        this.setState({ cardBusy: true });
+        try { const r = await api('/patients/' + encodeURIComponent(phone) + '/refresh', {}); this.setState(st => ({ cardBusy: false, popCards: { ...(st.popCards || {}), [phone]: r } })); this.toast('اطلاعات از سامانه بیماران به‌روز شد'); }
+        catch (e) { this.setState({ cardBusy: false }); this.toast(e.message); }
+      },
+      reports, hasReports: reports.length > 0, repCount: fa(reports.length),
+      call: () => this.startCall({ name: (d && d.name) || phone, phone, phoneRaw: phone, vmId: null }),
+      back: () => this.setState({ page: s.prevPage || 'calls' }),
+    } };
+  }
+
   // ---- «گزارش تماس»: what was discussed / done on a call
   async loadCallReports(id) {
     try { const d = await api('/call-reports/call/' + encodeURIComponent(id)); this.setState(st => ({ cvRep: { ...(st.cvRep || {}), [id]: d } })); }
@@ -2403,6 +2510,6 @@ export default class App extends LiveApp {
    seek:e=>{const b=e.currentTarget.getBoundingClientRect();this.setState({pos:Math.min(1,Math.max(0,(b.right-e.clientX)/b.width))*(this.audDur||pc.dur)});},
    pct:s.pos/(this.audDur||pc.dur)*100+'%',posText:fmt(s.pos),durText:fmt((this.audDur||pc.dur)),speedText:s.speed+'x',cycleSpeed:()=>this.setState({speed:SP[(SP.indexOf(s.speed)+1)%SP.length]}),download:()=>this.download(pc)}:{show:false};
 
-  return {...this.voip(s),...this.voip2(s),...this.voipOut(s),...this.apiVals(s),...this.backupVals(s),...this.settingsVals(s),...this.aiSettingsVals(s),...this.surveyVals(s),...this.crmVals(s),...this.agentVals(s),...this.aiConvVals(s),...this.daysVals(s),...this.liveVals(s),...this.sysVals(s),...this.callViewVals(s),...this.usageVals(s),...this.canVals(s),...this.usersVals(s),...this.delVals(s),...this.dialVals(s),...this.creportsVals(s),...this.vmboxVals(s),...this.voiceboxVals(s),pf,call,toast,nav:{...nav,unreached:nv('unreached',urV.navCount)},is,ur:urV,cl,ib,vm,rp,sv,ai,player,showAi,dates:[],hours:HOURS,ops,queues:s.vqs.map(q=>q.name),statuses,cats,me:this.meVals(),todayLong:jLong(new Date())};
+  return {...this.voip(s),...this.voip2(s),...this.voipOut(s),...this.apiVals(s),...this.backupVals(s),...this.settingsVals(s),...this.aiSettingsVals(s),...this.surveyVals(s),...this.crmVals(s),...this.agentVals(s),...this.aiConvVals(s),...this.daysVals(s),...this.liveVals(s),...this.sysVals(s),...this.callViewVals(s),...this.usageVals(s),...this.canVals(s),...this.usersVals(s),...this.delVals(s),...this.dialVals(s),...this.creportsVals(s),...this.vmboxVals(s),...this.popVals(s),...this.fileExtraVals(s,fl.length>0),...this.voiceboxVals(s),pf,call,toast,nav:{...nav,unreached:nv('unreached',urV.navCount)},is,ur:urV,cl,ib,vm,rp,sv,ai,player,showAi,dates:[],hours:HOURS,ops,queues:s.vqs.map(q=>q.name),statuses,cats,me:this.meVals(),todayLong:jLong(new Date())};
  }
 }

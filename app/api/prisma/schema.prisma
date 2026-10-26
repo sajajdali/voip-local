@@ -44,6 +44,8 @@ model Patient {
   nid       String?
   surgery   String?
   source    String   @default("local")
+  crm       Json? // the CRM's full answer at the last lookup
+  crmAt     DateTime?
   updatedAt DateTime @updatedAt
 }
 

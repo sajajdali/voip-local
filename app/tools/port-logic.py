@@ -200,6 +200,8 @@ sub("onDel:()=>this.askDelete([c],'یک تماس')}};", "onDel:()=>this.askDelet
 sub("creports:nv('creports',''),", "creports:nv('creports',''),vvm:nv('vvm',''),")
 sub("'vagent','aiconv','days','live','sys','usage','users','creports','file'].forEach", "'vagent','aiconv','days','live','sys','usage','users','creports','vvm','file'].forEach")
 sub("...this.creportsVals(s),", "...this.creportsVals(s),...this.vmboxVals(s),...this.voiceboxVals(s),")
+# --- caller card in the corner + CRM data in the patient file
+sub("...this.vmboxVals(s),", "...this.vmboxVals(s),...this.popVals(s),...this.fileExtraVals(s,fl.length>0),")
 head = (root / 'tools/app-head.js').read_text(encoding='utf-8')
 src = src.replace("export default class App extends React.Component {", "export default class App extends LiveApp {")
 (root / 'web/src/App.jsx').write_text(head + '\n' + src.strip() + '\n', encoding='utf-8')

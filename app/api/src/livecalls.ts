@@ -35,6 +35,9 @@ export class LiveCallsService implements OnModuleInit {
   private namesAt = 0;
   private spies = new Map<string, Spy>();
   private last = '';
+  private lastPop = '';
+  /** Inbound callers right now, for the caller card in the corner of every panel. */
+  pops: any[] = [];
 
   constructor(private ast: AsteriskService, private bus: Bus, private db: PrismaService, private store: ConfigStore) {}
 
@@ -102,6 +105,9 @@ export class LiveCallsService implements OnModuleInit {
     this.calls = out;
     const j = JSON.stringify(out.map(c => [c.id, c.stateKey, c.with, c.name, c.talkSince, c.ext, c.ringExts]));
     if (j !== this.last) { this.last = j; this.bus.emit('livecalls', out); }
+    this.pops = out.filter(c => c.dir === 'in' && c.phone).map(c => ({ id: c.id, phone: c.phone, name: c.name, stateKey: c.stateKey, state: c.state, with: c.with, ext: c.ext, ringExts: c.ringExts, queue: c.queue, since: c.since, talkSince: c.talkSince }));
+    const jp = JSON.stringify(this.pops.map(c => [c.id, c.stateKey, c.ext, c.ringExts, c.name]));
+    if (jp !== this.lastPop) { this.lastPop = jp; this.bus.emit('callpop', this.pops); }
     // a listened call ended: tell the listener
     for (const s of this.spies.values()) if (!groups.has(s.callId)) this.stop(s.uuid, 'تماس تمام شد');
   }

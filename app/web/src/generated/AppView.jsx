@@ -1690,6 +1690,84 @@ export default function AppView({ vm }) {
           </div>
         </>) : null}
         {(vm.is?.file) ? (<>
+          {(vm.pf2?.newCaller) ? (<>
+            <div style={{display: "flex", flexDirection: "column", gap: "20px"}}>
+              <div>
+                <button onClick={vm.pf2?.back} style={{display: "flex", alignItems: "center", gap: "6px", border: "1px solid #e1e3dc", background: "#fff", color: "#3a3b3d", padding: "8px 14px", borderRadius: "10px", fontSize: "13px", fontWeight: "700", cursor: "pointer", fontFamily: "inherit"}}>{"→ بازگشت"}</button>
+              </div>
+              <div style={{background: "#2E2F31", color: "#fff", borderRadius: "24px", padding: "24px", display: "flex", gap: "16px", alignItems: "center", flexWrap: "wrap", boxShadow: "0 14px 34px rgba(46,47,49,.18)"}}>
+                <div style={{width: "72px", height: "72px", borderRadius: "22px", background: "#8DC63F", color: "#1f2021", display: "grid", placeItems: "center", fontWeight: "800", fontSize: "22px"}}>{"؟"}</div>
+                <div style={{flex: "1", minWidth: "180px"}}>
+                  <div style={{fontSize: "12px", color: "#8DC63F", fontWeight: "700"}}>{"پرونده بیمار · اولین تماس"}</div>
+                  <div style={{fontSize: "26px", fontWeight: "800", marginTop: "2px"}}>{vm.pf2?.name}</div>
+                  <div style={{fontSize: "14px", color: "#d9dad6", marginTop: "4px", direction: "ltr", textAlign: "right"}}>{vm.pf2?.phone}</div>
+                </div>
+                <button onClick={vm.pf2?.call} style={{border: "none", background: "#8DC63F", color: "#1f2021", padding: "11px 18px", borderRadius: "12px", fontSize: "13px", fontWeight: "800", cursor: "pointer", fontFamily: "inherit"}}>{"تماس با بیمار"}</button>
+              </div>
+              <div style={{fontSize: "13px", color: "#6b6e72"}}>
+                {"هنوز تماس ثبت‌شده‌ای از این شماره نیست؛ بعد از پایان تماس فعلی، تاریخچه اینجا نمایش داده می‌شود."}
+              </div>
+              <div style={{background: "#fff", border: "1px solid #e7e8e3", borderRadius: "22px", padding: "18px 20px", display: "flex", flexDirection: "column", gap: "12px"}}>
+                <div style={{display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap"}}>
+                  <div style={{width: "34px", height: "34px", borderRadius: "10px", background: "#eef5e3", color: "#3d6a0c", display: "grid", placeItems: "center"}}>
+                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <ellipse cx="12" cy="5" rx="8" ry="3" />
+                      <path d="M4 5v6c0 1.7 3.6 3 8 3s8-1.3 8-3V5M4 11v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6" />
+                    </svg>
+                  </div>
+                  <div style={{flex: "1", minWidth: "160px"}}>
+                    <div style={{fontWeight: "800", fontSize: "15px"}}>{"اطلاعات سامانه بیماران"}</div>
+                    <div style={{fontSize: "11px", color: "#8b8e89", marginTop: "2px"}}>{vm.pf2?.crmAt}</div>
+                  </div>
+                  {(vm.pf2?.hasSurgery) ? (<>
+                    <span style={{fontSize: "12px", fontWeight: "800", padding: "5px 12px", borderRadius: "999px", background: "#eef5e3", color: "#3d6a0c"}}>{vm.pf2?.surgery}</span>
+                  </>) : null}
+                  {(vm.pf2?.canRefresh) ? (<>
+                    <button onClick={vm.pf2?.refresh} style={{border: "1px solid #e1e3dc", background: "#fff", color: "#3a3b3d", padding: "7px 12px", borderRadius: "10px", fontSize: "12px", fontWeight: "700", cursor: "pointer", fontFamily: "inherit"}}>{vm.pf2?.refreshText}</button>
+                  </>) : null}
+                </div>
+                {(vm.pf2?.loading) ? (<>
+                  <div style={{fontSize: "13px", color: "#8b8e89"}}>{"در حال بارگذاری…"}</div>
+                </>) : null}
+                {(vm.pf2?.looking) ? (<>
+                  <div style={{fontSize: "12px", color: "#8b8e89"}}>{"در حال دریافت از سامانه بیماران…"}</div>
+                </>) : null}
+                {(vm.pf2?.hasFields) ? (<>
+                  <div style={{display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(170px,1fr))", gap: "8px"}}>
+                    {(vm.pf2?.fields || []).map((f, __i10) => <React.Fragment key={__i10}>
+                      <div style={{background: "#f7f8f4", borderRadius: "12px", padding: "9px 12px", minWidth: "0"}}>
+                        <div style={{fontSize: "11px", color: "#8b8e89"}}>{f?.label}</div>
+                        <div style={{fontSize: "13px", fontWeight: "700", marginTop: "3px", wordBreak: "break-word"}}>{f?.value}</div>
+                      </div>
+                    </React.Fragment>)}
+                  </div>
+                </>) : null}
+                {(vm.pf2?.noFields) ? (<>
+                  <div style={{fontSize: "13px", color: "#8b8e89", lineHeight: "1.8"}}>{"سامانه بیماران برای این شماره اطلاعاتی برنگردانده است."}</div>
+                </>) : null}
+              </div>
+              {(vm.pf2?.hasReports) ? (<>
+                <div style={{background: "#fff", border: "1px solid #e7e8e3", borderRadius: "22px", padding: "18px 20px", display: "flex", flexDirection: "column", gap: "10px"}}>
+                  <div style={{fontWeight: "800", fontSize: "15px"}}>{"گزارش‌های ثبت‌شده برای این بیمار ("}{vm.pf2?.repCount}{")"}</div>
+                  <div style={{display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(300px,1fr))", gap: "10px"}}>
+                    {(vm.pf2?.reports || []).map((g, __i10) => <React.Fragment key={__i10}>
+                      <div style={{background: "#fff", border: "1px solid #e7e8e3", borderRadius: "16px", padding: "12px 14px", display: "flex", flexDirection: "column", gap: "8px"}}>
+                        <div style={{display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap"}}>
+                          <span style={{fontSize: "11px", fontWeight: "800", padding: "3px 9px", borderRadius: "999px", background: "#f2f3ef", color: "#3a3b3d"}}>{g?.cat}</span>
+                          <span style={{fontSize: "11px", fontWeight: "800", padding: "3px 9px", borderRadius: "999px", background: g?.outBg, color: g?.outFg}}>{g?.out}</span>
+                          {(g?.hasFu) ? (<>
+                            <span style={{fontSize: "11px", fontWeight: "800", padding: "3px 9px", borderRadius: "999px", background: g?.fuBg, color: g?.fuFg}}>{g?.fu}</span>
+                          </>) : null}
+                        </div>
+                        <div style={{fontSize: "13px", lineHeight: "1.9", whiteSpace: "pre-wrap"}}>{g?.text}</div>
+                        <div style={{fontSize: "11px", color: "#8b8e89"}}>{g?.by}{" · "}{g?.when}</div>
+                      </div>
+                    </React.Fragment>)}
+                  </div>
+                </div>
+              </>) : null}
+            </div>
+          </>) : null}
           {(vm.pf?.has) ? (<>
             <div style={{display: "flex", flexDirection: "column", gap: "20px"}}>
               <div style={{display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap"}}>
@@ -1728,6 +1806,65 @@ export default function AppView({ vm }) {
                   </React.Fragment>)}
                 </div>
               </div>
+              <div style={{background: "#fff", border: "1px solid #e7e8e3", borderRadius: "22px", padding: "18px 20px", display: "flex", flexDirection: "column", gap: "12px"}}>
+                <div style={{display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap"}}>
+                  <div style={{width: "34px", height: "34px", borderRadius: "10px", background: "#eef5e3", color: "#3d6a0c", display: "grid", placeItems: "center"}}>
+                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <ellipse cx="12" cy="5" rx="8" ry="3" />
+                      <path d="M4 5v6c0 1.7 3.6 3 8 3s8-1.3 8-3V5M4 11v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6" />
+                    </svg>
+                  </div>
+                  <div style={{flex: "1", minWidth: "160px"}}>
+                    <div style={{fontWeight: "800", fontSize: "15px"}}>{"اطلاعات سامانه بیماران"}</div>
+                    <div style={{fontSize: "11px", color: "#8b8e89", marginTop: "2px"}}>{vm.pf2?.crmAt}</div>
+                  </div>
+                  {(vm.pf2?.hasSurgery) ? (<>
+                    <span style={{fontSize: "12px", fontWeight: "800", padding: "5px 12px", borderRadius: "999px", background: "#eef5e3", color: "#3d6a0c"}}>{vm.pf2?.surgery}</span>
+                  </>) : null}
+                  {(vm.pf2?.canRefresh) ? (<>
+                    <button onClick={vm.pf2?.refresh} style={{border: "1px solid #e1e3dc", background: "#fff", color: "#3a3b3d", padding: "7px 12px", borderRadius: "10px", fontSize: "12px", fontWeight: "700", cursor: "pointer", fontFamily: "inherit"}}>{vm.pf2?.refreshText}</button>
+                  </>) : null}
+                </div>
+                {(vm.pf2?.loading) ? (<>
+                  <div style={{fontSize: "13px", color: "#8b8e89"}}>{"در حال بارگذاری…"}</div>
+                </>) : null}
+                {(vm.pf2?.looking) ? (<>
+                  <div style={{fontSize: "12px", color: "#8b8e89"}}>{"در حال دریافت از سامانه بیماران…"}</div>
+                </>) : null}
+                {(vm.pf2?.hasFields) ? (<>
+                  <div style={{display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(170px,1fr))", gap: "8px"}}>
+                    {(vm.pf2?.fields || []).map((f, __i10) => <React.Fragment key={__i10}>
+                      <div style={{background: "#f7f8f4", borderRadius: "12px", padding: "9px 12px", minWidth: "0"}}>
+                        <div style={{fontSize: "11px", color: "#8b8e89"}}>{f?.label}</div>
+                        <div style={{fontSize: "13px", fontWeight: "700", marginTop: "3px", wordBreak: "break-word"}}>{f?.value}</div>
+                      </div>
+                    </React.Fragment>)}
+                  </div>
+                </>) : null}
+                {(vm.pf2?.noFields) ? (<>
+                  <div style={{fontSize: "13px", color: "#8b8e89", lineHeight: "1.8"}}>{"سامانه بیماران برای این شماره اطلاعاتی برنگردانده است."}</div>
+                </>) : null}
+              </div>
+              {(vm.pf2?.hasReports) ? (<>
+                <div style={{background: "#fff", border: "1px solid #e7e8e3", borderRadius: "22px", padding: "18px 20px", display: "flex", flexDirection: "column", gap: "10px"}}>
+                  <div style={{fontWeight: "800", fontSize: "15px"}}>{"گزارش‌های ثبت‌شده برای این بیمار ("}{vm.pf2?.repCount}{")"}</div>
+                  <div style={{display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(300px,1fr))", gap: "10px"}}>
+                    {(vm.pf2?.reports || []).map((g, __i10) => <React.Fragment key={__i10}>
+                      <div style={{background: "#fff", border: "1px solid #e7e8e3", borderRadius: "16px", padding: "12px 14px", display: "flex", flexDirection: "column", gap: "8px"}}>
+                        <div style={{display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap"}}>
+                          <span style={{fontSize: "11px", fontWeight: "800", padding: "3px 9px", borderRadius: "999px", background: "#f2f3ef", color: "#3a3b3d"}}>{g?.cat}</span>
+                          <span style={{fontSize: "11px", fontWeight: "800", padding: "3px 9px", borderRadius: "999px", background: g?.outBg, color: g?.outFg}}>{g?.out}</span>
+                          {(g?.hasFu) ? (<>
+                            <span style={{fontSize: "11px", fontWeight: "800", padding: "3px 9px", borderRadius: "999px", background: g?.fuBg, color: g?.fuFg}}>{g?.fu}</span>
+                          </>) : null}
+                        </div>
+                        <div style={{fontSize: "13px", lineHeight: "1.9", whiteSpace: "pre-wrap"}}>{g?.text}</div>
+                        <div style={{fontSize: "11px", color: "#8b8e89"}}>{g?.by}{" · "}{g?.when}</div>
+                      </div>
+                    </React.Fragment>)}
+                  </div>
+                </div>
+              </>) : null}
               <div style={{display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(150px,1fr))", gap: "12px"}}>
                 {(vm.pf?.kpis || []).map((k, __i8) => <React.Fragment key={__i8}>
                   <div style={{background: "#fff", border: "1px solid #e7e8e3", borderRadius: "22px", padding: "16px 18px"}}>
@@ -6130,6 +6267,60 @@ export default function AppView({ vm }) {
               <button onClick={vm.call?.end} style={{width: "100%", border: "none", background: "#e0574a", color: "#fff", padding: "13px", borderRadius: "14px", fontSize: "14px", fontWeight: "800", cursor: "pointer", fontFamily: "inherit"}}>{"پایان تماس و ذخیره ضبط"}</button>
             </>) : null}
           </div>
+        </div>
+      </>) : null}
+      {(vm.pop?.show) ? (<>
+        <div style={{position: "fixed", left: "20px", bottom: vm.pop?.bottom, zIndex: "44", width: "min(360px,calc(100vw - 40px))", display: "flex", flexDirection: "column-reverse", gap: "10px", direction: "rtl"}}>
+          {(vm.pop?.cards || []).map((p, __i5) => <React.Fragment key={__i5}>
+            <div style={{background: "#fff", border: `1.5px solid ${p?.bd}`, borderRadius: "20px", boxShadow: `${p?.ring}0 18px 44px rgba(20,21,22,.22)`, overflow: "hidden", opacity: p?.op, animation: "cc-fade .25s ease-out"}}>
+              <div style={{display: "flex", alignItems: "center", gap: "8px", padding: "9px 12px", background: "#f7f8f4", borderBottom: "1px solid #eeefeb"}}>
+                <span style={{width: "9px", height: "9px", borderRadius: "50%", background: p?.stDot, animation: p?.anim, flexShrink: "0"}} />
+                <span style={{flex: "1", fontSize: "12px", fontWeight: "800", color: p?.stFg, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis"}}>{p?.stText}</span>
+                {(p?.mine) ? (<>
+                  <span style={{fontSize: "10px", fontWeight: "800", color: "#3d6a0c", background: "#eef5e3", borderRadius: "999px", padding: "2px 8px"}}>{p?.mineText}</span>
+                </>) : null}
+                <span style={{fontSize: "12px", color: "#6b6e72", fontVariantNumeric: "tabular-nums"}}>{p?.timer}</span>
+                <button onClick={p?.close} title="بستن" style={{width: "24px", height: "24px", borderRadius: "7px", border: "none", background: "transparent", color: "#8b8e89", cursor: "pointer", fontSize: "13px"}}>{"✕"}</button>
+              </div>
+              <div onClick={p?.open} style={{padding: "12px 14px", display: "flex", flexDirection: "column", gap: "9px", cursor: "pointer"}}>
+                <div style={{display: "flex", alignItems: "center", gap: "12px"}}>
+                  <div style={{width: "46px", height: "46px", borderRadius: "14px", background: "#2E2F31", color: "#8DC63F", display: "grid", placeItems: "center", fontWeight: "800", fontSize: "14px", flexShrink: "0"}}>{p?.ini}</div>
+                  <div style={{flex: "1", minWidth: "0"}}>
+                    <div style={{fontSize: "16px", fontWeight: "800", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis"}}>{p?.name}</div>
+                    <div style={{fontSize: "13px", color: "#55585c", direction: "ltr", textAlign: "right", marginTop: "1px"}}>{p?.phone}</div>
+                  </div>
+                </div>
+                <div style={{display: "flex", gap: "5px", flexWrap: "wrap"}}>
+                  {(p?.chips || []).map((c, __i9) => <React.Fragment key={__i9}>
+                    <span style={{fontSize: "11px", fontWeight: "700", padding: "3px 9px", borderRadius: "999px", background: c?.bg, color: c?.fg}}>{c?.t}</span>
+                  </React.Fragment>)}
+                </div>
+                {(p?.hasFields) ? (<>
+                  <div style={{display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px"}}>
+                    {(p?.fields || []).map((f, __i10) => <React.Fragment key={__i10}>
+                      <div style={{background: "#f7f8f4", borderRadius: "10px", padding: "6px 9px", minWidth: "0"}}>
+                        <div style={{fontSize: "10px", color: "#8b8e89"}}>{f?.label}</div>
+                        <div style={{fontSize: "12px", fontWeight: "700", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis"}}>{f?.value}</div>
+                      </div>
+                    </React.Fragment>)}
+                  </div>
+                </>) : null}
+                {(p?.looking) ? (<>
+                  <div style={{fontSize: "11px", color: "#8b8e89"}}>{"در حال دریافت اطلاعات از سامانه بیماران…"}</div>
+                </>) : null}
+                {(p?.hasLast) ? (<>
+                  <div style={{fontSize: "11px", color: "#6b6e72"}}>{p?.lastText}</div>
+                </>) : null}
+                {(p?.hasRep) ? (<>
+                  <div style={{fontSize: "11px", color: "#3a3b3d", background: "#f2f6fb", borderRadius: "10px", padding: "6px 9px", lineHeight: "1.7"}}>{"آخرین گزارش: "}{p?.lastRep}</div>
+                </>) : null}
+                <div style={{display: "flex", alignItems: "center", justifyContent: "center", gap: "6px", background: "#2E2F31", color: "#fff", borderRadius: "12px", padding: "9px", fontSize: "13px", fontWeight: "800"}}>{"باز کردن پرونده کامل ←"}</div>
+              </div>
+            </div>
+          </React.Fragment>)}
+          {(vm.pop?.more) ? (<>
+            <button onClick={vm.pop?.hideAll} style={{alignSelf: "flex-start", border: "none", background: "#2E2F31", color: "#fff", padding: "6px 12px", borderRadius: "999px", fontSize: "11px", fontWeight: "700", cursor: "pointer", fontFamily: "inherit"}}>{vm.pop?.moreText}{" · بستن همه"}</button>
+          </>) : null}
         </div>
       </>) : null}
       {(vm.dp?.show) ? (<>
