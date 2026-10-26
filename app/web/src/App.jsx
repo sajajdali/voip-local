@@ -777,6 +777,24 @@ class LiveApp extends React.Component {
     } catch (e) { this.setState({ drLoading: false }); this.toast('بارگذاری تماس‌های قدیمی‌تر ناموفق بود: ' + e.message); }
   }
 
+  /** Clinic working hours from the time condition the active inbound route goes through (index 0 = Saturday). */
+  workHours(s) {
+    const fa = n => String(n).replace(/\d/g, x => '۰۱۲۳۴۵۶۷۸۹'[x]);
+    const route = (s.routes || []).find(r => r.on !== false && /^tc:/.test(r.dest || ''));
+    const tc = route && (s.tconds || []).find(t => 'tc:' + t.id === route.dest);
+    const g = tc && (s.tgroups || []).find(x => x.id === tc.group);
+    const ranges = (g && g.ranges) || [];
+    const hol = tc && tc.useHol ? new Set((s.holidays || []).map(h => h.date)) : new Set();
+    const wd = date => { try { return jWeekday(jToDate(date)); } catch (e) { return -1; } };
+    const is = ranges.length
+      ? c => !hol.has(c.date) && ranges.some(r => (r.days || []).includes(wd(c.date)) && c.time >= r.from && c.time < r.to)
+      : c => !/شب|night/i.test(c.queue || '');   // no time condition: trust the IVR the call went through
+    const text = ranges.length
+      ? ranges.map(r => (r.days || []).map(d => WD_NAMES[d]).join('، ') + ' ' + fa(r.from) + ' تا ' + fa(r.to)).join(' · ')
+      : 'بر اساس منوی روز / شب';
+    return { is, text, name: tc ? tc.name : '' };
+  }
+
   daysVals(s) {
     const fa = n => String(n).replace(/\d/g, d => '۰۱۲۳۴۵۶۷۸۹'[d]);
     const pct = (a, b) => (b ? Math.round(a / b * 100) : 0);
@@ -793,7 +811,9 @@ class LiveApp extends React.Component {
     const thisWeek = weekStart(TODAY);
     const prevMonthEnd = addDays(MONTH_START, -1), prevMonthStart = prevMonthEnd.slice(0, 8) + '01';
 
-    const f = { from: jAdd(-29), to: TODAY, days: 'all', wd: [true, true, true, true, true, true, true], h1: 0, h2: 23, dir: 'in', src: 'all', op: 'all', ...(s.dr || {}) };
+    const f = { from: jAdd(-29), to: TODAY, days: 'all', wd: [true, true, true, true, true, true, true], h1: 0, h2: 23, dir: 'in', src: 'all', op: 'all', count: 'people', shift: 'all', ...(s.dr || {}) };
+    const PEOPLE = f.count === 'people';
+    const work = this.workHours(s);
     const setF = o => this.setState({ dr: { ...f, ...o }, drDay: o.from || o.to ? null : s.drDay });
     const LOADED_FROM = jAdd(-119);
     if (f.from < LOADED_FROM && !(s.drOlderFrom && s.drOlderFrom <= f.from)) setTimeout(() => this.loadOlderCalls(f.from), 0);
@@ -803,33 +823,51 @@ class LiveApp extends React.Component {
     const isAns = c => c.st === 'answered' || c.st === 'transferred';
     const daysAllowed = f.days === 'custom' ? f.wd.map((on, i) => (on ? i : -1)).filter(i => i >= 0) : f.days === 'all' ? [0, 1, 2, 3, 4, 5, 6] : GROUP[f.days];
     // everything except the weekday choice (the even/odd comparison must show all three groups)
-    const base = C.filter(c => c.date >= f.from && c.date <= f.to && (f.dir === 'all' || c.dir === f.dir) && hourOf(c) >= f.h1 && hourOf(c) <= f.h2
+    const base0 = C.filter(c => c.date >= f.from && c.date <= f.to && (f.dir === 'all' || c.dir === f.dir) && hourOf(c) >= f.h1 && hourOf(c) <= f.h2
       && (f.src === 'all' || c.queue === f.src) && (f.op === 'all' || (f.op === 'ivr' ? !c.op : c.op && String(c.op.id) === f.op)));
+    // work hours / after hours, from the time condition the inbound route uses
+    const base = base0.filter(c => f.shift === 'all' || (f.shift === 'work') === work.is(c));
     const L = base.filter(c => daysAllowed.includes(wdOf(c.date)));
 
+    // a caller is one person however many times they rang: answered if any of their calls was answered
+    // (hidden / unknown numbers cannot be told apart, so each such call counts as its own caller)
+    const who = c => (/\d{5,}/.test(c.phoneRaw || '') ? c.phoneRaw : 'x' + c.id);
+    const people = l => {
+      const m = new Map();
+      for (const c of l) { const k = who(c), p = m.get(k) || { n: 0, ans: false, vm: false }; p.n++; if (isAns(c)) p.ans = true; if (c.st === 'voicemail') p.vm = true; m.set(k, p); }
+      return m;
+    };
     const metrics = l => {
       const ans = l.filter(isAns), talk = ans.reduce((n, c) => n + (c.dur || 0), 0);
       const waitL = l.filter(c => c.dir === 'in' && isAns(c));
+      const P = [...people(l).values()], pAns = P.filter(p => p.ans).length;
+      const callsM = { n: l.length, ans: ans.length, missed: l.filter(c => c.st === 'missed').length, vm: l.filter(c => c.st === 'voicemail').length };
+      const peopleM = { n: P.length, ans: pAns, missed: P.filter(p => !p.ans && !p.vm).length, vm: P.filter(p => !p.ans && p.vm).length };
+      const m = PEOPLE ? peopleM : callsM;
       return {
-        n: l.length, ans: ans.length, missed: l.filter(c => c.st === 'missed').length, vm: l.filter(c => c.st === 'voicemail').length,
-        rate: pct(ans.length, l.length), talk, avgTalk: ans.length ? talk / ans.length : 0,
+        ...m, rate: pct(m.ans, m.n), calls: l.length, people: P.length, talk, avgTalk: ans.length ? talk / ans.length : 0,
         avgWait: waitL.length ? waitL.reduce((n, c) => n + (c.wait || 0), 0) / waitL.length : 0,
-        uniq: new Set(l.map(c => c.phoneRaw)).size, ai: l.filter(c => c.queue === 'دستیار هوشمند').length,
+        uniq: P.length, other: PEOPLE ? l.length : P.length, ai: l.filter(c => c.queue === 'دستیار هوشمند').length,
       };
     };
+    const U = PEOPLE ? 'نفر' : 'تماس';
     // calendar days of each kind inside the range (so per-day averages are fair even when a day had no call)
     const calendar = [];
     for (let d = f.from, i = 0; d <= f.to && i < 800; d = addDays(d, 1), i++) calendar.push(d);
     const M = metrics(L);
     const activeDays = new Set(L.map(c => c.date)).size;
+    // work hours vs after hours (same filters, both sides)
+    const L0 = base0.filter(c => daysAllowed.includes(wdOf(c.date)));
     const calDaysSel = calendar.filter(d => daysAllowed.includes(wdOf(d))).length;
 
     const kpis = [
-      { label: 'کل تماس‌ها', value: fa(M.n), sub: 'میانگین ' + fa((M.n / Math.max(1, calDaysSel)).toFixed(1)) + ' در روز', color: '#232425' },
-      { label: 'پاسخ داده شد', value: fa(M.ans), sub: 'نرخ پاسخ ' + fa(M.rate) + '٪', color: '#3d6a0c' },
-      { label: 'بی‌پاسخ', value: fa(M.missed), sub: fa(pct(M.missed, M.n)) + '٪ از تماس‌ها', color: '#b42318' },
-      { label: 'پیام صوتی', value: fa(M.vm), sub: fa(pct(M.vm, M.n)) + '٪ از تماس‌ها', color: '#1d5a85' },
-      { label: 'تماس‌گیرنده یکتا', value: fa(M.uniq), sub: M.n ? fa((M.n / Math.max(1, M.uniq)).toFixed(1)) + ' تماس برای هر نفر' : '—', color: '#232425' },
+      PEOPLE
+        ? { label: 'تماس‌گیرنده (هر نفر یک بار)', value: fa(M.n), sub: 'از ' + fa(M.calls) + ' تماس · میانگین ' + fa((M.n / Math.max(1, calDaysSel)).toFixed(1)) + ' نفر در روز', color: '#232425' }
+        : { label: 'کل تماس‌ها', value: fa(M.n), sub: 'میانگین ' + fa((M.n / Math.max(1, calDaysSel)).toFixed(1)) + ' در روز · ' + fa(M.people) + ' نفر', color: '#232425' },
+      { label: PEOPLE ? 'پاسخ گرفتند' : 'پاسخ داده شد', value: fa(M.ans), sub: 'نرخ پاسخ ' + fa(M.rate) + '٪', color: '#3d6a0c' },
+      { label: PEOPLE ? 'بی‌پاسخ ماندند' : 'بی‌پاسخ', value: fa(M.missed), sub: fa(pct(M.missed, M.n)) + '٪ ' + (PEOPLE ? 'از تماس‌گیرندگان' : 'از تماس‌ها'), color: '#b42318' },
+      { label: PEOPLE ? 'فقط پیام صوتی گذاشتند' : 'پیام صوتی', value: fa(M.vm), sub: fa(pct(M.vm, M.n)) + '٪', color: '#1d5a85' },
+      { label: 'تماس تکراری', value: fa(M.calls - M.people), sub: M.people ? 'هر نفر به‌طور میانگین ' + fa((M.calls / M.people).toFixed(1)) + ' بار' : '—', color: '#8a5a00' },
       { label: 'مجموع مکالمه', value: dur(M.talk), sub: 'میانگین هر مکالمه ' + mmss(M.avgTalk), color: '#232425', small: true },
       { label: 'میانگین انتظار تا پاسخ', value: fa(Math.round(M.avgWait)) + ' ثانیه', sub: 'فقط تماس‌های پاسخ‌داده', color: '#8a5a00', small: true },
       { label: 'روزهای دارای تماس', value: fa(activeDays), sub: 'از ' + fa(calDaysSel) + ' روز انتخاب‌شده', color: '#232425' },
@@ -845,6 +883,47 @@ class LiveApp extends React.Component {
         perDay: fa((m.n / Math.max(1, nd)).toFixed(1)), ansPerDay: fa((m.ans / Math.max(1, nd)).toFixed(1)), talk: dur(m.talk), wait: fa(Math.round(m.avgWait)) + ' ثانیه',
         pick: () => setF({ days: on ? 'all' : g }), bd: on ? '#8DC63F' : '#e7e8e3', bg: on ? '#f4f9ec' : '#fff', mark: on ? 'فیلتر فعال' : 'برای فیلتر کلیک کنید',
         ...TAG[g], tagLabel: TAG[g].label,
+      };
+    });
+
+
+    // work hours vs after hours
+    const shiftCard = (k, title, sub, l, col) => {
+      const m = metrics(l), on = f.shift === k;
+      const nd = calendar.filter(d => daysAllowed.includes(wdOf(d))).length;
+      return {
+        title, sub, n: fa(m.n), calls: fa(m.calls), people: fa(m.people), ans: fa(m.ans), missed: fa(m.missed + m.vm), rate: fa(m.rate) + '٪', rateW: m.rate + '%',
+        wait: fa(Math.round(m.avgWait)) + ' ثانیه', perDay: fa((m.n / Math.max(1, nd)).toFixed(1)), unitN: PEOPLE ? 'نفر' : 'تماس', otherText: PEOPLE ? 'از ' + fa(m.calls) + ' تماس' : fa(m.people) + ' نفر',
+        col, bg: on ? col[2] : '#fff', bd: on ? col[0] : '#e7e8e3', rateFg: m.rate >= 80 ? '#3d6a0c' : m.rate >= 60 ? '#8a5a00' : '#b42318',
+        pick: () => setF({ shift: on ? 'all' : k }), mark: on ? 'فیلتر فعال · برای حذف کلیک کنید' : 'برای فیلتر کلیک کنید', share: 0,
+        _m: m,
+      };
+    };
+    const wL = L0.filter(c => work.is(c)), oL = L0.filter(c => !work.is(c));
+    const shifts = [
+      shiftCard('work', 'ساعات کاری', work.text, wL, ['#3d6a0c', '#8DC63F', '#f4f9ec']),
+      shiftCard('off', 'خارج از ساعات کاری', 'شب‌ها، صبح‌ها قبل از شروع کار و روزهای تعطیل', oL, ['#4b3f8f', '#8b7fd6', '#f4f2fb']),
+    ];
+    const totS = metrics(L0).n;
+    shifts.forEach(x => { x.share = fa(pct(x._m.n, totS)) + '٪ از ' + (PEOPLE ? 'تماس‌گیرندگان' : 'تماس‌ها'); });
+    const both = PEOPLE ? shifts[0]._m.n + shifts[1]._m.n - totS : 0;
+    const workMissed = shifts[0]._m.missed + shifts[0]._m.vm;
+    // how often each caller rang inside the filters
+    const P = [...people(L).entries()].filter(([k]) => k[0] !== 'x');
+    const BK = [['۱ بار', p => p.n === 1], ['۲ بار', p => p.n === 2], ['۳ بار', p => p.n === 3], ['۴ تا ۵ بار', p => p.n >= 4 && p.n <= 5], ['بیش از ۵ بار', p => p.n > 5]];
+    const bmax = Math.max(1, ...BK.map(([, t]) => P.filter(([, p]) => t(p)).length));
+    const repeats = BK.map(([label, t], i) => {
+      const g = P.filter(([, p]) => t(p)), a = g.filter(([, p]) => p.ans).length;
+      return { label, n: fa(g.length), w: Math.round(g.length / bmax * 100) + '%', ans: fa(a), never: fa(g.length - a), share: fa(pct(g.length, P.length)) + '٪', ansW: g.length ? Math.round(a / g.length * 100) + '%' : '0%', first: i === 0 };
+    });
+    const multi = P.filter(([, p]) => p.n > 1), multiNever = multi.filter(([, p]) => !p.ans);
+    const byPhone = {}; for (const c of L) if (/\d{5,}/.test(c.phoneRaw || '')) (byPhone[c.phoneRaw] = byPhone[c.phoneRaw] || []).push(c);
+    const topRep = multi.sort((a, b) => b[1].n - a[1].n).slice(0, 10).map(([ph, p]) => {
+      const l = byPhone[ph].sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time)), last = l[l.length - 1];
+      return {
+        name: last.known ? last.name : 'شماره ناشناس', phone: last.phone, n: fa(p.n), ans: p.ans, never: !p.ans, stText: p.ans ? 'پاسخ گرفت' : 'هرگز پاسخ نگرفت',
+        stBg: p.ans ? '#eef5e3' : '#fdeceb', stFg: p.ans ? '#3d6a0c' : '#b42318', inWork: fa(l.filter(c => work.is(c)).length), last: fa(last.date.slice(5)) + ' ' + fa(last.time),
+        open: () => this.openFile(last),
       };
     });
 
@@ -867,7 +946,7 @@ class LiveApp extends React.Component {
 
     // hour of day
     const hrs = [];
-    for (let h = 0; h < 24; h++) { const l = L.filter(c => hourOf(c) === h); hrs.push({ h, n: l.length, ans: l.filter(isAns).length }); }
+    for (let h = 0; h < 24; h++) { const m = metrics(L.filter(c => hourOf(c) === h)); hrs.push({ h, n: m.n, ans: m.ans }); }
     const hMax = Math.max(1, ...hrs.map(x => x.n));
     const hours = hrs.filter(x => x.h >= Math.min(f.h1, 7) && x.h <= Math.max(f.h2 < 23 ? f.h2 : 22, 20) || x.n).map(x => ({
       label: fa(x.h), n: fa(x.n), hN: Math.round(x.n / hMax * 120) + 'px', hA: Math.round(x.ans / hMax * 120) + 'px',
@@ -878,7 +957,8 @@ class LiveApp extends React.Component {
     // weekday × hour heat map (single-hue sequential)
     const hmHours = []; for (let h = 7; h <= 22; h++) hmHours.push(h);
     const cellN = {}; let cMax = 1;
-    for (const c of L) { const k = wdOf(c.date) + '-' + hourOf(c); cellN[k] = (cellN[k] || 0) + 1; cMax = Math.max(cMax, cellN[k]); }
+    const seen = new Set();
+    for (const c of L) { const k = wdOf(c.date) + '-' + hourOf(c); if (PEOPLE) { const u = k + '|' + c.date + '|' + who(c); if (seen.has(u)) continue; seen.add(u); } cellN[k] = (cellN[k] || 0) + 1; cMax = Math.max(cMax, cellN[k]); }
     const heat = WD_NAMES.map((name, i) => ({
       name, cells: hmHours.map(h => { const n = cellN[i + '-' + h] || 0, a = n / cMax; return { n: n ? fa(n) : '', bg: n ? 'rgba(61,106,12,' + (0.1 + a * 0.85).toFixed(2) + ')' : '#f4f5f1', fg: a > 0.55 ? '#fff' : '#3a3b3d', tip: name + ' ساعت ' + fa(h) + ': ' + fa(n) + ' تماس' }; }),
     }));
@@ -890,7 +970,7 @@ class LiveApp extends React.Component {
       const m = metrics(wk[k]), end = addDays(k, 6);
       return {
         label: 'هفته ' + fa(k.slice(5)) + ' تا ' + fa(end.slice(5)), n: fa(m.n), ans: fa(m.ans), missed: fa(m.missed), rate: fa(m.rate) + '٪', rateW: m.rate + '%',
-        talk: dur(m.talk), wait: fa(Math.round(m.avgWait)) + ' ث', uniq: fa(m.uniq), cur: k === thisWeek, pick: () => setF({ from: k < f.from ? f.from : k, to: end > TODAY ? TODAY : end }),
+        talk: dur(m.talk), wait: fa(Math.round(m.avgWait)) + ' ث', uniq: fa(m.other), cur: k === thisWeek, pick: () => setF({ from: k < f.from ? f.from : k, to: end > TODAY ? TODAY : end }),
         _k: k, _m: m, _end: end,
       };
     });
@@ -906,7 +986,7 @@ class LiveApp extends React.Component {
       return {
         date: fa(d), wd: WD_NAMES[w] || '', ...TAG[g], tagLabel: TAG[g].label, n: fa(m.n), ans: fa(m.ans), missed: fa(m.missed), vm: fa(m.vm),
         rate: fa(m.rate) + '٪', rateW: m.rate + '%', rateFg: m.rate >= 80 ? '#3d6a0c' : m.rate >= 60 ? '#8a5a00' : '#b42318',
-        talk: dur(m.talk), wait: fa(Math.round(m.avgWait)) + ' ث', uniq: fa(m.uniq), peak: ph ? 'ساعت ' + fa(ph[0]) : '—',
+        talk: dur(m.talk), wait: fa(Math.round(m.avgWait)) + ' ث', uniq: fa(m.other), peak: ph ? 'ساعت ' + fa(ph[0]) : '—',
         pick: () => this.setState({ drDay: sel === d ? null : d }), rowBg: sel === d ? '#f4f9ec' : 'transparent', _d: d, _m: m, _w: w,
       };
     });
@@ -944,6 +1024,7 @@ class LiveApp extends React.Component {
     const active = [
       f.days !== 'all' && (f.days === 'custom' ? 'روزها: ' + WD_NAMES.filter((_, i) => f.wd[i]).join('، ') : GNAME[f.days]),
       (f.h1 > 0 || f.h2 < 23) && 'ساعت ' + fa(f.h1) + ' تا ' + fa(f.h2 + 1),
+      f.shift !== 'all' && (f.shift === 'work' ? 'فقط ساعات کاری' : 'فقط خارج از ساعات کاری'),
       f.dir !== 'in' && (f.dir === 'out' ? 'تماس‌های خروجی' : 'ورودی و خروجی'),
       f.src !== 'all' && 'مسیر: ' + f.src,
       f.op !== 'all' && 'اپراتور: ' + (f.op === 'ivr' ? 'بدون اپراتور' : (opsAll.find(o => String(o.id) === f.op) || { name: f.op }).name),
@@ -952,14 +1033,18 @@ class LiveApp extends React.Component {
     const exportX = () => {
       const kp = kpis.map(k => ({ label: k.label, value: k.value + ' (' + k.sub + ')' }));
       this.exportDays({
-        title: 'گزارش روزها', from: f.from, to: f.to, filters: active.length ? active : ['بدون فیلتر اضافه (تماس‌های ورودی)'], kpis: kp,
+        title: 'گزارش روزها', from: f.from, to: f.to, filters: [PEOPLE ? 'شمارش: هر نفر یک بار' : 'شمارش: همه تماس‌ها', ...(active.length ? active : ['بدون فیلتر اضافه (تماس‌های ورودی)'])], kpis: kp,
         sheets: [
-          { name: 'زوج و فرد', headers: ['گروه روزها', 'تعداد روز', 'تماس', 'پاسخ‌داده', 'بی‌پاسخ', 'نرخ پاسخ', 'میانگین تماس در روز', 'میانگین پاسخ در روز', 'مجموع مکالمه', 'میانگین انتظار'],
+          { name: 'زوج و فرد', headers: ['گروه روزها', 'تعداد روز', PEOPLE ? 'تماس‌گیرنده' : 'تماس', PEOPLE ? 'پاسخ گرفتند' : 'پاسخ‌داده', 'بی‌پاسخ', 'نرخ پاسخ', 'میانگین تماس در روز', 'میانگین پاسخ در روز', 'مجموع مکالمه', 'میانگین انتظار'],
             rows: groups.map(g => [g.name + ' (' + g.sub + ')', g.days, g.n, g.ans, g.missed, g.rate, g.perDay, g.ansPerDay, g.talk, g.wait]) },
-          { name: 'روزهای هفته', headers: ['روز', 'گروه', 'تماس', 'پاسخ‌داده', 'نرخ پاسخ', 'میانگین تماس در روز'], rows: weekdays.map(w => [w.name, w.tagLabel, w.n, w.ans, w.rate, w.perDay]) },
-          { name: 'هفتگی', headers: ['هفته (شنبه تا جمعه)', 'تماس', 'پاسخ‌داده', 'بی‌پاسخ', 'نرخ پاسخ', 'تماس‌گیرنده یکتا', 'مجموع مکالمه', 'میانگین انتظار'],
+          { name: 'ساعات کاری', headers: ['بازه', 'تعریف', PEOPLE ? 'تماس‌گیرنده' : 'تماس', PEOPLE ? 'تعداد تماس' : 'تماس‌گیرنده', PEOPLE ? 'پاسخ گرفتند' : 'پاسخ‌داده', 'بی‌پاسخ', 'نرخ پاسخ', 'میانگین انتظار'],
+            rows: shifts.map(x => [x.title, x.sub, x.n, PEOPLE ? x.calls : x.people, x.ans, x.missed, x.rate, x.wait]) },
+          { name: 'تکرار تماس', headers: ['تعداد تماس هر نفر', 'تعداد نفر', 'سهم', 'پاسخ گرفتند', 'هرگز پاسخ نگرفتند'], rows: repeats.map(r => [r.label, r.n, r.share, r.ans, r.never]) },
+          { name: 'پرتکرارها', headers: ['نام', 'شماره', 'تعداد تماس', 'در ساعات کاری', 'وضعیت', 'آخرین تماس'], rows: topRep.map(r => [r.name, r.phone, r.n, r.inWork, r.stText, r.last]) },
+          { name: 'روزهای هفته', headers: ['روز', 'گروه', PEOPLE ? 'تماس‌گیرنده' : 'تماس', PEOPLE ? 'پاسخ گرفتند' : 'پاسخ‌داده', 'نرخ پاسخ', 'میانگین تماس در روز'], rows: weekdays.map(w => [w.name, w.tagLabel, w.n, w.ans, w.rate, w.perDay]) },
+          { name: 'هفتگی', headers: ['هفته (شنبه تا جمعه)', PEOPLE ? 'تماس‌گیرنده' : 'تماس', PEOPLE ? 'پاسخ گرفتند' : 'پاسخ‌داده', 'بی‌پاسخ', 'نرخ پاسخ', PEOPLE ? 'تعداد تماس' : 'تماس‌گیرنده یکتا', 'مجموع مکالمه', 'میانگین انتظار'],
             rows: weeks.map(w => [fa(w._k) + ' تا ' + fa(w._end), w.n, w.ans, w.missed, w.rate, w.uniq, w.talk, w.wait]) },
-          { name: 'روزانه', headers: ['تاریخ', 'روز', 'زوج/فرد', 'تماس', 'پاسخ‌داده', 'بی‌پاسخ', 'پیام صوتی', 'نرخ پاسخ', 'تماس‌گیرنده یکتا', 'مجموع مکالمه', 'میانگین انتظار', 'شلوغ‌ترین ساعت'],
+          { name: 'روزانه', headers: ['تاریخ', 'روز', 'زوج/فرد', PEOPLE ? 'تماس‌گیرنده' : 'تماس', PEOPLE ? 'پاسخ گرفتند' : 'پاسخ‌داده', 'بی‌پاسخ', 'پیام صوتی', 'نرخ پاسخ', PEOPLE ? 'تعداد تماس' : 'تماس‌گیرنده یکتا', 'مجموع مکالمه', 'میانگین انتظار', 'شلوغ‌ترین ساعت'],
             rows: days.map(d => [d.date, d.wd, d.tagLabel, d.n, d.ans, d.missed, d.vm, d.rate, d.uniq, d.talk, d.wait, d.peak]) },
           { name: 'ساعتی', headers: ['ساعت', 'تماس', 'پاسخ‌داده', 'نرخ پاسخ'], rows: hrs.filter(x => x.n).map(x => [fa(x.h) + ' تا ' + fa(x.h + 1), fa(x.n), fa(x.ans), fa(pct(x.ans, x.n)) + '٪']) },
           { name: 'اپراتورها', headers: ['پاسخ‌دهنده', 'تماس پاسخ‌داده', 'مجموع مکالمه', 'میانگین مکالمه', 'سهم'], rows: ops.map(o => [o.name, o.n, o.talk, o.avg, o.share]) },
@@ -978,6 +1063,15 @@ class LiveApp extends React.Component {
       active: active.map(x => ({ x })), hasActive: active.length > 0, reset: () => this.setState({ dr: { from: f.from, to: f.to }, drDay: null }),
       rangeText: f.from === f.to ? WD_NAMES[wdOf(f.from)] + ' ' + fa(f.from) : fa(f.from) + ' تا ' + fa(f.to) + ' · ' + fa(calendar.length) + ' روز',
       loading: !!s.drLoading, empty: !L.length && !s.drLoading, has: L.length > 0,
+      counts: [['people', 'هر نفر یک بار'], ['calls', 'همه تماس‌ها']].map(([k, label]) => ({ label, onClick: () => setF({ count: k }), ...pill(f.count === k) })),
+      shiftOpts: [['all', 'همه ساعات'], ['work', 'ساعات کاری'], ['off', 'خارج از ساعات کاری']].map(([k, label]) => ({ label, onClick: () => setF({ shift: k }), ...pill(f.shift === k) })),
+      countNote: PEOPLE ? 'هر شماره در هر بازه فقط یک بار شمرده می‌شود؛ اگر یکی از تماس‌هایش جواب گرفته باشد «پاسخ گرفت» حساب می‌شود.' : 'همه تماس‌ها شمرده می‌شوند؛ کسی که ۱۰ بار زنگ زده ۱۰ تماس است.',
+      unit: U, ansLabel: PEOPLE ? 'پاسخ گرفتند' : 'پاسخ‌داده', allLabel: PEOPLE ? 'تماس‌گیرنده' : 'کل تماس‌ها', otherLabel: PEOPLE ? 'تعداد تماس' : 'تماس‌گیرنده یکتا',
+      shifts, bothNote: both > 0 ? fa(both) + ' نفر هم در ساعات کاری و هم خارج از آن زنگ زده‌اند و در هر دو بخش شمرده شده‌اند.' : '', hasBoth: both > 0, workRule: work.text, workName: work.name ? 'طبق شرط زمانی «' + work.name + '»' : '',
+      workAlert: workMissed > 0, workAlertText: 'در ساعات کاری ' + fa(workMissed) + ' ' + U + ' بی‌پاسخ ' + (PEOPLE ? 'ماندند' : 'ماند') + ' (' + fa(pct(workMissed, shifts[0]._m.n)) + '٪)',
+      repeats, repTotal: fa(P.length), multiN: fa(multi.length), multiNever: fa(multiNever.length), hasRepeats: P.length > 0,
+      multiText: fa(multi.length) + ' نفر بیش از یک بار زنگ زده‌اند' + (multiNever.length ? '؛ ' + fa(multiNever.length) + ' نفر از آن‌ها هرگز پاسخ نگرفتند' : ''),
+      topRep, hasTopRep: topRep.length > 0,
       kpis, groups, weekdays, hours, peakText: peak && peak.n ? 'شلوغ‌ترین ساعت: ' + fa(peak.h) + ' تا ' + fa(peak.h + 1) + ' با ' + fa(peak.n) + ' تماس' : '',
       heat, hmHours: hmHours.map(h => ({ label: fa(h) })),
       weeks, hasWeeks: weeks.length > 1, days, day, hasDay: !!day, ops, hasOps: ops.length > 0,

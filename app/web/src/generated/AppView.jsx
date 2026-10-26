@@ -3401,6 +3401,20 @@ export default function AppView({ vm }) {
                   <button onClick={p?.onClick} style={{background: p?.bg, color: p?.fg, border: `1px solid ${p?.bd}`, padding: "6px 12px", borderRadius: "999px", fontSize: "12px", fontWeight: "700", cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap"}}>{p?.label}</button>
                 </React.Fragment>)}
               </div>
+              <div style={{display: "flex", gap: "8px", flexWrap: "wrap", alignItems: "center"}}>
+                <span style={{fontSize: "12px", color: "#6b6e72", width: "62px"}}>{"شمارش"}</span>
+                {(vm.dr?.counts || []).map((p, __i8) => <React.Fragment key={__i8}>
+                  <button onClick={p?.onClick} style={{background: p?.bg, color: p?.fg, border: `1px solid ${p?.bd}`, padding: "6px 12px", borderRadius: "999px", fontSize: "12px", fontWeight: "700", cursor: "pointer", fontFamily: "inherit"}}>{p?.label}</button>
+                </React.Fragment>)}
+                <span style={{fontSize: "11px", color: "#8b8e89", flex: "1", minWidth: "200px"}}>{vm.dr?.countNote}</span>
+              </div>
+              <div style={{display: "flex", gap: "8px", flexWrap: "wrap", alignItems: "center"}}>
+                <span style={{fontSize: "12px", color: "#6b6e72", width: "62px"}}>{"زمان"}</span>
+                {(vm.dr?.shiftOpts || []).map((p, __i8) => <React.Fragment key={__i8}>
+                  <button onClick={p?.onClick} style={{background: p?.bg, color: p?.fg, border: `1px solid ${p?.bd}`, padding: "6px 12px", borderRadius: "999px", fontSize: "12px", fontWeight: "700", cursor: "pointer", fontFamily: "inherit"}}>{p?.label}</button>
+                </React.Fragment>)}
+                <span style={{fontSize: "11px", color: "#8b8e89"}}>{"ساعات کاری "}{vm.dr?.workName}{": "}{vm.dr?.workRule}</span>
+              </div>
               <div style={{display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(150px,1fr))", gap: "10px"}}>
                 <label style={{display: "flex", flexDirection: "column", gap: "5px", fontSize: "12px", color: "#6b6e72"}}>
                   {"از ساعت"}
@@ -3471,6 +3485,66 @@ export default function AppView({ vm }) {
                 </div>
               </React.Fragment>)}
             </div>
+            {(vm.dr?.has) ? (<>
+              <div style={{display: "flex", flexDirection: "column", gap: "12px"}}>
+                <div style={{display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap"}}>
+                  <div style={{fontWeight: "800", fontSize: "16px", flex: "1"}}>{"ساعات کاری و خارج از ساعات کاری"}</div>
+                  {(vm.dr?.workAlert) ? (<>
+                    <span style={{display: "inline-flex", alignItems: "center", gap: "6px", background: "#fdeceb", color: "#b42318", borderRadius: "999px", padding: "5px 12px", fontSize: "12px", fontWeight: "800"}}>
+                      <span style={{width: "7px", height: "7px", borderRadius: "50%", background: "#d92d20"}} />
+                      {vm.dr?.workAlertText}
+                    </span>
+                  </>) : null}
+                </div>
+                <div style={{display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(300px,1fr))", gap: "14px"}}>
+                  {(vm.dr?.shifts || []).map((w, __i9) => <React.Fragment key={__i9}>
+                    <div onClick={w?.pick} style={{background: w?.bg, border: `1.5px solid ${w?.bd}`, borderRadius: "22px", padding: "18px 20px", cursor: "pointer", display: "flex", flexDirection: "column", gap: "14px", position: "relative", overflow: "hidden"}}>
+                      <span style={{position: "absolute", top: "0", right: "0", left: "0", height: "4px", background: w?.col[1]}} />
+                      <div style={{display: "flex", alignItems: "flex-start", gap: "10px"}}>
+                        <div style={{flex: "1", minWidth: "0"}}>
+                          <div style={{fontWeight: "800", fontSize: "16px", color: w?.col[0]}}>{w?.title}</div>
+                          <div style={{fontSize: "11px", color: "#6b6e72", marginTop: "3px", lineHeight: "1.7"}}>{w?.sub}</div>
+                        </div>
+                        <span style={{fontSize: "11px", fontWeight: "700", color: "#55585c", background: "#f2f3ef", borderRadius: "999px", padding: "3px 10px", whiteSpace: "nowrap"}}>{w?.share}</span>
+                      </div>
+                      <div style={{display: "flex", alignItems: "flex-end", gap: "18px", flexWrap: "wrap"}}>
+                        <div>
+                          <div style={{fontSize: "34px", fontWeight: "800", lineHeight: "1"}}>{w?.n}</div>
+                          <div style={{fontSize: "12px", color: "#6b6e72", marginTop: "4px"}}>{w?.unitN}{" · "}{w?.otherText}</div>
+                        </div>
+                        <div style={{flex: "1", minWidth: "150px"}}>
+                          <div style={{display: "flex", justifyContent: "space-between", fontSize: "12px", marginBottom: "5px"}}>
+                            <span style={{color: "#55585c"}}>{"نرخ پاسخ"}</span>
+                            <b style={{color: w?.rateFg, fontSize: "15px"}}>{w?.rate}</b>
+                          </div>
+                          <div style={{height: "10px", background: "#eef0ea", borderRadius: "99px", overflow: "hidden"}}>
+                            <div style={{height: "100%", width: w?.rateW, background: w?.col[1], borderRadius: "99px"}} />
+                          </div>
+                        </div>
+                      </div>
+                      <div style={{display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: "8px"}}>
+                        <div style={{background: "#eef5e3", borderRadius: "12px", padding: "8px 10px"}}>
+                          <div style={{fontSize: "10px", color: "#3d6a0c"}}>{vm.dr?.ansLabel}</div>
+                          <div style={{fontSize: "17px", fontWeight: "800", color: "#3d6a0c"}}>{w?.ans}</div>
+                        </div>
+                        <div style={{background: "#fdeceb", borderRadius: "12px", padding: "8px 10px"}}>
+                          <div style={{fontSize: "10px", color: "#b42318"}}>{"بی‌پاسخ"}</div>
+                          <div style={{fontSize: "17px", fontWeight: "800", color: "#b42318"}}>{w?.missed}</div>
+                        </div>
+                        <div style={{background: "#f7f8f4", borderRadius: "12px", padding: "8px 10px"}}>
+                          <div style={{fontSize: "10px", color: "#6b6e72"}}>{"میانگین انتظار"}</div>
+                          <div style={{fontSize: "14px", fontWeight: "800"}}>{w?.wait}</div>
+                        </div>
+                      </div>
+                      <div style={{fontSize: "11px", color: "#8b8e89"}}>{"میانگین روزانه "}{w?.perDay}{" "}{w?.unitN}{" · "}{w?.mark}</div>
+                    </div>
+                  </React.Fragment>)}
+                </div>
+                {(vm.dr?.hasBoth) ? (<>
+                  <div style={{fontSize: "11px", color: "#8b8e89"}}>{vm.dr?.bothNote}</div>
+                </>) : null}
+              </div>
+            </>) : null}
             <div style={{display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(260px,1fr))", gap: "14px"}}>
               {(vm.dr?.groups || []).map((g, __i7) => <React.Fragment key={__i7}>
                 <div onClick={g?.pick} style={{background: g?.bg, border: `1.5px solid ${g?.bd}`, borderRadius: "20px", padding: "16px 18px", cursor: "pointer", display: "flex", flexDirection: "column", gap: "10px"}}>
@@ -3483,11 +3557,11 @@ export default function AppView({ vm }) {
                   </div>
                   <div style={{display: "flex", gap: "16px", alignItems: "flex-end"}}>
                     <div>
-                      <div style={{fontSize: "11px", color: "#6b6e72"}}>{"تماس"}</div>
+                      <div style={{fontSize: "11px", color: "#6b6e72"}}>{vm.dr?.unit}</div>
                       <div style={{fontSize: "26px", fontWeight: "800"}}>{g?.n}</div>
                     </div>
                     <div>
-                      <div style={{fontSize: "11px", color: "#6b6e72"}}>{"پاسخ‌داده"}</div>
+                      <div style={{fontSize: "11px", color: "#6b6e72"}}>{vm.dr?.ansLabel}</div>
                       <div style={{fontSize: "26px", fontWeight: "800", color: "#3d6a0c"}}>{g?.ans}</div>
                     </div>
                     <div>
@@ -3508,7 +3582,7 @@ export default function AppView({ vm }) {
                     <div>
                       {"میانگین روزانه: "}
                       <b>{g?.perDay}</b>
-                      {" تماس"}
+                      {" "}{vm.dr?.unit}
                     </div>
                     <div>
                       {"پاسخ در روز: "}
@@ -3527,6 +3601,71 @@ export default function AppView({ vm }) {
                 </div>
               </React.Fragment>)}
             </div>
+            {(vm.dr?.hasRepeats) ? (<>
+              <div style={{display: "flex", flexWrap: "wrap", gap: "14px", alignItems: "stretch"}}>
+                <div style={{background: "#fff", border: "1px solid #e7e8e3", borderRadius: "20px", padding: "16px 18px", flex: "1 1 380px", minWidth: "0", display: "flex", flexDirection: "column", gap: "12px"}}>
+                  <div>
+                    <div style={{fontWeight: "800", fontSize: "15px"}}>{"هر نفر چند بار زنگ زد؟"}</div>
+                    <div style={{fontSize: "12px", color: "#6b6e72", marginTop: "3px"}}>{vm.dr?.repTotal}{" تماس‌گیرنده · "}{vm.dr?.multiText}</div>
+                  </div>
+                  {(vm.dr?.repeats || []).map((r, __i9) => <React.Fragment key={__i9}>
+                    <div style={{display: "grid", gridTemplateColumns: "86px 1fr 64px", gap: "10px", alignItems: "center"}}>
+                      <div style={{fontSize: "13px", fontWeight: "700"}}>{r?.label}</div>
+                      <div style={{height: "22px", background: "#f2f3ef", borderRadius: "8px", overflow: "hidden", position: "relative"}}>
+                        <div style={{height: "100%", width: r?.w, background: "#dfe9cf", borderRadius: "8px", position: "relative", overflow: "hidden"}}>
+                          <div style={{position: "absolute", top: "0", bottom: "0", right: "0", width: r?.ansW, background: "#8DC63F"}} />
+                        </div>
+                      </div>
+                      <div style={{textAlign: "left", fontSize: "13px"}}>
+                        <b>{r?.n}</b>
+                        <span style={{fontSize: "11px", color: "#8b8e89"}}>{"نفر"}</span>
+                      </div>
+                    </div>
+                  </React.Fragment>)}
+                  <div style={{display: "flex", gap: "14px", fontSize: "11px", color: "#6b6e72", alignItems: "center"}}>
+                    <span style={{display: "flex", alignItems: "center", gap: "5px"}}>
+                      <span style={{width: "10px", height: "10px", borderRadius: "3px", background: "#8DC63F"}} />
+                      {"پاسخ گرفتند"}
+                    </span>
+                    <span style={{display: "flex", alignItems: "center", gap: "5px"}}>
+                      <span style={{width: "10px", height: "10px", borderRadius: "3px", background: "#dfe9cf"}} />
+                      {"هرگز پاسخ نگرفتند"}
+                    </span>
+                  </div>
+                </div>
+                {(vm.dr?.hasTopRep) ? (<>
+                  <div style={{background: "#fff", border: "1px solid #e7e8e3", borderRadius: "20px", overflow: "hidden", flex: "1 1 420px", minWidth: "0"}}>
+                    <div style={{padding: "14px 18px", fontWeight: "800", fontSize: "15px"}}>
+                      {"پرتکرارترین تماس‌گیرندگان "}
+                      <span style={{fontSize: "11px", color: "#8b8e89", fontWeight: "500"}}>{"(برای پرونده کلیک کنید)"}</span>
+                    </div>
+                    <div style={{overflowX: "auto"}}>
+                      <table style={{width: "100%", borderCollapse: "collapse"}}>
+                        <tbody>
+                          {(vm.dr?.topRep || []).map((t, __i13) => <React.Fragment key={__i13}>
+                            <tr onClick={t?.open} style={{cursor: "pointer"}}>
+                              <td style={{padding: "9px 14px", borderTop: "1px solid #f1f2ee", fontSize: "13px"}}>
+                                <div style={{fontWeight: "700"}}>{t?.name}</div>
+                                <div style={{fontSize: "11px", color: "#6b6e72", direction: "ltr", textAlign: "right"}}>{t?.phone}</div>
+                              </td>
+                              <td style={{padding: "9px 10px", borderTop: "1px solid #f1f2ee", fontSize: "13px", whiteSpace: "nowrap"}}>
+                                <b style={{fontSize: "16px"}}>{t?.n}</b>
+                                {" بار"}
+                                <div style={{fontSize: "11px", color: "#6b6e72"}}>{t?.inWork}{" در ساعات کاری"}</div>
+                              </td>
+                              <td style={{padding: "9px 10px", borderTop: "1px solid #f1f2ee"}}>
+                                <span style={{fontSize: "11px", fontWeight: "800", padding: "3px 9px", borderRadius: "999px", background: t?.stBg, color: t?.stFg, whiteSpace: "nowrap"}}>{t?.stText}</span>
+                              </td>
+                              <td style={{padding: "9px 14px", borderTop: "1px solid #f1f2ee", fontSize: "11px", color: "#6b6e72", whiteSpace: "nowrap"}}>{"آخرین: "}{t?.last}</td>
+                            </tr>
+                          </React.Fragment>)}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </>) : null}
+              </div>
+            </>) : null}
             {(vm.dr?.has) ? (<>
               <div style={{display: "flex", flexWrap: "wrap", gap: "14px"}}>
                 <div style={{background: "#fff", border: "1px solid #e7e8e3", borderRadius: "20px", padding: "16px 18px", flex: "1 1 360px", minWidth: "0", display: "flex", flexDirection: "column", gap: "10px"}}>
@@ -3535,11 +3674,11 @@ export default function AppView({ vm }) {
                     <div style={{display: "flex", gap: "14px", fontSize: "12px", color: "#55585c"}}>
                       <span style={{display: "flex", alignItems: "center", gap: "6px"}}>
                         <span style={{width: "10px", height: "10px", borderRadius: "3px", background: "#3B7FB8"}} />
-                        {"کل تماس‌ها"}
+                        {vm.dr?.allLabel}
                       </span>
                       <span style={{display: "flex", alignItems: "center", gap: "6px"}}>
                         <span style={{width: "10px", height: "10px", borderRadius: "3px", background: "#7FB536"}} />
-                        {"پاسخ‌داده"}
+                        {vm.dr?.ansLabel}
                       </span>
                     </div>
                   </div>
@@ -3580,11 +3719,11 @@ export default function AppView({ vm }) {
                     <div style={{display: "flex", gap: "14px", fontSize: "12px", color: "#55585c"}}>
                       <span style={{display: "flex", alignItems: "center", gap: "6px"}}>
                         <span style={{width: "10px", height: "10px", borderRadius: "3px", background: "#3B7FB8"}} />
-                        {"کل تماس‌ها"}
+                        {vm.dr?.allLabel}
                       </span>
                       <span style={{display: "flex", alignItems: "center", gap: "6px"}}>
                         <span style={{width: "10px", height: "10px", borderRadius: "3px", background: "#7FB536"}} />
-                        {"پاسخ‌داده"}
+                        {vm.dr?.ansLabel}
                       </span>
                     </div>
                   </div>
@@ -3639,11 +3778,11 @@ export default function AppView({ vm }) {
                       <thead>
                         <tr>
                           <th style={{padding: "10px 12px", fontSize: "12px", color: "#6b6e72", fontWeight: "600", textAlign: "right", whiteSpace: "nowrap", borderBottom: "1px solid #eeefeb", background: "#fafaf8"}}>{"هفته"}</th>
-                          <th style={{padding: "10px 12px", fontSize: "12px", color: "#6b6e72", fontWeight: "600", textAlign: "right", whiteSpace: "nowrap", borderBottom: "1px solid #eeefeb", background: "#fafaf8"}}>{"تماس"}</th>
-                          <th style={{padding: "10px 12px", fontSize: "12px", color: "#6b6e72", fontWeight: "600", textAlign: "right", whiteSpace: "nowrap", borderBottom: "1px solid #eeefeb", background: "#fafaf8"}}>{"پاسخ‌داده"}</th>
+                          <th style={{padding: "10px 12px", fontSize: "12px", color: "#6b6e72", fontWeight: "600", textAlign: "right", whiteSpace: "nowrap", borderBottom: "1px solid #eeefeb", background: "#fafaf8"}}>{vm.dr?.unit}</th>
+                          <th style={{padding: "10px 12px", fontSize: "12px", color: "#6b6e72", fontWeight: "600", textAlign: "right", whiteSpace: "nowrap", borderBottom: "1px solid #eeefeb", background: "#fafaf8"}}>{vm.dr?.ansLabel}</th>
                           <th style={{padding: "10px 12px", fontSize: "12px", color: "#6b6e72", fontWeight: "600", textAlign: "right", whiteSpace: "nowrap", borderBottom: "1px solid #eeefeb", background: "#fafaf8"}}>{"بی‌پاسخ"}</th>
                           <th style={{padding: "10px 12px", fontSize: "12px", color: "#6b6e72", fontWeight: "600", textAlign: "right", whiteSpace: "nowrap", borderBottom: "1px solid #eeefeb", background: "#fafaf8", minWidth: "140px"}}>{"نرخ پاسخ"}</th>
-                          <th style={{padding: "10px 12px", fontSize: "12px", color: "#6b6e72", fontWeight: "600", textAlign: "right", whiteSpace: "nowrap", borderBottom: "1px solid #eeefeb", background: "#fafaf8"}}>{"تماس‌گیرنده یکتا"}</th>
+                          <th style={{padding: "10px 12px", fontSize: "12px", color: "#6b6e72", fontWeight: "600", textAlign: "right", whiteSpace: "nowrap", borderBottom: "1px solid #eeefeb", background: "#fafaf8"}}>{vm.dr?.otherLabel}</th>
                           <th style={{padding: "10px 12px", fontSize: "12px", color: "#6b6e72", fontWeight: "600", textAlign: "right", whiteSpace: "nowrap", borderBottom: "1px solid #eeefeb", background: "#fafaf8"}}>{"مجموع مکالمه"}</th>
                           <th style={{padding: "10px 12px", fontSize: "12px", color: "#6b6e72", fontWeight: "600", textAlign: "right", whiteSpace: "nowrap", borderBottom: "1px solid #eeefeb", background: "#fafaf8"}}>{"میانگین انتظار"}</th>
                         </tr>
@@ -3683,7 +3822,7 @@ export default function AppView({ vm }) {
                         <tr>
                           <th style={{padding: "10px 12px", fontSize: "12px", color: "#6b6e72", fontWeight: "600", textAlign: "right", whiteSpace: "nowrap", borderBottom: "1px solid #eeefeb", background: "#fafaf8"}}>{"تاریخ"}</th>
                           <th style={{padding: "10px 12px", fontSize: "12px", color: "#6b6e72", fontWeight: "600", textAlign: "right", whiteSpace: "nowrap", borderBottom: "1px solid #eeefeb", background: "#fafaf8"}}>{"روز"}</th>
-                          <th style={{padding: "10px 12px", fontSize: "12px", color: "#6b6e72", fontWeight: "600", textAlign: "right", whiteSpace: "nowrap", borderBottom: "1px solid #eeefeb", background: "#fafaf8"}}>{"تماس"}</th>
+                          <th style={{padding: "10px 12px", fontSize: "12px", color: "#6b6e72", fontWeight: "600", textAlign: "right", whiteSpace: "nowrap", borderBottom: "1px solid #eeefeb", background: "#fafaf8"}}>{vm.dr?.unit}</th>
                           <th style={{padding: "10px 12px", fontSize: "12px", color: "#6b6e72", fontWeight: "600", textAlign: "right", whiteSpace: "nowrap", borderBottom: "1px solid #eeefeb", background: "#fafaf8"}}>{"پاسخ"}</th>
                           <th style={{padding: "10px 12px", fontSize: "12px", color: "#6b6e72", fontWeight: "600", textAlign: "right", whiteSpace: "nowrap", borderBottom: "1px solid #eeefeb", background: "#fafaf8"}}>{"بی‌پاسخ"}</th>
                           <th style={{padding: "10px 12px", fontSize: "12px", color: "#6b6e72", fontWeight: "600", textAlign: "right", whiteSpace: "nowrap", borderBottom: "1px solid #eeefeb", background: "#fafaf8"}}>{"پیام صوتی"}</th>
@@ -3729,7 +3868,7 @@ export default function AppView({ vm }) {
                       </div>
                       <div style={{display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: "6px", textAlign: "center"}}>
                         <div style={{background: "#f7f8f4", borderRadius: "10px", padding: "8px"}}>
-                          <div style={{fontSize: "10px", color: "#6b6e72"}}>{"تماس"}</div>
+                          <div style={{fontSize: "10px", color: "#6b6e72"}}>{vm.dr?.unit}</div>
                           <b>{vm.dr?.day?.n}</b>
                         </div>
                         <div style={{background: "#f4f9ec", borderRadius: "10px", padding: "8px"}}>
