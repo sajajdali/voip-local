@@ -804,6 +804,7 @@ export default function AppView({ vm }) {
                       <th style={{padding: "11px 16px", fontSize: "12px", color: "#6b6e72", fontWeight: "600", textAlign: "right", background: "#f7f8f5"}}>{"انتظار"}</th>
                       <th style={{padding: "11px 16px", fontSize: "12px", color: "#6b6e72", fontWeight: "600", textAlign: "right", background: "#f7f8f5"}}>{"مدت"}</th>
                       <th style={{padding: "11px 16px", fontSize: "12px", color: "#6b6e72", fontWeight: "600", textAlign: "right", background: "#f7f8f5"}}>{"وضعیت"}</th>
+                      <th style={{padding: "11px 16px", fontSize: "12px", color: "#6b6e72", fontWeight: "600", textAlign: "right", background: "#f7f8f5"}}>{"ارجاع"}</th>
                       <th style={{padding: "11px 16px", fontSize: "12px", color: "#6b6e72", fontWeight: "600", textAlign: "center", background: "#f7f8f5"}}>{"پخش"}</th>
                     </tr>
                   </thead>
@@ -848,6 +849,23 @@ export default function AppView({ vm }) {
                             </div>
                           </>) : null}
                         </td>
+                        <td style={{padding: "11px 12px", borderTop: "1px solid #eeefeb", whiteSpace: "nowrap"}}>
+                          {(row?.refOpen) ? (<>
+                            <button onClick={row?.onRefOpen} title={row?.refTip} style={{display: "inline-flex", alignItems: "center", gap: "5px", border: "1px solid #c9dcec", background: "#e5eff7", color: "#1d5a85", padding: "4px 10px", borderRadius: "999px", fontSize: "11px", fontWeight: "800", cursor: "pointer", fontFamily: "inherit"}}>
+                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M4 17v-2a4 4 0 0 1 4-4h12" />
+                                <path d="M16 7l4 4-4 4" />
+                              </svg>
+                              {row?.refText}
+                            </button>
+                          </>) : null}
+                          {(row?.refDone) ? (<>
+                            <button onClick={row?.onRefOpen} title={row?.refTip} style={{display: "inline-flex", alignItems: "center", gap: "5px", border: "1px solid #cfe4ad", background: "#eef7e3", color: "#3d6a0c", padding: "4px 10px", borderRadius: "999px", fontSize: "11px", fontWeight: "800", cursor: "pointer", fontFamily: "inherit"}}>{"✓ "}{row?.refText}</button>
+                          </>) : null}
+                          {(row?.noRef) ? (<>
+                            <span style={{color: "#c9cbc6"}}>{"—"}</span>
+                          </>) : null}
+                        </td>
                         <td style={{padding: "11px 16px", borderTop: "1px solid #eeefeb", textAlign: "center"}}>
                           {(row?.hasVoice) ? (<>
                             <button onClick={row?.onPlay} style={{width: "36px", height: "36px", borderRadius: "50%", border: "none", background: row?.playBg, color: row?.playFg, display: "inline-grid", placeItems: "center", cursor: "pointer"}}>
@@ -866,6 +884,14 @@ export default function AppView({ vm }) {
                             <button onClick={row?.onDel} title="حذف تماس" style={{width: "32px", height: "32px", marginRight: "6px", borderRadius: "10px", border: "1px solid #f1c9c4", background: "#fff", color: "#b42318", display: "inline-grid", placeItems: "center", cursor: "pointer", verticalAlign: "middle"}}>
                               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                 <path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3" />
+                              </svg>
+                            </button>
+                          </>) : null}
+                          {(row?.canRefer) ? (<>
+                            <button onClick={row?.onRefer} title="ارجاع تماس به داخلی دیگر" style={{width: "32px", height: "32px", marginRight: "6px", borderRadius: "10px", border: "1px solid #d9d0ec", background: "#fff", color: "#6a4b9c", display: "inline-grid", placeItems: "center", cursor: "pointer", verticalAlign: "middle"}}>
+                              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M4 17v-2a4 4 0 0 1 4-4h12" />
+                                <path d="M16 7l4 4-4 4" />
                               </svg>
                             </button>
                           </>) : null}
@@ -2609,6 +2635,7 @@ export default function AppView({ vm }) {
                         <th style={{padding: "11px 16px", fontSize: "12px", color: "#6b6e72", fontWeight: "600", textAlign: "right", background: "#f7f8f5", whiteSpace: "nowrap"}}>{"مدت"}</th>
                         <th style={{padding: "11px 16px", fontSize: "12px", color: "#6b6e72", fontWeight: "600", textAlign: "right", background: "#f7f8f5", whiteSpace: "nowrap"}}>{"وضعیت"}</th>
                         <th style={{padding: "11px 16px", fontSize: "12px", color: "#6b6e72", fontWeight: "600", textAlign: "right", background: "#f7f8f5", whiteSpace: "nowrap"}}>{"دسته AI"}</th>
+                        <th style={{padding: "11px 16px", fontSize: "12px", color: "#6b6e72", fontWeight: "600", textAlign: "right", background: "#f7f8f5", whiteSpace: "nowrap"}}>{"ارجاع"}</th>
                         <th style={{padding: "11px 16px", fontSize: "12px", color: "#6b6e72", fontWeight: "600", textAlign: "right", background: "#f7f8f5", whiteSpace: "nowrap", textAlign: "center"}}>{"پخش"}</th>
                       </tr>
                     </thead>
@@ -2639,6 +2666,23 @@ export default function AppView({ vm }) {
                               <span style={{color: "#b9bbb6"}}>{"—"}</span>
                             </>) : null}
                           </td>
+                          <td style={{padding: "11px 12px", borderTop: "1px solid #eeefeb", whiteSpace: "nowrap"}}>
+                            {(row?.refOpen) ? (<>
+                              <button onClick={row?.onRefOpen} title={row?.refTip} style={{display: "inline-flex", alignItems: "center", gap: "5px", border: "1px solid #c9dcec", background: "#e5eff7", color: "#1d5a85", padding: "4px 10px", borderRadius: "999px", fontSize: "11px", fontWeight: "800", cursor: "pointer", fontFamily: "inherit"}}>
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                                  <path d="M4 17v-2a4 4 0 0 1 4-4h12" />
+                                  <path d="M16 7l4 4-4 4" />
+                                </svg>
+                                {row?.refText}
+                              </button>
+                            </>) : null}
+                            {(row?.refDone) ? (<>
+                              <button onClick={row?.onRefOpen} title={row?.refTip} style={{display: "inline-flex", alignItems: "center", gap: "5px", border: "1px solid #cfe4ad", background: "#eef7e3", color: "#3d6a0c", padding: "4px 10px", borderRadius: "999px", fontSize: "11px", fontWeight: "800", cursor: "pointer", fontFamily: "inherit"}}>{"✓ "}{row?.refText}</button>
+                            </>) : null}
+                            {(row?.noRef) ? (<>
+                              <span style={{color: "#c9cbc6"}}>{"—"}</span>
+                            </>) : null}
+                          </td>
                           <td style={{padding: "11px 16px", borderTop: "1px solid #eeefeb", fontSize: "13px", textAlign: "center"}}>
                             {(row?.hasVoice) ? (<>
                               <button onClick={row?.onPlay} style={{width: "34px", height: "34px", borderRadius: "50%", border: "none", background: row?.playBg, color: row?.playFg, display: "inline-grid", placeItems: "center", cursor: "pointer"}}>
@@ -2652,6 +2696,14 @@ export default function AppView({ vm }) {
                             </>) : null}
                             {(row?.noVoice) ? (<>
                               <span style={{color: "#b9bbb6"}}>{"—"}</span>
+                            </>) : null}
+                            {(row?.canRefer) ? (<>
+                              <button onClick={row?.onRefer} title="ارجاع تماس به داخلی دیگر" style={{width: "32px", height: "32px", marginRight: "6px", borderRadius: "10px", border: "1px solid #d9d0ec", background: "#fff", color: "#6a4b9c", display: "inline-grid", placeItems: "center", cursor: "pointer", verticalAlign: "middle"}}>
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                                  <path d="M4 17v-2a4 4 0 0 1 4-4h12" />
+                                  <path d="M16 7l4 4-4 4" />
+                                </svg>
+                              </button>
                             </>) : null}
                             {(row?.canRep) ? (<>
                               <button onClick={row?.onRep} title="ثبت گزارش تماس" style={{height: "32px", marginRight: "6px", padding: "0 10px", borderRadius: "10px", border: "1px solid #c9dcec", background: "#fff", color: "#1d5a85", display: "inline-flex", alignItems: "center", gap: "5px", cursor: "pointer", verticalAlign: "middle", fontSize: "12px", fontWeight: "700", fontFamily: "inherit", whiteSpace: "nowrap"}}>
