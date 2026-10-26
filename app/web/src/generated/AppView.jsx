@@ -446,6 +446,12 @@ export default function AppView({ vm }) {
                         <td onClick={row?.openCall} style={{cursor: "pointer", padding: "11px 16px", borderTop: "1px solid #eeefeb", fontSize: "13px", fontVariantNumeric: "tabular-nums"}}>{row?.durText}</td>
                         <td onClick={row?.openCall} style={{cursor: "pointer", padding: "11px 16px", borderTop: "1px solid #eeefeb"}}>
                           <span style={{display: "inline-block", padding: "4px 10px", borderRadius: "999px", fontSize: "12px", fontWeight: "600", background: row?.status?.bg, color: row?.status?.fg, whiteSpace: "nowrap"}}>{row?.status?.label}</span>
+                          {(row?.hasSms) ? (<>
+                            <div title={row?.smsTip} style={{marginTop: "5px", marginRight: "4px", display: "inline-flex", alignItems: "center", gap: "4px", fontSize: "11px", fontWeight: "700", color: "#3d6a0c", background: "#eef7e3", borderRadius: "999px", padding: "2px 8px", whiteSpace: "nowrap"}}>
+                              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.4A8 8 0 1 1 21 12z" /></svg>
+                              {row?.smsText}
+                            </div>
+                          </>) : null}
                           {(row?.hasRep) ? (<>
                             <div style={{marginTop: "5px", display: "inline-flex", alignItems: "center", gap: "4px", fontSize: "11px", fontWeight: "700", color: "#1d5a85", background: "#e5eff7", borderRadius: "999px", padding: "2px 8px", whiteSpace: "nowrap"}}>
                               <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
@@ -788,6 +794,12 @@ export default function AppView({ vm }) {
                         <td onClick={row?.openCall} style={{cursor: "pointer", padding: "11px 16px", borderTop: "1px solid #eeefeb", fontSize: "13px"}}>{row?.durText}</td>
                         <td onClick={row?.openCall} style={{cursor: "pointer", padding: "11px 16px", borderTop: "1px solid #eeefeb"}}>
                           <span style={{display: "inline-block", padding: "4px 10px", borderRadius: "999px", fontSize: "12px", fontWeight: "600", background: row?.status?.bg, color: row?.status?.fg, whiteSpace: "nowrap"}}>{row?.status?.label}</span>
+                          {(row?.hasSms) ? (<>
+                            <div title={row?.smsTip} style={{marginTop: "5px", marginRight: "4px", display: "inline-flex", alignItems: "center", gap: "4px", fontSize: "11px", fontWeight: "700", color: "#3d6a0c", background: "#eef7e3", borderRadius: "999px", padding: "2px 8px", whiteSpace: "nowrap"}}>
+                              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.4A8 8 0 1 1 21 12z" /></svg>
+                              {row?.smsText}
+                            </div>
+                          </>) : null}
                           {(row?.hasRep) ? (<>
                             <div style={{marginTop: "5px", display: "inline-flex", alignItems: "center", gap: "4px", fontSize: "11px", fontWeight: "700", color: "#1d5a85", background: "#e5eff7", borderRadius: "999px", padding: "2px 8px", whiteSpace: "nowrap"}}>
                               <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
@@ -1049,6 +1061,46 @@ export default function AppView({ vm }) {
                       </>) : null}
                     </div>
                   </div>
+                  {(vm.vbx?.sms?.show) ? (<>
+                    <div style={{background: "#fff", border: "1px solid #e7e8e3", borderRadius: "22px", padding: "16px 18px", display: "flex", flexDirection: "column", gap: "12px", flexShrink: "0"}}>
+                      <div style={{display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap"}}>
+                        <div style={{width: "34px", height: "34px", borderRadius: "10px", background: "#2E2F31", color: "#8DC63F", display: "grid", placeItems: "center", flexShrink: "0"}}>
+                          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.4A8 8 0 1 1 21 12z" />
+                            <path d="M8 11h8M8 14h5" />
+                          </svg>
+                        </div>
+                        <div style={{flex: "1", minWidth: "140px"}}>
+                          <div style={{fontWeight: "800", fontSize: "15px"}}>{"ارسال پیامک"}</div>
+                          <div style={{fontSize: "11px", color: "#8b8e89", marginTop: "2px"}}>{vm.vbx?.sms?.note}</div>
+                        </div>
+                        {(vm.vbx?.sms?.dry) ? (<>
+                          <span style={{fontSize: "10px", fontWeight: "800", padding: "3px 9px", borderRadius: "999px", background: "#fcf3e0", color: "#8a5a00"}}>{"حالت آزمایشی"}</span>
+                        </>) : null}
+                        {(vm.vbx?.sms?.hasSent) ? (<>
+                          <span style={{fontSize: "11px", fontWeight: "800", padding: "3px 10px", borderRadius: "999px", background: "#eef7e3", color: "#3d6a0c"}}>{"✓ "}{vm.vbx?.sms?.sentN}{" ارسال شد"}</span>
+                        </>) : null}
+                      </div>
+                      <div style={{display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(150px,1fr))", gap: "8px"}}>
+                        {(vm.vbx?.sms?.buttons || []).map((b, __i12) => <React.Fragment key={__i12}>
+                          <button onClick={b?.send} title={b?.tip} style={{position: "relative", display: "flex", alignItems: "center", gap: "10px", textAlign: "right", background: b?.bg, border: `1.5px solid ${b?.bd}`, borderRadius: "14px", padding: "10px 11px", cursor: b?.cur, opacity: b?.op, transition: "all .18s", fontFamily: "inherit"}}>
+                            <span style={{width: "34px", height: "34px", borderRadius: "11px", background: b?.iconBg, color: b?.iconFg, display: "grid", placeItems: "center", flexShrink: "0"}}>
+                              {(b?.notSent) ? (<>
+                                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d={b?.path} /></svg>
+                              </>) : null}
+                              {(b?.isSent) ? (<>
+                                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5" /></svg>
+                              </>) : null}
+                            </span>
+                            <span style={{minWidth: "0", display: "flex", flexDirection: "column", gap: "2px"}}>
+                              <span style={{fontSize: "13px", fontWeight: "800", color: "#232425", lineHeight: "1.45"}}>{b?.title}</span>
+                              <span style={{fontSize: "10px", color: "#6b6e72", whiteSpace: "nowrap"}}>{b?.sub}</span>
+                            </span>
+                          </button>
+                        </React.Fragment>)}
+                      </div>
+                    </div>
+                  </>) : null}
                   <div style={{background: "#fff", border: "1px solid #e7e8e3", borderRadius: "22px", padding: "16px 18px", display: "flex", flexDirection: "column", gap: "10px"}}>
                     <div style={{fontWeight: "800", fontSize: "14px"}}>{"وضعیت پیام"}</div>
                     <div style={{display: "flex", gap: "8px", flexWrap: "wrap"}}>
@@ -1707,6 +1759,46 @@ export default function AppView({ vm }) {
               <div style={{fontSize: "13px", color: "#6b6e72"}}>
                 {"هنوز تماس ثبت‌شده‌ای از این شماره نیست؛ بعد از پایان تماس فعلی، تاریخچه اینجا نمایش داده می‌شود."}
               </div>
+              {(vm.pf2?.sms?.show) ? (<>
+                <div style={{background: "#fff", border: "1px solid #e7e8e3", borderRadius: "22px", padding: "16px 18px", display: "flex", flexDirection: "column", gap: "12px", flexShrink: "0"}}>
+                  <div style={{display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap"}}>
+                    <div style={{width: "34px", height: "34px", borderRadius: "10px", background: "#2E2F31", color: "#8DC63F", display: "grid", placeItems: "center", flexShrink: "0"}}>
+                      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.4A8 8 0 1 1 21 12z" />
+                        <path d="M8 11h8M8 14h5" />
+                      </svg>
+                    </div>
+                    <div style={{flex: "1", minWidth: "140px"}}>
+                      <div style={{fontWeight: "800", fontSize: "15px"}}>{"ارسال پیامک"}</div>
+                      <div style={{fontSize: "11px", color: "#8b8e89", marginTop: "2px"}}>{vm.pf2?.sms?.note}</div>
+                    </div>
+                    {(vm.pf2?.sms?.dry) ? (<>
+                      <span style={{fontSize: "10px", fontWeight: "800", padding: "3px 9px", borderRadius: "999px", background: "#fcf3e0", color: "#8a5a00"}}>{"حالت آزمایشی"}</span>
+                    </>) : null}
+                    {(vm.pf2?.sms?.hasSent) ? (<>
+                      <span style={{fontSize: "11px", fontWeight: "800", padding: "3px 10px", borderRadius: "999px", background: "#eef7e3", color: "#3d6a0c"}}>{"✓ "}{vm.pf2?.sms?.sentN}{" ارسال شد"}</span>
+                    </>) : null}
+                  </div>
+                  <div style={{display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(150px,1fr))", gap: "8px"}}>
+                    {(vm.pf2?.sms?.buttons || []).map((b, __i10) => <React.Fragment key={__i10}>
+                      <button onClick={b?.send} title={b?.tip} style={{position: "relative", display: "flex", alignItems: "center", gap: "10px", textAlign: "right", background: b?.bg, border: `1.5px solid ${b?.bd}`, borderRadius: "14px", padding: "10px 11px", cursor: b?.cur, opacity: b?.op, transition: "all .18s", fontFamily: "inherit"}}>
+                        <span style={{width: "34px", height: "34px", borderRadius: "11px", background: b?.iconBg, color: b?.iconFg, display: "grid", placeItems: "center", flexShrink: "0"}}>
+                          {(b?.notSent) ? (<>
+                            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d={b?.path} /></svg>
+                          </>) : null}
+                          {(b?.isSent) ? (<>
+                            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5" /></svg>
+                          </>) : null}
+                        </span>
+                        <span style={{minWidth: "0", display: "flex", flexDirection: "column", gap: "2px"}}>
+                          <span style={{fontSize: "13px", fontWeight: "800", color: "#232425", lineHeight: "1.45"}}>{b?.title}</span>
+                          <span style={{fontSize: "10px", color: "#6b6e72", whiteSpace: "nowrap"}}>{b?.sub}</span>
+                        </span>
+                      </button>
+                    </React.Fragment>)}
+                  </div>
+                </div>
+              </>) : null}
               {(vm.pf2?.live?.has) ? (<>
                 <div style={{background: "linear-gradient(120deg,#233318,#2E2F31)", color: "#fff", borderRadius: "20px", padding: "14px 18px", display: "flex", alignItems: "center", gap: "14px", flexWrap: "wrap", boxShadow: "0 12px 30px rgba(46,47,49,.18)"}}>
                   <span style={{width: "12px", height: "12px", borderRadius: "50%", background: "#8DC63F", animation: "cc-pulse 1.4s infinite", flexShrink: "0"}} />
@@ -1749,13 +1841,7 @@ export default function AppView({ vm }) {
                   {(vm.pf2?.clin?.completed) ? (<>
                     <span style={{display: "inline-flex", alignItems: "center", gap: "6px", background: "rgba(141,198,63,.18)", color: "#c5e69a", border: "1px solid rgba(141,198,63,.35)", padding: "6px 12px", borderRadius: "999px", fontSize: "12px", fontWeight: "800"}}>{"✓ جراحی انجام‌شده با دکتر افلاکی"}</span>
                   </>) : null}
-                  <button onClick={vm.pf2?.clin?.showDemo} style={{border: "1px solid rgba(255,255,255,.22)", background: "rgba(255,255,255,.06)", color: "#fff", padding: "8px 14px", borderRadius: "10px", fontSize: "12px", fontWeight: "700", cursor: "pointer", fontFamily: "inherit"}}>{vm.pf2?.clin?.demoLabel}</button>
                 </div>
-                {(vm.pf2?.clin?.demo) ? (<>
-                  <div style={{background: "#fcf3e0", color: "#8a5a00", fontSize: "12px", fontWeight: "700", padding: "8px 22px"}}>
-                    {"این‌ها داده نمونه برای دیدن طراحی است؛ اطلاعات واقعی بیمار بعد از ارسال از API سامانه بیماران اینجا نمایش داده می‌شود."}
-                  </div>
-                </>) : null}
                 {(vm.pf2?.clin?.empty) ? (<>
                   <div style={{padding: "26px 22px", display: "flex", flexDirection: "column", gap: "8px", alignItems: "flex-start"}}>
                     <div style={{fontWeight: "800", fontSize: "15px"}}>{"هنوز اطلاعات بالینی از سامانه بیماران نیامده است"}</div>
@@ -2014,6 +2100,46 @@ export default function AppView({ vm }) {
                   </React.Fragment>)}
                 </div>
               </div>
+              {(vm.pf2?.sms?.show) ? (<>
+                <div style={{background: "#fff", border: "1px solid #e7e8e3", borderRadius: "22px", padding: "16px 18px", display: "flex", flexDirection: "column", gap: "12px", flexShrink: "0"}}>
+                  <div style={{display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap"}}>
+                    <div style={{width: "34px", height: "34px", borderRadius: "10px", background: "#2E2F31", color: "#8DC63F", display: "grid", placeItems: "center", flexShrink: "0"}}>
+                      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.4A8 8 0 1 1 21 12z" />
+                        <path d="M8 11h8M8 14h5" />
+                      </svg>
+                    </div>
+                    <div style={{flex: "1", minWidth: "140px"}}>
+                      <div style={{fontWeight: "800", fontSize: "15px"}}>{"ارسال پیامک"}</div>
+                      <div style={{fontSize: "11px", color: "#8b8e89", marginTop: "2px"}}>{vm.pf2?.sms?.note}</div>
+                    </div>
+                    {(vm.pf2?.sms?.dry) ? (<>
+                      <span style={{fontSize: "10px", fontWeight: "800", padding: "3px 9px", borderRadius: "999px", background: "#fcf3e0", color: "#8a5a00"}}>{"حالت آزمایشی"}</span>
+                    </>) : null}
+                    {(vm.pf2?.sms?.hasSent) ? (<>
+                      <span style={{fontSize: "11px", fontWeight: "800", padding: "3px 10px", borderRadius: "999px", background: "#eef7e3", color: "#3d6a0c"}}>{"✓ "}{vm.pf2?.sms?.sentN}{" ارسال شد"}</span>
+                    </>) : null}
+                  </div>
+                  <div style={{display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(150px,1fr))", gap: "8px"}}>
+                    {(vm.pf2?.sms?.buttons || []).map((b, __i10) => <React.Fragment key={__i10}>
+                      <button onClick={b?.send} title={b?.tip} style={{position: "relative", display: "flex", alignItems: "center", gap: "10px", textAlign: "right", background: b?.bg, border: `1.5px solid ${b?.bd}`, borderRadius: "14px", padding: "10px 11px", cursor: b?.cur, opacity: b?.op, transition: "all .18s", fontFamily: "inherit"}}>
+                        <span style={{width: "34px", height: "34px", borderRadius: "11px", background: b?.iconBg, color: b?.iconFg, display: "grid", placeItems: "center", flexShrink: "0"}}>
+                          {(b?.notSent) ? (<>
+                            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d={b?.path} /></svg>
+                          </>) : null}
+                          {(b?.isSent) ? (<>
+                            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5" /></svg>
+                          </>) : null}
+                        </span>
+                        <span style={{minWidth: "0", display: "flex", flexDirection: "column", gap: "2px"}}>
+                          <span style={{fontSize: "13px", fontWeight: "800", color: "#232425", lineHeight: "1.45"}}>{b?.title}</span>
+                          <span style={{fontSize: "10px", color: "#6b6e72", whiteSpace: "nowrap"}}>{b?.sub}</span>
+                        </span>
+                      </button>
+                    </React.Fragment>)}
+                  </div>
+                </div>
+              </>) : null}
               {(vm.pf2?.live?.has) ? (<>
                 <div style={{background: "linear-gradient(120deg,#233318,#2E2F31)", color: "#fff", borderRadius: "20px", padding: "14px 18px", display: "flex", alignItems: "center", gap: "14px", flexWrap: "wrap", boxShadow: "0 12px 30px rgba(46,47,49,.18)"}}>
                   <span style={{width: "12px", height: "12px", borderRadius: "50%", background: "#8DC63F", animation: "cc-pulse 1.4s infinite", flexShrink: "0"}} />
@@ -2056,13 +2182,7 @@ export default function AppView({ vm }) {
                   {(vm.pf2?.clin?.completed) ? (<>
                     <span style={{display: "inline-flex", alignItems: "center", gap: "6px", background: "rgba(141,198,63,.18)", color: "#c5e69a", border: "1px solid rgba(141,198,63,.35)", padding: "6px 12px", borderRadius: "999px", fontSize: "12px", fontWeight: "800"}}>{"✓ جراحی انجام‌شده با دکتر افلاکی"}</span>
                   </>) : null}
-                  <button onClick={vm.pf2?.clin?.showDemo} style={{border: "1px solid rgba(255,255,255,.22)", background: "rgba(255,255,255,.06)", color: "#fff", padding: "8px 14px", borderRadius: "10px", fontSize: "12px", fontWeight: "700", cursor: "pointer", fontFamily: "inherit"}}>{vm.pf2?.clin?.demoLabel}</button>
                 </div>
-                {(vm.pf2?.clin?.demo) ? (<>
-                  <div style={{background: "#fcf3e0", color: "#8a5a00", fontSize: "12px", fontWeight: "700", padding: "8px 22px"}}>
-                    {"این‌ها داده نمونه برای دیدن طراحی است؛ اطلاعات واقعی بیمار بعد از ارسال از API سامانه بیماران اینجا نمایش داده می‌شود."}
-                  </div>
-                </>) : null}
                 {(vm.pf2?.clin?.empty) ? (<>
                   <div style={{padding: "26px 22px", display: "flex", flexDirection: "column", gap: "8px", alignItems: "flex-start"}}>
                     <div style={{fontWeight: "800", fontSize: "15px"}}>{"هنوز اطلاعات بالینی از سامانه بیماران نیامده است"}</div>
@@ -2946,6 +3066,192 @@ export default function AppView({ vm }) {
               </div>
             </div>
           </div>
+        </>) : null}
+        {(vm.is?.vsms) ? (<>
+          {(vm.sm?.loading) ? (<>
+            <div style={{padding: "40px", textAlign: "center", color: "#8b8e89"}}>{"در حال بارگذاری…"}</div>
+          </>) : null}
+          {(vm.sm?.ready) ? (<>
+            <div style={{display: "flex", flexDirection: "column", gap: "20px"}}>
+              <div style={{display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: "16px", flexWrap: "wrap"}}>
+                <div>
+                  <h1 style={{margin: "0", fontSize: "28px", fontWeight: "800"}}>{"پیامک"}</h1>
+                  <div style={{fontSize: "14px", color: "#6b6e72", marginTop: "6px", maxWidth: "760px", lineHeight: "1.8"}}>
+                    {"دکمه‌های پیامک در هر تماس (کارت تماس‌گیرنده، جزئیات تماس، پرونده و پیام صوتی) نمایش داده می‌شوند. هر قالب برای هر تماس فقط یک بار ارسال می‌شود. ارسال از پنل SHSMS و با الگوهای تعریف‌شده در همان پنل انجام می‌شود."}
+                  </div>
+                </div>
+                <div style={{display: "flex", gap: "8px"}}>
+                  {(vm.sm?.dirty) ? (<>
+                    <button onClick={vm.sm?.reset} style={{border: "1px solid #e1e3dc", background: "#fff", color: "#3a3b3d", padding: "11px 16px", borderRadius: "12px", fontSize: "13px", fontWeight: "700", cursor: "pointer", fontFamily: "inherit"}}>{"انصراف"}</button>
+                  </>) : null}
+                  <button onClick={vm.sm?.save} style={{border: "none", background: "#8DC63F", color: "#1f2021", padding: "11px 20px", borderRadius: "12px", fontSize: "13px", fontWeight: "800", cursor: "pointer", fontFamily: "inherit"}}>{"ذخیره تنظیمات"}</button>
+                </div>
+              </div>
+              <div style={{display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,340px),1fr))", gap: "20px", alignItems: "start"}}>
+                <div style={{background: "#fff", border: "1px solid #e7e8e3", borderRadius: "22px", padding: "20px", display: "flex", flexDirection: "column", gap: "14px"}}>
+                  <div style={{display: "flex", alignItems: "center", gap: "12px"}}>
+                    <div style={{flex: "1"}}>
+                      <div style={{fontWeight: "800", fontSize: "16px"}}>{"ارسال پیامک"}</div>
+                      <div style={{fontSize: "12px", color: "#6b6e72", marginTop: "3px"}}>{"روشن/خاموش کردن دکمه‌ها در همه تماس‌ها"}</div>
+                    </div>
+                    <span style={{fontSize: "12px", color: "#6b6e72"}}>{vm.sm?.onLabel}</span>
+                    <button onClick={vm.sm?.tog} style={{width: "42px", height: "24px", borderRadius: "99px", border: "none", background: vm.sm?.onT?.bg, display: "flex", justifyContent: vm.sm?.onT?.j, alignItems: "center", padding: "2px", cursor: "pointer", flexShrink: "0"}}>
+                      <span style={{width: "20px", height: "20px", borderRadius: "50%", background: "#fff", boxShadow: "0 1px 3px rgba(0,0,0,.2)"}} />
+                    </button>
+                  </div>
+                  <div style={{display: "flex", alignItems: "center", gap: "12px", borderTop: "1px solid #f1f2ee", paddingTop: "12px"}}>
+                    <div style={{flex: "1"}}>
+                      <div style={{fontWeight: "700", fontSize: "14px"}}>{"حالت آزمایشی"}</div>
+                      <div style={{fontSize: "12px", color: "#6b6e72", marginTop: "3px", lineHeight: "1.7"}}>{"همه چیز مثل واقعی کار می‌کند ولی هیچ پیامکی ارسال نمی‌شود؛ برای تمرین و تست"}</div>
+                    </div>
+                    <button onClick={vm.sm?.togDry} style={{width: "42px", height: "24px", borderRadius: "99px", border: "none", background: vm.sm?.dryT?.bg, display: "flex", justifyContent: vm.sm?.dryT?.j, alignItems: "center", padding: "2px", cursor: "pointer", flexShrink: "0"}}>
+                      <span style={{width: "20px", height: "20px", borderRadius: "50%", background: "#fff", boxShadow: "0 1px 3px rgba(0,0,0,.2)"}} />
+                    </button>
+                  </div>
+                  <div style={{background: vm.sm?.statusBg, color: vm.sm?.statusFg, borderRadius: "12px", padding: "10px 14px", fontSize: "13px", lineHeight: "1.8", fontWeight: "600"}}>{vm.sm?.status}</div>
+                </div>
+                <div style={{background: "#fff", border: "1px solid #e7e8e3", borderRadius: "22px", padding: "20px", display: "flex", flexDirection: "column", gap: "12px"}}>
+                  <div style={{fontWeight: "800", fontSize: "16px"}}>{"اتصال به پنل SHSMS"}</div>
+                  <label style={{display: "flex", flexDirection: "column", gap: "6px", fontSize: "12px", color: "#6b6e72"}}>
+                    {"توکن API (Bearer)"}
+                    <input type="password" autoComplete="off" value={vm.sm?.token} onChange={vm.sm?.setToken} placeholder={vm.sm?.tokenHint} style={{border: "1px solid #e1e3dc", borderRadius: "10px", padding: "9px 11px", fontSize: "13px", outline: "none", background: "#fff", color: "#232425", fontFamily: "inherit", width: "100%", direction: "ltr"}} />
+                  </label>
+                  <label style={{display: "flex", flexDirection: "column", gap: "6px", fontSize: "12px", color: "#6b6e72"}}>
+                    {"حداکثر زمان انتظار برای پاسخ (ثانیه)"}
+                    <input type="number" min="5" max="30" value={vm.sm?.timeout} onChange={vm.sm?.setTimeout} style={{border: "1px solid #e1e3dc", borderRadius: "10px", padding: "9px 11px", fontSize: "13px", outline: "none", background: "#fff", color: "#232425", fontFamily: "inherit", width: "100%"}} />
+                  </label>
+                  <div style={{display: "flex", alignItems: "center", gap: "10px", background: "#f7f8f4", borderRadius: "12px", padding: "10px 12px"}}>
+                    <div style={{flex: "1", fontSize: "12px", color: "#55585c"}}>
+                      {"اعتبار حساب"}
+                      {(vm.sm?.hasBalance) ? (<>
+                        <div style={{fontSize: "20px", fontWeight: "800", color: "#232425", marginTop: "2px"}}>{vm.sm?.balance}</div>
+                      </>) : null}
+                    </div>
+                    <button onClick={vm.sm?.checkBalance} style={{border: "1px solid #e1e3dc", background: "#fff", color: "#3a3b3d", padding: "8px 12px", borderRadius: "10px", fontSize: "12px", fontWeight: "700", cursor: "pointer", fontFamily: "inherit"}}>{vm.sm?.balText}</button>
+                  </div>
+                  <div style={{fontSize: "11px", color: "#8b8e89", lineHeight: "1.8"}}>
+                    {"آدرس: shsms.ir/api/v1/sendms · توکن فقط روی سرور نگهداری می‌شود و در مرورگر نمایش داده نمی‌شود. برای ذخیره توکن جدید، «ذخیره تنظیمات» را بزنید."}
+                  </div>
+                </div>
+              </div>
+              <div style={{background: "#fff", border: "1px solid #e7e8e3", borderRadius: "22px", padding: "18px 20px", display: "flex", flexDirection: "column", gap: "10px"}}>
+                <div style={{fontWeight: "800", fontSize: "15px"}}>{"پیش‌نمایش دکمه‌ها"}</div>
+                <div style={{fontSize: "12px", color: "#6b6e72"}}>
+                  {"کاربران دکمه‌ها را به همین شکل کنار هر تماس می‌بینند؛ متن پیامک نمایش داده نمی‌شود."}
+                </div>
+                <div style={{display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(150px,1fr))", gap: "8px"}}>
+                  {(vm.sm?.preview?.buttons || []).map((b, __i9) => <React.Fragment key={__i9}>
+                    <div style={{display: "flex", alignItems: "center", gap: "10px", background: "#fff", border: "1.5px solid #e7e8e3", borderRadius: "14px", padding: "10px 11px", opacity: b?.op}}>
+                      <span style={{width: "34px", height: "34px", borderRadius: "11px", background: b?.iconBg, color: b?.iconFg, display: "grid", placeItems: "center", flexShrink: "0"}}>
+                        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d={b?.path} /></svg>
+                      </span>
+                      <span style={{display: "flex", flexDirection: "column", gap: "2px", minWidth: "0"}}>
+                        <span style={{fontSize: "13px", fontWeight: "800", lineHeight: "1.45"}}>{b?.title}</span>
+                        <span style={{fontSize: "10px", color: "#6b6e72"}}>{b?.sub}</span>
+                      </span>
+                    </div>
+                  </React.Fragment>)}
+                </div>
+              </div>
+              <div style={{display: "flex", alignItems: "center", gap: "10px"}}>
+                <div style={{flex: "1", fontWeight: "800", fontSize: "18px"}}>{"قالب‌ها"}</div>
+                {(vm.sm?.canAdd) ? (<>
+                  <button onClick={vm.sm?.addTemplate} style={{border: "none", background: "#2E2F31", color: "#fff", padding: "10px 16px", borderRadius: "12px", fontSize: "13px", fontWeight: "700", cursor: "pointer", fontFamily: "inherit"}}>{"+ افزودن قالب"}</button>
+                </>) : null}
+              </div>
+              {(vm.sm?.templates || []).map((t, __i7) => <React.Fragment key={__i7}>
+                <div style={{background: "#fff", border: "1px solid #e7e8e3", borderRadius: "22px", padding: "18px 20px", display: "flex", flexDirection: "column", gap: "14px"}}>
+                  <div style={{display: "flex", alignItems: "center", gap: "10px"}}>
+                    <span style={{width: "30px", height: "30px", borderRadius: "10px", background: "#f2f3ef", display: "grid", placeItems: "center", fontWeight: "800", fontSize: "13px"}}>{t?.n}</span>
+                    <div style={{flex: "1", fontWeight: "800", fontSize: "15px"}}>{t?.title}</div>
+                    {(t?.canUp) ? (<>
+                      <button onClick={t?.up} title="بالاتر" style={{background: "#fff", border: "1px solid #e1e3dc", borderRadius: "8px", width: "30px", height: "30px", cursor: "pointer", color: "#55585c"}}>{"↑"}</button>
+                    </>) : null}
+                    <button onClick={t?.del} title="حذف قالب" style={{background: "#fff", border: "1px solid #f1c9c4", borderRadius: "8px", width: "30px", height: "30px", cursor: "pointer", color: "#b42318"}}>{"✕"}</button>
+                    <button onClick={t?.tog} style={{width: "42px", height: "24px", borderRadius: "99px", border: "none", background: t?.onT?.bg, display: "flex", justifyContent: t?.onT?.j, alignItems: "center", padding: "2px", cursor: "pointer", flexShrink: "0"}}>
+                      <span style={{width: "20px", height: "20px", borderRadius: "50%", background: "#fff", boxShadow: "0 1px 3px rgba(0,0,0,.2)"}} />
+                    </button>
+                  </div>
+                  <div style={{display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(220px,1fr))", gap: "10px"}}>
+                    <label style={{display: "flex", flexDirection: "column", gap: "6px", fontSize: "12px", color: "#6b6e72"}}>
+                      {"عنوان دکمه"}
+                      <input value={t?.title} onChange={t?.setTitle} style={{border: "1px solid #e1e3dc", borderRadius: "10px", padding: "9px 11px", fontSize: "13px", outline: "none", background: "#fff", color: "#232425", fontFamily: "inherit", width: "100%"}} />
+                    </label>
+                    <label style={{display: "flex", flexDirection: "column", gap: "6px", fontSize: "12px", color: "#6b6e72"}}>
+                      {"نام الگو در پنل SHSMS"}
+                      <input value={t?.template} onChange={t?.setTemplate} placeholder="دقیقاً مطابق نام الگو در پنل" style={{border: "1px solid #e1e3dc", borderRadius: "10px", padding: "9px 11px", fontSize: "13px", outline: "none", background: "#fff", color: "#232425", fontFamily: "inherit", width: "100%", direction: "ltr"}} />
+                    </label>
+                  </div>
+                  {(t?.warn) ? (<>
+                    <div style={{fontSize: "12px", color: "#8a5a00", background: "#fcf3e0", borderRadius: "10px", padding: "7px 12px"}}>
+                      {"نام الگو وارد نشده؛ این دکمه تا وارد کردن نام الگو غیرفعال نمایش داده می‌شود."}
+                    </div>
+                  </>) : null}
+                  <div style={{display: "flex", gap: "6px", flexWrap: "wrap", alignItems: "center"}}>
+                    <span style={{fontSize: "12px", color: "#6b6e72", marginLeft: "4px"}}>{"آیکن"}</span>
+                    {(t?.icons || []).map((ic, __i10) => <React.Fragment key={__i10}>
+                      <button onClick={ic?.pick} style={{border: `1px solid ${ic?.bd}`, background: ic?.bg, color: ic?.fg, padding: "4px 10px", borderRadius: "999px", fontSize: "11px", fontWeight: "700", cursor: "pointer", fontFamily: "inherit"}}>{ic?.label}</button>
+                    </React.Fragment>)}
+                  </div>
+                  <div style={{background: "#f7f8f4", borderRadius: "16px", padding: "12px 14px", display: "flex", flexDirection: "column", gap: "8px"}}>
+                    <div style={{fontSize: "13px", fontWeight: "800"}}>
+                      {"پارامترهای الگو "}
+                      <span style={{fontSize: "11px", color: "#8b8e89", fontWeight: "500"}}>{"(به ترتیب جایگاه‌های الگو در پنل)"}</span>
+                    </div>
+                    {(t?.params || []).map((p, __i10) => <React.Fragment key={__i10}>
+                      <div style={{display: "grid", gridTemplateColumns: "72px 150px 1fr auto", gap: "8px", alignItems: "center"}}>
+                        <span style={{fontSize: "11px", fontWeight: "800", color: "#1d5a85", background: "#e5eff7", borderRadius: "8px", padding: "5px 6px", textAlign: "center", direction: "ltr"}}>{p?.slot}</span>
+                        <select value={p?.kind} onChange={p?.setKind} style={{border: "1px solid #e1e3dc", borderRadius: "10px", padding: "9px 11px", fontSize: "13px", outline: "none", background: "#fff", color: "#232425", fontFamily: "inherit", width: "100%"}}>
+                          <option value="var">{"از اطلاعات بیمار"}</option>
+                          <option value="text">{"متن ثابت"}</option>
+                        </select>
+                        {(p?.isVar) ? (<>
+                          <select value={p?.v} onChange={p?.setV} style={{border: "1px solid #e1e3dc", borderRadius: "10px", padding: "9px 11px", fontSize: "13px", outline: "none", background: "#fff", color: "#232425", fontFamily: "inherit", width: "100%"}}>
+                            {(vm.sm?.vars || []).map((o, __i14) => <React.Fragment key={__i14}>
+                              <option value={o?.v}>{o?.label}</option>
+                            </React.Fragment>)}
+                          </select>
+                        </>) : null}
+                        {(p?.isText) ? (<>
+                          <input value={p?.v} onChange={p?.setV} placeholder="مثلاً لینک اپلیکیشن یا آدرس" style={{border: "1px solid #e1e3dc", borderRadius: "10px", padding: "9px 11px", fontSize: "13px", outline: "none", background: "#fff", color: "#232425", fontFamily: "inherit", width: "100%"}} />
+                        </>) : null}
+                        <span style={{display: "flex", gap: "4px"}}>
+                          {(p?.canUp) ? (<>
+                            <button onClick={p?.up} style={{background: "#fff", border: "1px solid #e1e3dc", borderRadius: "8px", width: "28px", height: "28px", cursor: "pointer", color: "#55585c"}}>{"↑"}</button>
+                          </>) : null}
+                          <button onClick={p?.del} style={{background: "#fff", border: "1px solid #e1e3dc", borderRadius: "8px", width: "28px", height: "28px", cursor: "pointer", color: "#b42318"}}>{"✕"}</button>
+                        </span>
+                      </div>
+                    </React.Fragment>)}
+                    {(t?.canAddParam) ? (<>
+                      <button onClick={t?.addParam} style={{alignSelf: "flex-start", border: "1px dashed #b9bbb6", background: "#fff", color: "#3a3b3d", padding: "6px 12px", borderRadius: "10px", fontSize: "12px", fontWeight: "700", cursor: "pointer", fontFamily: "inherit"}}>{"+ پارامتر"}</button>
+                    </>) : null}
+                    <div style={{display: "flex", gap: "6px", flexWrap: "wrap", alignItems: "center", fontSize: "11px", color: "#55585c", borderTop: "1px dashed #d9dad6", paddingTop: "8px"}}>
+                      <b>{"راهنمای الگو در پنل:"}</b>
+                      {(t?.guide || []).map((g, __i11) => <React.Fragment key={__i11}>
+                        <span style={{display: "inline-flex", alignItems: "center", gap: "5px", background: "#fff", border: "1px solid #e1e3dc", borderRadius: "999px", padding: "2px 4px 2px 10px"}}>
+                          <span style={{direction: "ltr", fontWeight: "800", color: "#1d5a85", background: "#e5eff7", borderRadius: "999px", padding: "1px 7px"}}>{g?.slot}</span>
+                          {g?.label}
+                        </span>
+                      </React.Fragment>)}
+                      {(t?.noParams) ? (<>
+                        <span>{"این قالب پارامتری ندارد"}</span>
+                      </>) : null}
+                    </div>
+                  </div>
+                </div>
+              </React.Fragment>)}
+              <div style={{background: "#fff", border: "1px dashed #d9dad6", borderRadius: "18px", padding: "14px 18px", fontSize: "12px", color: "#55585c", lineHeight: "2"}}>
+                <b>{"متغیرهای قابل استفاده در پارامترها:"}</b>
+                {(vm.sm?.vars || []).map((o, __i8) => <React.Fragment key={__i8}>
+                  <span style={{display: "inline-block", margin: "0 0 4px 6px", background: "#f2f3ef", borderRadius: "999px", padding: "2px 10px"}}>{o?.label}</span>
+                </React.Fragment>)}
+                <div>
+                  {"اگر مقداری برای بیمار موجود نباشد (مثلاً نوبت آینده ندارد)، پیامک ارسال نمی‌شود و به کاربر اطلاع داده می‌شود. «نوبت آینده» و «تاریخ جراحی» از سامانه بیماران خوانده می‌شوند."}
+                </div>
+              </div>
+            </div>
+          </>) : null}
         </>) : null}
         {(vm.is?.vsurvey) ? (<>
           <div style={{display: "flex", flexDirection: "column", gap: "20px"}}>
@@ -6886,6 +7192,27 @@ export default function AppView({ vm }) {
                     </React.Fragment>)}
                   </div>
                 </>) : null}
+              </div>
+              <div style={{padding: "0 14px 4px"}}>
+                {(p?.sms?.show) ? (<>
+                  <div style={{display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: "5px"}}>
+                    {(p?.sms?.buttons || []).map((b, __i10) => <React.Fragment key={__i10}>
+                      <button onClick={b?.send} title={b?.tip} style={{display: "flex", flexDirection: "column", alignItems: "center", gap: "3px", background: b?.bg, border: `1.5px solid ${b?.bd}`, borderRadius: "11px", padding: "6px 4px", cursor: b?.cur, opacity: b?.op, fontFamily: "inherit"}}>
+                        <span style={{width: "24px", height: "24px", borderRadius: "8px", background: b?.iconBg, color: b?.iconFg, display: "grid", placeItems: "center"}}>
+                          {(b?.notSent) ? (<>
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d={b?.path} /></svg>
+                          </>) : null}
+                          {(b?.isSent) ? (<>
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round"><path d="M5 12.5l4.5 4.5L19 7.5" /></svg>
+                          </>) : null}
+                        </span>
+                        <span style={{fontSize: "10px", fontWeight: "700", color: "#3a3b3d", lineHeight: "1.3", textAlign: "center"}}>{b?.title}</span>
+                      </button>
+                    </React.Fragment>)}
+                  </div>
+                </>) : null}
+              </div>
+              <div onClick={p?.open} style={{padding: "4px 14px 12px", display: "flex", flexDirection: "column", gap: "9px", cursor: "pointer"}}>
                 {(p?.looking) ? (<>
                   <div style={{fontSize: "11px", color: "#8b8e89"}}>{"در حال دریافت اطلاعات از سامانه بیماران…"}</div>
                 </>) : null}
@@ -7211,6 +7538,46 @@ export default function AppView({ vm }) {
                 </React.Fragment>)}
               </>) : null}
             </div>
+            {(vm.cvm?.sms?.show) ? (<>
+              <div style={{background: "#fff", border: "1px solid #e7e8e3", borderRadius: "20px", padding: "14px 16px", display: "flex", flexDirection: "column", gap: "12px", flexShrink: "0"}}>
+                <div style={{display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap"}}>
+                  <div style={{width: "34px", height: "34px", borderRadius: "10px", background: "#2E2F31", color: "#8DC63F", display: "grid", placeItems: "center", flexShrink: "0"}}>
+                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.4A8 8 0 1 1 21 12z" />
+                      <path d="M8 11h8M8 14h5" />
+                    </svg>
+                  </div>
+                  <div style={{flex: "1", minWidth: "140px"}}>
+                    <div style={{fontWeight: "800", fontSize: "15px"}}>{"ارسال پیامک"}</div>
+                    <div style={{fontSize: "11px", color: "#8b8e89", marginTop: "2px"}}>{vm.cvm?.sms?.note}</div>
+                  </div>
+                  {(vm.cvm?.sms?.dry) ? (<>
+                    <span style={{fontSize: "10px", fontWeight: "800", padding: "3px 9px", borderRadius: "999px", background: "#fcf3e0", color: "#8a5a00"}}>{"حالت آزمایشی"}</span>
+                  </>) : null}
+                  {(vm.cvm?.sms?.hasSent) ? (<>
+                    <span style={{fontSize: "11px", fontWeight: "800", padding: "3px 10px", borderRadius: "999px", background: "#eef7e3", color: "#3d6a0c"}}>{"✓ "}{vm.cvm?.sms?.sentN}{" ارسال شد"}</span>
+                  </>) : null}
+                </div>
+                <div style={{display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(150px,1fr))", gap: "8px"}}>
+                  {(vm.cvm?.sms?.buttons || []).map((b, __i9) => <React.Fragment key={__i9}>
+                    <button onClick={b?.send} title={b?.tip} style={{position: "relative", display: "flex", alignItems: "center", gap: "10px", textAlign: "right", background: b?.bg, border: `1.5px solid ${b?.bd}`, borderRadius: "14px", padding: "10px 11px", cursor: b?.cur, opacity: b?.op, transition: "all .18s", fontFamily: "inherit"}}>
+                      <span style={{width: "34px", height: "34px", borderRadius: "11px", background: b?.iconBg, color: b?.iconFg, display: "grid", placeItems: "center", flexShrink: "0"}}>
+                        {(b?.notSent) ? (<>
+                          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d={b?.path} /></svg>
+                        </>) : null}
+                        {(b?.isSent) ? (<>
+                          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5" /></svg>
+                        </>) : null}
+                      </span>
+                      <span style={{minWidth: "0", display: "flex", flexDirection: "column", gap: "2px"}}>
+                        <span style={{fontSize: "13px", fontWeight: "800", color: "#232425", lineHeight: "1.45"}}>{b?.title}</span>
+                        <span style={{fontSize: "10px", color: "#6b6e72", whiteSpace: "nowrap"}}>{b?.sub}</span>
+                      </span>
+                    </button>
+                  </React.Fragment>)}
+                </div>
+              </div>
+            </>) : null}
             {(vm.cvm?.loading) ? (<>
               <div style={{fontSize: "13px", color: "#6b6e72", padding: "8px"}}>{"در حال بارگذاری…"}</div>
             </>) : null}

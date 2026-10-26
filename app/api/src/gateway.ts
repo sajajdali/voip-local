@@ -22,6 +22,7 @@ export class LiveGateway implements OnGatewayConnection, OnGatewayDisconnect {
     bus.on('livecalls', x => this.server && this.server.to('perm:live').emit('livecalls', x));
     bus.on('callpop', x => this.server && this.server.to('perm:calls').emit('callpop', x));
     bus.on('patient', x => this.server && this.server.to('perm:calls').emit('patient', x));
+    bus.on('sms', x => this.server && this.server.to('perm:calls').emit('sms', x));
     bus.on('notify', x => (x.role === '*' ? this.server.emit('notify', x) : this.server.to('role:' + x.role).emit('notify', x)));
   }
 

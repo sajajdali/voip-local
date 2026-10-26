@@ -35,6 +35,7 @@ export const SECTIONS: Section[] = [
   { key: 'vagent', label: 'دستیار هوشمند تلفنی', group: 'تنظیمات سامانه', actions: ['view', 'edit'] },
   { key: 'vcrm', label: 'سامانه بیماران', group: 'تنظیمات سامانه', actions: ['view', 'edit'] },
   { key: 'vapi', label: 'ارسال تماس‌ها (API)', group: 'تنظیمات سامانه', actions: ['view', 'edit'] },
+  { key: 'vsms', label: 'پیامک (پنل و قالب‌ها)', group: 'تنظیمات سامانه', actions: ['view', 'edit'] },
   { key: 'usage', label: 'مصرف توکن', group: 'تنظیمات سامانه', actions: ['view', 'edit'], hint: { edit: 'ویرایش جدول قیمت' } },
   { key: 'vbackup', label: 'بکاپ و بازیابی', group: 'تنظیمات سامانه', actions: ALL, hint: { add: 'گرفتن بکاپ', edit: 'بازیابی و زمان‌بندی' } },
   { key: 'sys', label: 'وضعیت سرور', group: 'تنظیمات سامانه', actions: ['view'] },

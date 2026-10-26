@@ -11,7 +11,7 @@ const since24 = () => { const d = new Date(Date.now() - 24 * 3600e3); return jSt
 let ME = { id: '', name: '', ext: '', role: 'operator', perms: {} };
 let SECTIONS = [];
 // page → the permission section that guards it
-const PAGE_SECTION = { calls: 'calls', file: 'calls', inbound: 'inbound', live: 'live', voice: 'voice', unreached: 'unreached', reports: 'reports', days: 'reports', creports: 'calls', vvm: 'vvm', survey: 'survey', ai: 'ai', aiconv: 'aiconv', sys: 'sys', usage: 'usage', users: 'users', vai: 'vai', vagent: 'vagent', vcrm: 'vcrm', vapi: 'vapi', vbackup: 'vbackup', vsurvey: 'vsurvey', vext: 'vext', vtrunk: 'vtrunk', vqueue: 'vqueue', vivr: 'vivr', vsound: 'vsound', vroute: 'vroute', vout: 'vout', vtime: 'vtime', vring: 'vring', vfollow: 'vfollow', vblack: 'vblack' };
+const PAGE_SECTION = { calls: 'calls', file: 'calls', inbound: 'inbound', live: 'live', voice: 'voice', unreached: 'unreached', reports: 'reports', days: 'reports', creports: 'calls', vvm: 'vvm', vsms: 'vsms', survey: 'survey', ai: 'ai', aiconv: 'aiconv', sys: 'sys', usage: 'usage', users: 'users', vai: 'vai', vagent: 'vagent', vcrm: 'vcrm', vapi: 'vapi', vbackup: 'vbackup', vsurvey: 'vsurvey', vext: 'vext', vtrunk: 'vtrunk', vqueue: 'vqueue', vivr: 'vivr', vsound: 'vsound', vroute: 'vroute', vout: 'vout', vtime: 'vtime', vring: 'vring', vfollow: 'vfollow', vblack: 'vblack' };
 const VOIP_SECTIONS = ['vext', 'vtrunk', 'vqueue', 'vivr', 'vsound', 'vroute', 'vout', 'vtime', 'vring', 'vfollow', 'vblack', 'vsurvey', 'vvm'];
 const SETTING_SECTIONS = [...VOIP_SECTIONS, 'vai', 'vagent', 'vcrm', 'vapi', 'usage', 'vbackup', 'sys', 'users'];
 const CAN = (section, action = 'view') => ME.role === 'admin' || !!(ME.perms && ME.perms[section] && ME.perms[section].includes(action));
@@ -61,6 +61,8 @@ class LiveApp extends React.Component {
     this.sock.on('notify', n => this.toast(n.text));
     this.sock.on('livecalls', l => this.setState({ liveCalls: l }));
     this.sock.on('liveaudio', b => this.playLivePcm(b));
+    this.sock.on('sms', x => { if (x && x.callKey) this.loadSmsSent([x.callKey]); else this.loadSmsButtons(); });
+    this.loadSmsButtons();
     this.sock.on('liveaudio:start', () => this.setState({ lsOn: true }));
     this.sock.on('liveaudio:end', e => { if (e.reason) this.toast(e.reason); this.stopListen(true); });
     // a newer panel build on the server: offer to load it (the page itself never reloads on its own)
@@ -135,6 +137,7 @@ class LiveApp extends React.Component {
     if (s.page === 'vcrm' && prev.page !== 'vcrm') this.loadCrm();
     if (s.page === 'users' && prev.page !== 'users') this.loadUsers();
     if (s.page === 'creports' && prev.page !== 'creports') this.loadCReports();
+    if (s.page === 'vsms' && prev.page !== 'vsms') this.loadSmsSettings();
     if (s.cvId && s.cvId !== prev.cvId) this.loadCallReports(s.cvId);
     // a page this user may not open: go to the first one they may
     if (!canPage(s.page)) { const first = ['calls', 'inbound', 'voice', 'unreached', 'live', 'reports', 'survey', 'ai', 'aiconv', 'settings'].find(canPage); if (first && first !== s.page) this.setState({ page: first }); }
@@ -517,6 +520,7 @@ class LiveApp extends React.Component {
         card('vagent', 'دستیار هوشمند تلفنی', I.mic, 'منشی صوتی هوش مصنوعی: پاسخ به بیماران، تأیید جراحی، پیامک لینک نوبت و انتقال به پزشک', ag ? (ag.enabled ? 'فعال · کد ' + ag.code + (s.agData.status.running ? '' : ' · سرویس متوقف') : 'غیرفعال') : '…', ag && ag.enabled ? (s.agData.status.running ? ok : '#b42318') : off, K),
         card('vcrm', 'سامانه بیماران (نام تماس‌گیرنده)', I.user, 'نمایش نام بیمار روی گوشی و در پنل، از API سامانه بیماران کلینیک', crm ? (crm.enabled ? 'فعال · ' + (s.crmData.status.named || 0).toLocaleString('fa-IR') + ' نام' : 'غیرفعال') : '…', crm && crm.enabled ? ok : off, K),
         card('usage', 'مصرف توکن هوش مصنوعی', I.coin, 'توکن و هزینه دلاری هر روز، هر بخش و هر مدل؛ جدول قیمت', 'گزارش مصرف', null, K),
+        card('vsms', 'پیامک', I.chat, 'دکمه‌های ارسال پیامک در هر تماس: یادآوری نوبت، لینک اپلیکیشن، آدرس و…؛ توکن پنل SHSMS و قالب‌ها', (s.smsBtns && s.smsBtns.enabled) ? (s.smsBtns.dryRun ? 'حالت آزمایشی' : 'فعال') + ' · ' + s.smsBtns.buttons.length + ' دکمه' : 'غیرفعال', s.smsBtns && s.smsBtns.enabled ? ok : off, K),
         card('vapi', 'ارسال تماس‌ها (API)', I.code, 'ارسال اطلاعات هر تماس بعد از پایان به آدرس دلخواه', wh ? (wh.enabled ? 'فعال' : 'غیرفعال') : '…', wh && wh.enabled ? ok : off, K),
       ] },
       { title: 'نگهداری', sub: 'پشتیبان‌گیری و بازگردانی', items: [
@@ -527,6 +531,7 @@ class LiveApp extends React.Component {
     const TITLES = { vext: 'داخلی‌ها', vtrunk: 'ترانک‌ها', vqueue: 'صف‌ها', vivr: 'منوهای IVR', vsound: 'صداها', vroute: 'مسیرهای ورودی', vout: 'مسیرهای خروجی', vtime: 'شرایط و گروه‌های زمانی', vring: 'گروه زنگ', vfollow: 'دنبال‌کردن تماس', vblack: 'لیست سیاه', vsurvey: 'نظرسنجی بعد از تماس', vai: 'هوش مصنوعی', vcrm: 'سامانه بیماران (نام تماس‌گیرنده)', vagent: 'دستیار هوشمند تلفنی', usage: 'مصرف توکن هوش مصنوعی', vapi: 'ارسال تماس‌ها (API)', vbackup: 'بکاپ و بازیابی' };
     TITLES.users = 'کاربران و دسترسی‌ها';
     TITLES.vvm = 'صندوق پیام صوتی';
+    TITLES.vsms = 'پیامک';
     const shown = groups.map(g => ({ ...g, items: g.items.filter(it => canPage(it.page)) })).filter(g => g.items.length);
     const sec = PAGE_SECTION[s.page];
     const readOnly = !!sec && VOIP_SECTIONS.includes(sec) && !['add', 'edit', 'delete'].some(a => CAN(sec, a));
@@ -1600,7 +1605,7 @@ class LiveApp extends React.Component {
       analyzing: c.aiState === 'queued', aiFailed: c.aiState === 'failed', aiErr: c.aiError || '', notAnalyzed: !ai && c.aiState !== 'queued',
       canRun: CAN('ai', 'edit') && c.hasVoice && c.aiState !== 'queued', runLabel: ai ? 'تحلیل دوباره' : 'تحلیل پیام با هوش مصنوعی',
       run: async () => { try { await api('/ai/analyze/' + encodeURIComponent(c.id), {}); this.toast('پیام در صف تحلیل قرار گرفت'); this.reloadCalls(); } catch (e) { this.toast(e.message); } },
-      rep: this.callReportVals(s, c),
+      rep: this.callReportVals(s, c), sms: this.smsBar(s, c.id, c.phoneRaw, { sentFromCall: c.sms }),
       later: later.slice(0, 6).map(x => ({ title: (x.dir === 'out' ? 'تماس با بیمار' : 'تماس بیمار') + ' · ' + (x.op ? x.op.name : 'بدون اپراتور'), when: when(x), st: x.status.label, stBg: x.status.bg, stFg: x.status.fg, dur: x.dur ? mmss(x.dur) : '—', open: () => this.setState({ cvId: x.id }) })),
       hasLater: later.length > 0, laterText: later.length ? fa(later.length) + ' تماس بعد از این پیام' : '',
     });
@@ -1680,6 +1685,7 @@ class LiveApp extends React.Component {
         lastRep: lastRep ? '«' + lastRep.text.slice(0, 90) + (lastRep.text.length > 90 ? '…' : '') + '» — ' + lastRep.by : '', hasRep: !!lastRep,
         bd: mine && !ended ? '#8DC63F' : '#e7e8e3', ring: mine && !ended ? '0 0 0 3px rgba(141,198,63,.25),' : '', mineText: mine && !ended ? 'برای داخلی شما' : '', mine: mine && !ended, op: ended ? 0.82 : 1,
         open: () => this.openFileByPhone(c.phone), close: () => this.setState({ popHide: { ...hide, [c.id]: true } }),
+        sms: this.smsBar(s, c.id, c.phone),
       };
     });
     const more = all.length - cards.length;
@@ -1810,9 +1816,127 @@ class LiveApp extends React.Component {
           canListen, listen: () => this.startListen(c), label: on ? (s.lsOn ? 'در حال شنیدن — قطع' : 'در حال اتصال…') : 'گوش دادن به تماس', btnBg: on ? '#e0574a' : '#8DC63F', btnFg: on ? '#fff' : '#1f2021',
           goLive: () => this.setState({ page: 'live' }), canLive: canPage('live') };
       })(),
+      sms: (() => {
+        const lc = (s.liveCalls || []).find(x => x.phone === phone) || (s.pops || []).find(x => x.phone === phone);
+        if (lc) return this.smsBar(s, lc.id, phone, { forText: 'برای تماس فعلی (پشت خط)' });
+        const last = this.calls.find(x => x.phoneRaw === phone);
+        return last ? this.smsBar(s, last.id, phone, { sentFromCall: last.sms, forText: 'برای آخرین تماس · ' + fa(last.date) + ' ' + fa(last.time) }) : { show: false };
+      })(),
       reports, hasReports: reports.length > 0, repCount: fa(reports.length), clin: this.clinicalVals(s, d && d.clinical, phone),
       call: () => this.startCall({ name: (d && d.name) || phone, phone, phoneRaw: phone, vmId: null }),
       back: () => this.setState({ page: s.prevPage || 'calls' }),
+    } };
+  }
+
+  // ---- «پیامک»: one-click template SMS per call (each template once per call)
+  async loadSmsButtons() {
+    try { const d = await api('/sms/buttons'); this.setState({ smsBtns: d }); } catch (e) { /* no permission */ }
+  }
+
+  async loadSmsSent(keys) {
+    keys = keys.filter(Boolean).map(k => String(k).replace(/^C/, ''));
+    if (!keys.length) return;
+    try { const d = await api('/sms/sent', { keys }); this.setState(st => { const m = { ...(st.smsSent || {}) }; for (const k of keys) m[k] = d[k] || []; return { smsSent: m }; }); } catch (e) { /* ignore */ }
+  }
+
+  /** SMS buttons for one call: `key` = the call id (live id or saved «C…» id), `phone` = 09… */
+  smsBar(s, key, phone, opts = {}) {
+    const B = s.smsBtns;
+    key = String(key || '').replace(/^C/, '');
+    if (!B || !B.enabled || !B.buttons.length || !key || !CAN('calls', 'edit')) return { show: false };
+    const fa = n => String(n).replace(/\d/g, x => '۰۱۲۳۴۵۶۷۸۹'[x]);
+    if (!(s.smsSent || {})[key] && !opts.sentFromCall && this._smsAsked !== key) { this._smsAsked = key; setTimeout(() => this.loadSmsSent([key]), 0); }
+    const sent = [...((s.smsSent || {})[key] || []), ...(opts.sentFromCall || [])].filter((x, i, a) => a.findIndex(y => y.t === x.t) === i);
+    const mobile = /^09\d{9}$/.test(phone || '');
+    const ICON = {
+      calendar: 'M8 2v4M16 2v4M3 9h18M5 5h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2zM8 14h3v3H8z',
+      app: 'M7 2h10a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2zM12 7v7M9 11l3 3 3-3M11 18h2',
+      missed: 'M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8 9.8a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2zM16 2l6 6M22 2l-6 6',
+      pin: 'M12 22s7-6.1 7-12a7 7 0 0 0-14 0c0 5.9 7 12 7 12zM12 12.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z',
+      card: 'M3 6h18a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1zM2 10h20M6 15h4',
+      heart: 'M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8zM9 11h2l1-2 2 4 1-2h2',
+      chat: 'M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.4A8 8 0 1 1 21 12zM8 11h8M8 14h5',
+      star: 'M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z',
+    };
+    const COL = { calendar: '#1d5a85', app: '#6a4b9c', missed: '#c2410c', pin: '#3d6a0c', card: '#8a5a00', heart: '#b42318', chat: '#2E2F31', star: '#8a5a00' };
+    const busy = s.smsBusy || {};
+    const buttons = B.buttons.map(b => {
+      const done = sent.find(x => x.t === b.id), k = key + ':' + b.id, run = busy[k];
+      const c = COL[b.icon] || '#2E2F31';
+      const t = done ? new Date(done.at) : null;
+      const state = done ? 'sent' : run ? 'busy' : !b.ready || !mobile ? 'off' : 'idle';
+      return {
+        title: b.title, path: ICON[b.icon] || ICON.chat, col: c,
+        sub: state === 'sent' ? 'ارسال شد · ' + fa(jpad(t.getHours()) + ':' + jpad(t.getMinutes())) + (done.dry ? ' (آزمایشی)' : '') : state === 'busy' ? 'در حال ارسال…' : !mobile ? 'شماره موبایل نیست' : !b.ready ? 'الگو تنظیم نشده' : 'برای این تماس',
+        isSent: state === 'sent', notSent: state !== 'sent',
+        bg: state === 'sent' ? '#eef7e3' : '#fff', bd: state === 'sent' ? '#8DC63F' : state === 'busy' ? c : '#e7e8e3',
+        iconBg: state === 'sent' ? '#8DC63F' : c + '14', iconFg: state === 'sent' ? '#fff' : c, op: state === 'off' ? 0.45 : 1, cur: state === 'idle' ? 'pointer' : 'default',
+        tip: done ? 'ارسال شد توسط ' + done.by : b.title,
+        send: async () => {
+          if (state !== 'idle') { if (state === 'sent') this.toast('«' + b.title + '» برای این تماس قبلاً ارسال شده است'); else if (state === 'off') this.toast(!mobile ? 'پیامک فقط به شماره موبایل فرستاده می‌شود' : 'نام الگوی «' + b.title + '» در تنظیمات پیامک وارد نشده است'); return; }
+          this.setState(st => ({ smsBusy: { ...(st.smsBusy || {}), [k]: true } }));
+          try {
+            const r = await api('/sms/send', { callKey: key, phone, template: b.id });
+            this.setState(st => ({ smsSent: { ...(st.smsSent || {}), [key]: [...((st.smsSent || {})[key] || []), { t: b.id, title: b.title, at: r.at, by: ME.name, dry: r.dryRun }] } }));
+            this.toast((r.dryRun ? 'حالت آزمایشی: ' : '') + 'پیامک «' + b.title + '» ارسال شد');
+          } catch (e) { this.toast(e.message); }
+          this.setState(st => { const m = { ...(st.smsBusy || {}) }; delete m[k]; return { smsBusy: m }; });
+        },
+      };
+    });
+    return { show: true, buttons, dry: B.dryRun, sentN: fa(sent.length), hasSent: sent.length > 0, sentText: sent.map(x => x.title).join('، '), note: 'هر پیامک برای هر تماس یک بار' + (opts.forText ? ' · ' + opts.forText : '') };
+  }
+
+  // ---- SMS settings page
+  async loadSmsSettings() {
+    try { const d = await api('/sms/settings'); this.setState({ smsSet: d, smsEdit: JSON.parse(JSON.stringify({ enabled: d.enabled, dryRun: d.dryRun, timeoutSec: d.timeoutSec, templates: d.templates })), smsToken: '' }); } catch (e) { this.toast(e.message); }
+  }
+
+  smsSettingsVals(s) {
+    const d = s.smsSet, f = s.smsEdit;
+    if (!d || !f) return { sm: { loading: true, ready: false } };
+    const fa = n => String(n).replace(/\d/g, x => '۰۱۲۳۴۵۶۷۸۹'[x]);
+    const put = o => this.setState({ smsEdit: { ...f, ...o } });
+    const putT = (i, o) => put({ templates: f.templates.map((t, j) => (j === i ? { ...t, ...o } : t)) });
+    const tg = on => ({ bg: on ? '#8DC63F' : '#d9dad6', j: on ? 'flex-end' : 'flex-start' });
+    const VARS = Object.entries(d.vars).map(([v, label]) => ({ v, label }));
+    const ICONS = [['calendar', 'تقویم'], ['app', 'اپلیکیشن'], ['missed', 'تماس بی‌پاسخ'], ['pin', 'آدرس'], ['card', 'پرداخت'], ['heart', 'مراقبت'], ['chat', 'پیام'], ['star', 'ستاره']];
+    const bar = this.smsBar({ ...s, smsBtns: { enabled: true, dryRun: f.dryRun, buttons: f.templates.filter(t => t.on).map(t => ({ id: t.id, title: t.title, icon: t.icon, ready: !!t.template })) }, smsSent: {} }, 'preview', '09000000000', { sentFromCall: [] });
+    const dirty = JSON.stringify(f) !== JSON.stringify({ enabled: d.enabled, dryRun: d.dryRun, timeoutSec: d.timeoutSec, templates: d.templates }) || !!s.smsToken;
+    return { sm: {
+      loading: false, ready: true, dirty, onT: tg(f.enabled), tog: () => put({ enabled: !f.enabled }), onLabel: f.enabled ? 'فعال' : 'غیرفعال',
+      dryT: tg(f.dryRun), togDry: () => put({ dryRun: !f.dryRun }), dryRun: f.dryRun,
+      status: !f.enabled ? 'پیامک خاموش است؛ دکمه‌های پیامک در تماس‌ها نمایش داده نمی‌شوند.' : f.dryRun ? 'حالت آزمایشی: دکمه‌ها کار می‌کنند و ثبت می‌شوند ولی هیچ پیامکی واقعاً ارسال نمی‌شود.' : 'فعال: با زدن هر دکمه، پیامک واقعی از پنل SHSMS ارسال می‌شود.',
+      statusBg: !f.enabled ? '#f2f3ef' : f.dryRun ? '#fcf3e0' : '#eef5e3', statusFg: !f.enabled ? '#55585c' : f.dryRun ? '#8a5a00' : '#3d6a0c',
+      tokenHint: d.hasToken ? 'توکن ذخیره شده (' + d.tokenHint + ')؛ برای تغییر، توکن جدید را وارد کنید' : 'توکن API حساب SHSMS', token: s.smsToken || '', setToken: e => this.setState({ smsToken: e.target.value }),
+      timeout: f.timeoutSec, setTimeout: e => put({ timeoutSec: Math.min(30, Math.max(5, parseInt(e.target.value, 10) || 15)) }),
+      balance: s.smsBal == null ? '' : s.smsBal, hasBalance: s.smsBal != null, balBusy: !!s.smsBalBusy, balText: s.smsBalBusy ? 'در حال استعلام…' : 'استعلام اعتبار',
+      checkBalance: async () => { this.setState({ smsBalBusy: true }); try { const r = await api('/sms/budget'); this.setState({ smsBal: fa(Number(r.balance).toLocaleString('en')), smsBalBusy: false }); } catch (e) { this.setState({ smsBalBusy: false }); this.toast(e.message); } },
+      vars: VARS, preview: bar,
+      templates: f.templates.map((t, i) => ({
+        n: fa(i + 1), title: t.title, template: t.template, on: t.on, onT: tg(t.on), tog: () => putT(i, { on: !t.on }),
+        setTitle: e => putT(i, { title: e.target.value }), setTemplate: e => putT(i, { template: e.target.value }),
+        icons: ICONS.map(([k, label]) => ({ label, bg: t.icon === k ? '#2E2F31' : '#fff', fg: t.icon === k ? '#fff' : '#55585c', bd: t.icon === k ? '#2E2F31' : '#e1e3dc', pick: () => putT(i, { icon: k }) })),
+        warn: t.on && !t.template,
+        params: t.params.map((p, j) => ({
+          slot: 'param[' + j + ']', n: fa(j + 1), kind: p.kind, isVar: p.kind === 'var', isText: p.kind === 'text', v: p.v,
+          setKind: e => putT(i, { params: t.params.map((x, k) => (k === j ? { kind: e.target.value, v: e.target.value === 'var' ? 'name' : '' } : x)) }),
+          setV: e => putT(i, { params: t.params.map((x, k) => (k === j ? { ...x, v: e.target.value } : x)) }),
+          del: () => putT(i, { params: t.params.filter((x, k) => k !== j) }),
+          up: () => { if (!j) return; const a = [...t.params]; [a[j - 1], a[j]] = [a[j], a[j - 1]]; putT(i, { params: a }); }, canUp: j > 0,
+          help: p.kind === 'var' ? d.vars[p.v] || '' : 'متن ثابت',
+        })),
+        guide: t.params.map((p, j) => ({ slot: 'param[' + j + ']', label: p.kind === 'var' ? d.vars[p.v] : '«' + (p.v || 'متن ثابت') + '»' })), noParams: !t.params.length,
+        addParam: () => putT(i, { params: [...t.params, { kind: 'var', v: 'name' }] }), canAddParam: t.params.length < 10,
+        del: () => { if (confirm('قالب «' + t.title + '» حذف شود؟')) put({ templates: f.templates.filter((x, k) => k !== i) }); },
+        up: () => { if (!i) return; const a = [...f.templates]; [a[i - 1], a[i]] = [a[i], a[i - 1]]; put({ templates: a }); }, canUp: i > 0,
+      })),
+      addTemplate: () => put({ templates: [...f.templates, { id: 't' + Date.now().toString(36), title: 'پیامک جدید', icon: 'chat', template: '', on: true, params: [{ kind: 'var', v: 'name' }] }] }), canAdd: f.templates.length < 20,
+      save: async () => {
+        try { const r = await api('/sms/settings', { ...f, ...(s.smsToken ? { token: s.smsToken } : {}) }, 'PUT'); this.setState({ smsSet: r, smsEdit: JSON.parse(JSON.stringify({ enabled: r.enabled, dryRun: r.dryRun, timeoutSec: r.timeoutSec, templates: r.templates })), smsToken: '' }); this.loadSmsButtons(); this.toast('تنظیمات پیامک ذخیره شد'); }
+        catch (e) { this.toast(e.message); }
+      },
+      reset: () => this.loadSmsSettings(),
     } };
   }
 
@@ -2040,7 +2164,7 @@ class LiveApp extends React.Component {
     const isAdmin = CAN('ai', 'edit');
     return { upd, cvm: {
       show: true, barOk: false, close: () => this.setState({ cvId: null }),
-      canDel: CAN('calls', 'delete'), del: () => this.askDelete([c], 'یک تماس'), rep: this.callReportVals(s, c),
+      canDel: CAN('calls', 'delete'), del: () => this.askDelete([c], 'یک تماس'), rep: this.callReportVals(s, c), sms: this.smsBar(s, c.id, c.phoneRaw, { sentFromCall: c.sms }),
       isCur: s.pid === c.id, notCur: s.pid !== c.id,
       name: c.name, phone: c.phone, ini: c.ini, when: c.date + ' · ' + c.time, dir: c.dirLabel, queue: c.queue,
       op: c.op ? c.op.name + ' · داخلی ' + c.op.ext : 'بدون اپراتور', dur: c.durText, status: c.status,
@@ -2562,13 +2686,13 @@ export default class App extends LiveApp {
  }
  renderVals(){
   const s=this.state,C=this.calls,showAi=this.props.showAiColumn??true,ps=this.props.rowsPerPage??12;
-  const R=c=>{const cur=s.pid===c.id||s.recPlay===c.id,pl=(s.pid===c.id&&!s.paused)||s.recPlay===c.id;return {...c,openFile:()=>this.openFile(c),openCall:()=>this.openCall(c),isPlaying:pl,notPlaying:!pl,onPlay:()=>this.play(c.id),playBg:cur?'#8DC63F':'#eef5e3',playFg:cur?'#1f2021':'#3d6a0c',rowBg:cur?'#f7fbf1':'transparent',canDel:CAN('calls','delete'),onDel:()=>this.askDelete([c],'یک تماس'),hasRep:c.rep>0,repText:(c.rep||0).toLocaleString('fa-IR')+' گزارش',canRep:CAN('calls','edit'),onRep:()=>this.setState({cvId:c.id,crForm:{callId:c.id,editId:null,cat:'',outcome:'',text:'',fu:''}})}};
+  const R=c=>{const cur=s.pid===c.id||s.recPlay===c.id,pl=(s.pid===c.id&&!s.paused)||s.recPlay===c.id;return {...c,openFile:()=>this.openFile(c),openCall:()=>this.openCall(c),isPlaying:pl,notPlaying:!pl,onPlay:()=>this.play(c.id),playBg:cur?'#8DC63F':'#eef5e3',playFg:cur?'#1f2021':'#3d6a0c',rowBg:cur?'#f7fbf1':'transparent',canDel:CAN('calls','delete'),onDel:()=>this.askDelete([c],'یک تماس'),hasRep:c.rep>0,repText:(c.rep||0).toLocaleString('fa-IR')+' گزارش',canRep:CAN('calls','edit'),hasSms:(c.sms||[]).length>0,smsText:(c.sms||[]).length.toLocaleString('fa-IR')+' پیامک',smsTip:(c.sms||[]).map(x=>x.title).join('، '),onRep:()=>this.setState({cvId:c.id,crForm:{callId:c.id,editId:null,cat:'',outcome:'',text:'',fu:''}})}};
   const fol=c=>s.follow[c.id]||c.follow;
   const vms=C.filter(c=>c.st==='voicemail'&&this.deptOk(c,s));const AI=C.filter(c=>c.ai&&!c.ai.pending);
   const nv=(p,count)=>({go:()=>this.setState({page:p}),bg:s.page===p?'#8DC63F':'transparent',fg:s.page===p?'#1f2021':'#d9dad6',count,cbg:s.page===p?'rgba(31,32,33,.15)':'rgba(255,255,255,.08)'});
-  const nav={calls:nv('calls',C.length),inbound:nv('inbound',C.filter(c=>c.dir==='in').length),voice:nv('voice',vms.filter(c=>fol(c)==='new').length),reports:nv('reports',''),survey:nv('survey',C.filter(c=>c.survey).length),ai:nv('ai',AI.length),vext:nv('vext',s.exts.length),vtrunk:nv('vtrunk',s.trunks.length),vqueue:nv('vqueue',s.vqs.length),vivr:nv('vivr',s.ivrs.length),vsound:nv('vsound',s.snds.length),vroute:nv('vroute',s.routes.length),vout:nv('vout',(s.oroutes||[]).length),vapi:nv('vapi',''),settings:nv('settings',''),users:nv('users',''),usage:nv('usage',''),sys:nv('sys',''),live:nv('live',(s.liveCalls||[]).length),days:nv('days',''),creports:nv('creports',''),vvm:nv('vvm',''),aiconv:nv('aiconv',C.filter(c=>c.queue==='دستیار هوشمند').length),vbackup:nv('vbackup',(s.bk&&s.bk.items.filter(b=>b.status==='done').length)||''),vtime:nv('vtime',s.tconds.length),vring:nv('vring',s.rgroups.length),vfollow:nv('vfollow',Object.values(s.fmes).filter(f=>f.on).length),vblack:nv('vblack',s.blist.length)};
+  const nav={calls:nv('calls',C.length),inbound:nv('inbound',C.filter(c=>c.dir==='in').length),voice:nv('voice',vms.filter(c=>fol(c)==='new').length),reports:nv('reports',''),survey:nv('survey',C.filter(c=>c.survey).length),ai:nv('ai',AI.length),vext:nv('vext',s.exts.length),vtrunk:nv('vtrunk',s.trunks.length),vqueue:nv('vqueue',s.vqs.length),vivr:nv('vivr',s.ivrs.length),vsound:nv('vsound',s.snds.length),vroute:nv('vroute',s.routes.length),vout:nv('vout',(s.oroutes||[]).length),vapi:nv('vapi',''),settings:nv('settings',''),users:nv('users',''),usage:nv('usage',''),sys:nv('sys',''),live:nv('live',(s.liveCalls||[]).length),days:nv('days',''),creports:nv('creports',''),vvm:nv('vvm',''),vsms:nv('vsms',''),aiconv:nv('aiconv',C.filter(c=>c.queue==='دستیار هوشمند').length),vbackup:nv('vbackup',(s.bk&&s.bk.items.filter(b=>b.status==='done').length)||''),vtime:nv('vtime',s.tconds.length),vring:nv('vring',s.rgroups.length),vfollow:nv('vfollow',Object.values(s.fmes).filter(f=>f.on).length),vblack:nv('vblack',s.blist.length)};
   const isV=['vext','vtrunk','vqueue','vivr','vsound','vroute','vout','vtime','vring','vfollow','vblack','vbackup'].includes(s.page);nav.voipOpen=s.voipOpen||isV;nav.toggleVoip=()=>this.setState({voipOpen:!(s.voipOpen||isV)});nav.voipChev=nav.voipOpen?'rotate(180deg)':'none';nav.voipBg=isV?'rgba(141,198,63,.12)':'transparent';const isR=['reports','days','creports'].includes(s.page);nav.repOpen=s.repOpen||isR;nav.toggleRep=()=>this.setState({repOpen:!(s.repOpen||isR)});nav.repChev=nav.repOpen?'rotate(180deg)':'none';nav.repBg=isR?'rgba(141,198,63,.12)':'transparent';
-  const is={};['calls','inbound','voice','reports','survey','ai','vext','vtrunk','vqueue','vivr','vsound','vroute','vtime','vring','vfollow','vblack','vout','unreached','vapi','vbackup','settings','vai','vsurvey','vcrm','vagent','aiconv','days','live','sys','usage','users','creports','vvm','file'].forEach(p=>is[p]=s.page===p);
+  const is={};['calls','inbound','voice','reports','survey','ai','vext','vtrunk','vqueue','vivr','vsound','vroute','vtime','vring','vfollow','vblack','vout','unreached','vapi','vbackup','settings','vai','vsurvey','vcrm','vagent','aiconv','days','live','sys','usage','users','creports','vvm','vsms','file'].forEach(p=>is[p]=s.page===p);
   const qm=(c,q)=>!q||c.name.includes(q)||c.phoneRaw.includes(q.replace(/\s/g,''));
   const pill=(on)=>({bg:on?'#2E2F31':'#fff',fg:on?'#fff':'#3a3b3d',bd:on?'#2E2F31':'#e1e3dc'});
   const ops=OPS.map(o=>({id:o.id,label:o.name+' ('+o.ext+')'}));
@@ -2711,6 +2835,6 @@ export default class App extends LiveApp {
    seek:e=>{const b=e.currentTarget.getBoundingClientRect();this.setState({pos:Math.min(1,Math.max(0,(b.right-e.clientX)/b.width))*(this.audDur||pc.dur)});},
    pct:s.pos/(this.audDur||pc.dur)*100+'%',posText:fmt(s.pos),durText:fmt((this.audDur||pc.dur)),speedText:s.speed+'x',cycleSpeed:()=>this.setState({speed:SP[(SP.indexOf(s.speed)+1)%SP.length]}),download:()=>this.download(pc)}:{show:false};
 
-  return {...this.voip(s),...this.voip2(s),...this.voipOut(s),...this.apiVals(s),...this.backupVals(s),...this.settingsVals(s),...this.aiSettingsVals(s),...this.surveyVals(s),...this.crmVals(s),...this.agentVals(s),...this.aiConvVals(s),...this.daysVals(s),...this.liveVals(s),...this.sysVals(s),...this.callViewVals(s),...this.usageVals(s),...this.canVals(s),...this.usersVals(s),...this.delVals(s),...this.dialVals(s),...this.creportsVals(s),...this.vmboxVals(s),...this.popVals(s),...this.fileExtraVals(s,fl.length>0),...this.voiceboxVals(s),pf,call,toast,nav:{...nav,unreached:nv('unreached',urV.navCount)},is,ur:urV,cl,ib,vm,rp,sv,ai,player,showAi,dates:[],hours:HOURS,ops,queues:s.vqs.map(q=>q.name),statuses,cats,me:this.meVals(),todayLong:jLong(new Date())};
+  return {...this.voip(s),...this.voip2(s),...this.voipOut(s),...this.apiVals(s),...this.backupVals(s),...this.settingsVals(s),...this.aiSettingsVals(s),...this.surveyVals(s),...this.crmVals(s),...this.agentVals(s),...this.aiConvVals(s),...this.daysVals(s),...this.liveVals(s),...this.sysVals(s),...this.callViewVals(s),...this.usageVals(s),...this.canVals(s),...this.usersVals(s),...this.delVals(s),...this.dialVals(s),...this.creportsVals(s),...this.vmboxVals(s),...this.popVals(s),...this.smsSettingsVals(s),...this.fileExtraVals(s,fl.length>0),...this.voiceboxVals(s),pf,call,toast,nav:{...nav,unreached:nv('unreached',urV.navCount)},is,ur:urV,cl,ib,vm,rp,sv,ai,player,showAi,dates:[],hours:HOURS,ops,queues:s.vqs.map(q=>q.name),statuses,cats,me:this.meVals(),todayLong:jLong(new Date())};
  }
 }

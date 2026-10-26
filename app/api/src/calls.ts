@@ -97,6 +97,9 @@ export class CallsService {
       this.db.callReport.groupBy({ by: ['callId'], _count: { _all: true } }),
     ]);
     const REP = new Map(reps.map(r => [r.callId, r._count._all]));
+    const SMS = new Map<string, { t: string; title: string; at: Date; by: string; dry: boolean }[]>();
+    for (const m of await this.db.smsLog.findMany({ where: { ok: true, callKey: { in: rows.map(c => c.id.replace(/^C/, '')) } }, orderBy: { at: 'asc' } }))
+      (SMS.get(m.callKey) || SMS.set(m.callKey, []).get(m.callKey)!).push({ t: m.templateId, title: m.title, at: m.at, by: m.userName, dry: m.dryRun });
     const P = new Map(pats.map(p => [p.phone, p]));
     const U = new Map(users.map(u => [u.ext, u]));
     const F = new Map(follows.map(f => [f.callId, f.status]));
@@ -111,7 +114,7 @@ export class CallsService {
         id: c.id, date: c.date, time: c.time, name: p ? p.name : 'شماره ناشناس', phone: fmtPhone(c.phone), phoneRaw: c.phone,
         nid: p && p.nid ? p.nid : '—', surgery: surgeryText(p?.surgery), known: !!p, dir: c.dir, st: short ? 'missed' : c.st, short, op, queue: c.queue,
         dur: c.dur, wait: c.wait, hasRec: !!c.recPath, ai: listAi(c.ai), survey: publicSurvey(c.survey), aiConv: convBrief(c.aiConv), aiState: c.aiState, follow: c.st === 'voicemail' ? F.get(c.id) || 'new' : null,
-        wave: c.wave, callback: c.callback, summary: c.summary || '', rep: REP.get(c.id) || 0,
+        wave: c.wave, callback: c.callback, summary: c.summary || '', rep: REP.get(c.id) || 0, sms: SMS.get(c.id.replace(/^C/, '')) || [],
       };
     });
   }
@@ -471,6 +474,7 @@ export class CallsController {
     await this.db.$transaction([
       this.db.note.deleteMany({ where: { callId: { in: found } } }),
       this.db.callReport.deleteMany({ where: { callId: { in: found } } }),
+      this.db.smsLog.deleteMany({ where: { callKey: { in: found.map(x => x.replace(/^C/, '')) } } }),
       this.db.follow.deleteMany({ where: { callId: { in: found } } }),
       this.db.call.deleteMany({ where: { id: { in: found } } }),
     ]);

@@ -190,3 +190,22 @@ model CallReport {
   @@index([phone])
   @@index([createdAt])
 }
+
+/// One SMS sent from the panel for a call (each template at most once per call).
+model SmsLog {
+  id         Int      @id @default(autoincrement())
+  callKey    String // the call's unique id without the «C» prefix (same for a live call and its saved row)
+  phone      String
+  templateId String
+  title      String
+  ok         Boolean
+  dryRun     Boolean  @default(false)
+  httpCode   Int?
+  error      String?
+  userId     String
+  userName   String
+  at         DateTime @default(now())
+
+  @@index([callKey])
+  @@index([phone])
+}
