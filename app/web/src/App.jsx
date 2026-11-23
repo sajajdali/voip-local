@@ -14,9 +14,12 @@ let SECTIONS = [];
 // page → the permission section that guards it
 const PAGE_SECTION = { calls: 'calls', file: 'calls', inbound: 'inbound', live: 'live', voice: 'voice', unreached: 'unreached', reports: 'reports', days: 'reports', creports: 'calls', bookings: 'bookings', breport: 'reports', bsurvey: 'bsurvey', aiops: 'coach', vvm: 'vvm', vsms: 'vsms', refs: 'refer', survey: 'survey', ai: 'ai', aiconv: 'aiconv', sys: 'sys', usage: 'usage', users: 'users', tenants: 'tenants', vai: 'vai', vagent: 'vagent', vbook: 'vbook', vcrm: 'vcrm', vapi: 'vapi', billing: 'billing', vbackup: 'vbackup', vsurvey: 'vsurvey', vext: 'vext', vtrunk: 'vtrunk', vqueue: 'vqueue', vivr: 'vivr', vsound: 'vsound', vroute: 'vroute', vout: 'vout', vtime: 'vtime', vring: 'vring', vfollow: 'vfollow', vblack: 'vblack' };
 const VOIP_SECTIONS = ['vext', 'vtrunk', 'vqueue', 'vivr', 'vsound', 'vroute', 'vout', 'vtime', 'vring', 'vfollow', 'vblack', 'vsurvey', 'vvm'];
-const SETTING_SECTIONS = [...VOIP_SECTIONS, 'vai', 'vagent', 'vbook', 'vcrm', 'vapi', 'vsms', 'billing', 'usage', 'vbackup', 'sys', 'users', 'tenants'];
+const SETTING_SECTIONS = [...VOIP_SECTIONS, 'vai', 'vbook', 'vcrm', 'vapi', 'vsms', 'billing', 'usage', 'vbackup', 'sys', 'users', 'tenants'];
 const PLATFORM_SECTIONS = new Set(['vtrunk', 'tenants', 'vbackup', 'billing', 'usage', 'sys']);
+/** Temporarily hidden for everyone (tenant + platform): AI phone receptionist UI. Other AI (تحلیل / مدل) stays. */
+const HIDDEN_SECTIONS = new Set(['vagent', 'aiconv']);
 const CAN = (section, action = 'view') => {
+  if (HIDDEN_SECTIONS.has(section)) return false;
   if (ME.tenantId && PLATFORM_SECTIONS.has(section)) return false;
   if (ME.role === 'admin' && !ME.tenantId) return true;
   return !!(ME.perms && ME.perms[section] && ME.perms[section].includes(action));
@@ -537,7 +540,6 @@ class LiveApp extends React.Component {
       ] },
       { title: 'یکپارچه‌سازی', sub: 'اتصال به سرویس‌های بیرونی', items: [
         card('vai', 'هوش مصنوعی', I.ai, 'تبدیل گفتار به متن و تحلیل خودکار پیام‌ها: مدل، آدرس و کلید', ai ? (ai.enabled ? 'فعال · ' + (ai.llmProvider === 'claude' ? 'Claude' : ai.llmProvider === 'openai' ? 'OpenAI-سازگار' : 'کلیدواژه‌ای') : 'غیرفعال') : '…', ai && ai.enabled ? ok : off, K),
-        card('vagent', 'دستیار هوشمند تلفنی', I.mic, 'منشی صوتی هوش مصنوعی: پاسخ به بیماران، تأیید جراحی، پیامک لینک نوبت و انتقال به پزشک', ag ? (ag.enabled ? 'فعال · کد ' + ag.code + (s.agData.status.running ? '' : ' · سرویس متوقف') : 'غیرفعال') : '…', ag && ag.enabled ? (s.agData.status.running ? ok : '#b42318') : off, K),
         card('vcrm', 'سامانه بیماران (نام تماس‌گیرنده)', I.user, 'نمایش نام بیمار روی گوشی و در پنل، از API سامانه بیماران کلینیک', crm ? (crm.enabled ? 'فعال · ' + (s.crmData.status.named || 0).toLocaleString('fa-IR') + ' نام' : 'غیرفعال') : '…', crm && crm.enabled ? ok : off, K),
         card('usage', 'مصرف توکن هوش مصنوعی', I.coin, 'توکن و هزینه دلاری هر روز، هر بخش و هر مدل؛ جدول قیمت', 'گزارش مصرف', null, K),
         card('vsms', 'پیامک', I.chat, 'دکمه‌های ارسال پیامک در هر تماس: یادآوری نوبت، لینک اپلیکیشن، آدرس و…؛ توکن پنل SHSMS و قالب‌ها', (s.smsBtns && s.smsBtns.enabled) ? (s.smsBtns.dryRun ? 'حالت آزمایشی' : 'فعال') + ' · ' + s.smsBtns.buttons.length + ' دکمه' : 'غیرفعال', s.smsBtns && s.smsBtns.enabled ? ok : off, K),
@@ -1421,7 +1423,9 @@ class LiveApp extends React.Component {
     c.anyVoip = VOIP_SECTIONS.some(k => CAN(k));
     c.anyRouting = ['vroute', 'vout', 'vtime', 'vring', 'vfollow', 'vblack', 'vbackup'].some(k => CAN(k));
     c.anySettings = canPage('settings');
-    c.anyAi = CAN('ai') || CAN('aiconv') || CAN('bsurvey');
+    c.anyAi = CAN('ai') || CAN('bsurvey');
+    c.vagent = false;
+    c.aiconv = false;
     c.anyReports = canPage('reports') || canPage('creports') || canPage('aiops') || canPage('breport');
     c.account = !!ME.tenantId;
     return { can: c };
@@ -3152,7 +3156,7 @@ export default class App extends LiveApp {
  componentDidMount(){this.init();}
  componentWillUnmount(){this.teardown();}
  play(id){this.playCall(id);}
- mkDests(s){return [...s.vqs.map(q=>({id:'q:'+q.id,label:'صف '+q.name+' ('+q.num+')'})),...s.rgroups.map(g=>({id:'rg:'+g.id,label:'گروه زنگ '+g.name+' ('+g.num+')'})),...s.ivrs.map(i=>({id:'ivr:'+i.id,label:'IVR: '+i.name})),...s.tconds.map(t=>({id:'tc:'+t.id,label:'شرط زمانی: '+t.name})),...s.exts.map(e=>({id:'e:'+e.n,label:'داخلی '+e.n+' – '+e.name})),...s.snds.map(x=>({id:'ann:'+x.id,label:'پخش پیام «'+x.name+'» و قطع'})),{id:'ai',label:'دستیار هوشمند (AI)'},{id:'vm',label:'صندوق پیام صوتی'},{id:'busy',label:'بوق اشغال'},{id:'hang',label:'قطع تماس'}];}
+ mkDests(s){return [...s.vqs.map(q=>({id:'q:'+q.id,label:'صف '+q.name+' ('+q.num+')'})),...s.rgroups.map(g=>({id:'rg:'+g.id,label:'گروه زنگ '+g.name+' ('+g.num+')'})),...s.ivrs.map(i=>({id:'ivr:'+i.id,label:'IVR: '+i.name})),...s.tconds.map(t=>({id:'tc:'+t.id,label:'شرط زمانی: '+t.name})),...s.exts.map(e=>({id:'e:'+e.n,label:'داخلی '+e.n+' – '+e.name})),...s.snds.map(x=>({id:'ann:'+x.id,label:'پخش پیام «'+x.name+'» و قطع'})),{id:'vm',label:'صندوق پیام صوتی'},{id:'busy',label:'بوق اشغال'},{id:'hang',label:'قطع تماس'}];}
  toggleBl(num){const has=this.state.blist.some(b=>b.num===num);this.setState(st=>({blist:has?st.blist.filter(b=>b.num!==num):[{num,reason:'other',note:'افزوده‌شده از پرونده بیمار',date:TODAY,by:ME.name,hits:0,today:0,last:'—'},...st.blist]}));this.toast(has?'شماره از لیست سیاه حذف شد':'شماره به لیست سیاه اضافه شد');}
  tcState(s,t){const g=s.tgroups.find(x=>x.id===t.group);const d=new Date();const wd=jWeekday(d);const hm=pad(d.getHours())+':'+pad(d.getMinutes());const hol=t.useHol&&s.holidays.some(x=>x.date===TODAY);let inR=!!g&&g.ranges.some(r=>r.days.includes(wd)&&hm>=r.from&&hm<r.to);if(hol)inR=false;if(t.ovr==='open')inR=true;if(t.ovr==='closed')inR=false;return {inR,hol};}
  voip2(s){
