@@ -155,7 +155,7 @@ class LiveApp extends React.Component {
     if (s.page === 'usage' && (prev.page !== 'usage' || prev.uF2 !== s.uF2)) this.loadUsage();
     if (s.page === 'sys' && prev.page !== 'sys') { this.loadSys(); clearInterval(this.sysT); this.sysT = setInterval(() => { if (this.state.page === 'sys') this.loadSys(); else clearInterval(this.sysT); }, 5000); }
     if (s.page === 'vagent' && prev.page !== 'vagent') this.loadAgent();
-    if (s.page === 'settings' && prev.page !== 'settings') { this.loadAi(); this.loadApi(); this.loadBackups(); this.loadCrm(); this.loadAgent(); }
+    if (s.page === 'settings' && prev.page !== 'settings') { this.loadAi(); this.loadApi(); this.loadBackups(); this.loadCrm(); this.loadAgent(); if (CAN('tenants')) this.loadTenants(); }
     if (this.remote) return;
     VOIP_KEYS.forEach(k => {
       if (s[k] === prev[k]) return;
@@ -534,8 +534,8 @@ class LiveApp extends React.Component {
         card('vsms', 'پیامک', I.chat, 'دکمه‌های ارسال پیامک در هر تماس: یادآوری نوبت، لینک اپلیکیشن، آدرس و…؛ توکن پنل SHSMS و قالب‌ها', (s.smsBtns && s.smsBtns.enabled) ? (s.smsBtns.dryRun ? 'حالت آزمایشی' : 'فعال') + ' · ' + s.smsBtns.buttons.length + ' دکمه' : 'غیرفعال', s.smsBtns && s.smsBtns.enabled ? ok : off, K),
         card('vapi', 'ارسال تماس‌ها (API)', I.code, 'ارسال اطلاعات هر تماس بعد از پایان به آدرس دلخواه', wh ? (wh.enabled ? 'فعال' : 'غیرفعال') : '…', wh && wh.enabled ? ok : off, K),
       ] },
-      { title: 'نگهداری', sub: 'پشتیبان‌گیری و بازگردانی', items: [
-        card('tenants', 'مستأجرها و DID (۳۱۹۸۵)', I.phone, 'ساخت مستأجر، تخصیص شماره‌های ۳۱۹۸۵۰۰۰ تا ۳۱۹۸۵۹۹۹، مقصد ورودی هر مستأجر', s.tenantsData ? s.tenantsData.tenants.length + ' مستأجر · ' + (s.tenantsData.pool?.free || 0).toLocaleString('fa-IR') + ' DID آزاد' : 'مدیریت چندمستأجری', null, G),
+      { title: 'نگهداری و چندمستأجری', sub: 'مستأجرها، کاربران و بکاپ', items: [
+        card('tenants', 'مستأجرها و DID (۳۱۹۸۵)', I.phone, 'ساخت مستأجر، تخصیص شماره‌های ۳۱۹۸۵۰۰۰ تا ۳۱۹۸۵۹۹۹، مقصد ورودی هر مستأجر', s.tenantsData ? s.tenantsData.tenants.length + ' مستأجر · ' + (s.tenantsData.pool?.free || 0).toLocaleString('fa-IR') + ' DID آزاد' : 'مدیریت چندمستأجری · کلیک کنید', null, G),
         card('users', 'کاربران و دسترسی‌ها', I.user, 'تعریف کاربر، نقش، دسترسی به هر بخش و غیرفعال یا حذف کردن کاربر', s.usersData ? s.usersData.users.length + ' کاربر' : 'مدیریت کاربران', null, B),
         card('vbackup', 'بکاپ و بازیابی', I.db, 'بکاپ گرفتن از بخش‌های دلخواه، دانلود و بازیابی', bks ? bks.length + ' بکاپ' + (s.bk.schedule && s.bk.schedule.enabled ? ' · خودکار فعال' : '') : '…', null, G),
       ] },

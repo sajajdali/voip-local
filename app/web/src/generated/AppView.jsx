@@ -352,6 +352,24 @@ export default function AppView({ vm }) {
                         <span style={{fontSize: "11px", color: "#5B6B82", fontWeight: "600"}}>{vm.nav?.sys?.count}</span>
                       </button>
                     </>) : null}
+                    {(vm.can?.tenants) ? (<>
+                      <button onClick={vm.nav?.tenants?.go} style={{display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "10px", textAlign: "right", border: "none", background: vm.nav?.tenants?.sbg, padding: "10px 12px", borderRadius: "12px", cursor: "pointer", fontFamily: "inherit", width: "100%"}} styleHover="background:#F3F5F8">
+                        <span style={{display: "flex", flexDirection: "column", gap: "2px"}}>
+                          <span style={{fontSize: "13px", fontWeight: "600", color: "#0B2545"}}>{"مستأجرها و DID (۳۱۹۸۵)"}</span>
+                          <span style={{fontSize: "11px", color: "#5B6B82"}}>{"ساخت مستأجر، تخصیص شماره و ماتریس دسترسی"}</span>
+                        </span>
+                        <span style={{fontSize: "11px", color: "#5B6B82", fontWeight: "600"}}>{vm.nav?.tenants?.count}</span>
+                      </button>
+                    </>) : null}
+                    {(vm.can?.users) ? (<>
+                      <button onClick={vm.nav?.users?.go} style={{display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "10px", textAlign: "right", border: "none", background: vm.nav?.users?.sbg, padding: "10px 12px", borderRadius: "12px", cursor: "pointer", fontFamily: "inherit", width: "100%"}} styleHover="background:#F3F5F8">
+                        <span style={{display: "flex", flexDirection: "column", gap: "2px"}}>
+                          <span style={{fontSize: "13px", fontWeight: "600", color: "#0B2545"}}>{"کاربران و دسترسی‌ها"}</span>
+                          <span style={{fontSize: "11px", color: "#5B6B82"}}>{"حساب‌های ورود به پنل"}</span>
+                        </span>
+                        <span style={{fontSize: "11px", color: "#5B6B82", fontWeight: "600"}}>{vm.nav?.users?.count}</span>
+                      </button>
+                    </>) : null}
                     {(vm.can?.vbackup) ? (<>
                       <button onClick={vm.nav?.vbackup?.go} style={{display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "10px", textAlign: "right", border: "none", background: vm.nav?.vbackup?.sbg, padding: "10px 12px", borderRadius: "12px", cursor: "pointer", fontFamily: "inherit", width: "100%"}} styleHover="background:#F3F5F8">
                         <span style={{display: "flex", flexDirection: "column", gap: "2px"}}>
