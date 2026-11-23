@@ -146,6 +146,7 @@ class LiveApp extends React.Component {
     if (s.page === 'vcrm' && prev.page !== 'vcrm') this.loadCrm();
     if (s.page === 'users' && prev.page !== 'users') this.loadUsers();
     if (s.page === 'tenants' && prev.page !== 'tenants') this.loadTenants();
+    if (s.page === 'account' && prev.page !== 'account') this.loadAccount();
     if (s.page === 'creports' && prev.page !== 'creports') this.loadCReports();
     if (s.page === 'vsms' && prev.page !== 'vsms') this.loadSmsSettings();
     if (s.page === 'refs' && (prev.page !== 'refs' || prev.rfF !== s.rfF)) this.loadRefs();
@@ -1414,6 +1415,7 @@ class LiveApp extends React.Component {
     c.anySettings = canPage('settings');
     c.anyAi = CAN('ai') || CAN('aiconv') || CAN('bsurvey');
     c.anyReports = canPage('reports') || canPage('creports') || canPage('aiops') || canPage('breport');
+    c.account = !!ME.tenantId;
     return { can: c };
   }
 
@@ -1425,6 +1427,14 @@ class LiveApp extends React.Component {
   async loadTenants() {
     try { this.setState({ tenantsData: await api('/tenants'), tnForm: null, tnDid: '' }); }
     catch (e) { this.toast('بارگذاری مستأجرها ناموفق بود: ' + e.message); }
+  }
+
+  async loadAccount() {
+    try {
+      const d = await api('/tenants/me');
+      this.setState({ accountData: d });
+      if (d && d.tenant) this.tenantInfo = { ...(this.tenantInfo || {}), ...d.tenant, dids: d.dids || [], storage: d.storage, features: d.features };
+    } catch (e) { this.toast('بارگذاری حساب ناموفق بود: ' + e.message); }
   }
 
   // ---- permanent delete of calls (list / report builder): three steps, the last two re-checked by the server
@@ -2500,12 +2510,14 @@ class LiveApp extends React.Component {
 
   meVals() {
     const self = (this.state.exts || []).find(e => e.n === ME.ext);
+    const goAccount = ME.tenantId ? () => this.setState({ page: 'account', voipOpen: false, repOpen: false, aiOpen: false }) : null;
     return {
       // a title set on the users page replaces «role · extension»
       name: ME.name, ini: ini(ME.name), roleLabel: ME.title || ROLE_LABEL[ME.role] || ME.role, extText: ME.title ? '' : ME.ext ? ' · داخلی ' + ME.ext : '',
       dot: self && self.st !== 'offline' ? '#8DC63F' : '#b9bbb6', isAdmin: ME.role === 'admin',
       hasAlert: this.calls.some(c => c.st === 'voicemail' && (this.state.follow[c.id] || c.follow) === 'new'),
       logout: () => auth.logout(),
+      goAccount,
     };
   }
 
@@ -2558,7 +2570,11 @@ class LiveApp extends React.Component {
       const r = await api('/sounds', fd);
       this.applyRemote({ snds: r.snds });
       this.toast('فایل «' + r.sound.name + '» بارگذاری و به فرمت مرکز تلفن تبدیل شد');
-    } catch (e) { this.toast('بارگذاری ناموفق بود: ' + e.message); }
+      if (ME.tenantId) this.loadAccount();
+    } catch (e) {
+      if (e.status === 507 || e.code === 'STORAGE_FULL') this.toast(e.message || 'فضای ذخیره‌سازی پر است؛ از «حساب من» فضای بیشتر بخرید');
+      else this.toast('بارگذاری ناموفق بود: ' + e.message);
+    }
   }
 
   async testTrunk(t) {
@@ -2914,8 +2930,110 @@ class LiveApp extends React.Component {
     );
   }
 
+  renderAccountPage() {
+    const s = this.state;
+    const d = s.accountData;
+    const go = (p) => this.setState({ page: p, voipOpen: false });
+    const fmtB = (n) => {
+      const b = Number(n) || 0;
+      if (b >= 1024 * 1024 * 1024) return (b / (1024 * 1024 * 1024)).toFixed(2).replace(/\.00$/, '') + ' GB';
+      if (b >= 1024 * 1024) return (b / (1024 * 1024)).toFixed(1).replace(/\.0$/, '') + ' MB';
+      if (b >= 1024) return Math.round(b / 1024) + ' KB';
+      return b + ' B';
+    };
+    const fa = (n) => String(n ?? '').replace(/\d/g, x => '۰۱۲۳۴۵۶۷۸۹'[x]);
+    if (!d) return <div style={{ padding: 40, fontFamily: 'IRANSansX, Tahoma, sans-serif', direction: 'rtl' }}>در حال بارگذاری…</div>;
+    const t = d.tenant || {};
+    const st = d.storage || {};
+    const labels = d.featureLabels || {};
+    const feats = d.features || {};
+    const access = d.access || {};
+    const statusText = !t.active ? 'غیرفعال' : access.locked ? (access.reason === 'expired' ? 'منقضی — قفل' : 'قفل') : 'فعال';
+    const statusColor = access.locked || !t.active ? '#b42318' : '#0A5C5B';
+    const pct = Math.min(100, st.pct || 0);
+    const barColor = pct >= 95 ? '#b42318' : pct >= 80 ? '#b54708' : '#0E7C7B';
+    const buy = async (success) => {
+      try {
+        const r = await api('/tenants/me/storage/buy', { gb: 1, success });
+        this.toast(r.message || (success ? 'فضا اضافه شد' : 'پرداخت ناموفق'));
+        this.loadAccount();
+      } catch (e) { this.toast(e.message); }
+    };
+    return (
+      <div style={{ minHeight: '100vh', background: 'linear-gradient(160deg,#F7F9FC 0%,#EEF8F7 45%,#E2ECFA 100%)', padding: '24px 20px 48px', fontFamily: 'IRANSansX, Tahoma, sans-serif', direction: 'rtl', color: '#0B2545' }}>
+        <div style={{ maxWidth: 720, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div>
+            <button type="button" onClick={() => go('calls')} style={{ border: '1px solid #E3E8EF', background: '#fff', borderRadius: 10, padding: '6px 12px', cursor: 'pointer', marginBottom: 10, fontFamily: 'inherit' }}>← بازگشت</button>
+            <h1 style={{ margin: 0, fontSize: 22, fontFamily: "'Noto Kufi Arabic',sans-serif" }}>حساب من</h1>
+            <div style={{ color: '#5B6B82', fontSize: 13, marginTop: 4 }}>مشخصات مستأجر، شماره‌ها، اشتراک و فضای ذخیره‌سازی</div>
+          </div>
+
+          <div style={{ background: '#fff', border: '1px solid #E3E8EF', borderRadius: 16, padding: 18 }}>
+            <div style={{ fontWeight: 800, marginBottom: 10 }}>مشخصات</div>
+            <div style={{ fontSize: 13, lineHeight: 1.9, color: '#3A4A63' }}>
+              <div>نام سازمان: <b>{t.name || '—'}</b> <span style={{ color: statusColor, fontWeight: 700, marginRight: 8 }}>({statusText})</span></div>
+              <div>شناسه: <b dir="ltr">{t.slug || '—'}</b></div>
+              <div>کاربر ورود: <b dir="ltr">{(d.meUser && d.meUser.username) || ME.username}</b> · {ME.name}</div>
+              <div>اشتراک: <b>{t.planLabel || t.planPeriod || '—'}</b>
+                {t.priceToman ? <> · قیمت دوره: <b>{fa((t.priceToman || 0).toLocaleString('en-US'))} تومان</b></> : null}
+              </div>
+              <div>انقضا: <b>{t.expiresAt ? new Date(t.expiresAt).toLocaleString('fa-IR') : '—'}</b></div>
+            </div>
+          </div>
+
+          <div style={{ background: '#fff', border: '1px solid #9FCFCC', borderRadius: 16, padding: 18 }}>
+            <div style={{ fontWeight: 800, marginBottom: 10 }}>شماره‌های اختصاصی (DID)</div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+              {(d.dids || []).length ? (d.dids || []).map(x => (
+                <span key={x.did} dir="ltr" style={{ background: '#E3F2F1', border: '1px solid #C7E6E3', borderRadius: 999, padding: '8px 14px', fontWeight: 800, fontSize: 15, letterSpacing: 0.5 }}>{x.did}</span>
+              )) : <span style={{ color: '#7A889C' }}>هنوز شماره‌ای تخصیص داده نشده</span>}
+            </div>
+          </div>
+
+          <div style={{ background: '#fff', border: '1px solid #E3E8EF', borderRadius: 16, padding: 18 }}>
+            <div style={{ fontWeight: 800, marginBottom: 10 }}>قابلیت‌های فعال</div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              {Object.keys(labels).map(k => {
+                const on = feats[k] !== false;
+                return (
+                  <span key={k} style={{ border: '1px solid ' + (on ? '#9FCFCC' : '#E3E8EF'), background: on ? '#E3F2F1' : '#F7F9FC', color: on ? '#0A5C5B' : '#7A889C', borderRadius: 999, padding: '4px 10px', fontSize: 12 }}>
+                    {labels[k]} {on ? '✓' : '✗'}
+                  </span>
+                );
+              })}
+            </div>
+          </div>
+
+          <div style={{ background: '#fff', border: '1px solid ' + (st.full ? '#f5c2c0' : '#E3E8EF'), borderRadius: 16, padding: 18 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap', alignItems: 'baseline' }}>
+              <div style={{ fontWeight: 800 }}>فضای ذخیره‌سازی</div>
+              <div style={{ fontSize: 13, color: '#5B6B82' }}>{fmtB(st.usedBytes)} از {fmtB(st.quotaBytes)} · آزاد {fmtB(st.freeBytes)}</div>
+            </div>
+            <div style={{ marginTop: 12, height: 12, background: '#F3F5F8', borderRadius: 999, overflow: 'hidden' }}>
+              <div style={{ width: pct + '%', height: '100%', background: barColor, transition: 'width .4s ease' }} />
+            </div>
+            <div style={{ marginTop: 8, fontSize: 12, color: '#7A889C' }}>
+              ضبط مکالمات: {fmtB(st.recordingsBytes)} ({fa(st.recordingFiles || 0)} فایل) · فایل‌های صوتی: {fmtB(st.soundsBytes)} ({fa(st.soundFiles || 0)} فایل)
+              · پیش‌فرض سهمیه ۲ گیگابایت
+            </div>
+            {st.full && (
+              <div style={{ marginTop: 12, background: '#fdeceb', border: '1px solid #f5c2c0', borderRadius: 12, padding: '10px 12px', color: '#b42318', fontSize: 13, fontWeight: 600 }}>
+                فضای شما پر است. برای بارگذاری صوت یا نگه‌داشتن ضبط جدید باید فضای بیشتری بخرید.
+              </div>
+            )}
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 14 }}>
+              <button type="button" onClick={() => buy(true)} style={{ border: 'none', background: 'linear-gradient(135deg,#0A5C5B,#1D4E89)', color: '#fff', padding: '10px 14px', borderRadius: 12, cursor: 'pointer', fontFamily: 'inherit', fontWeight: 700 }}>خرید ۱ گیگابایت (شبیه‌ساز ✓)</button>
+              <button type="button" onClick={() => buy(false)} style={{ border: '1px solid #E3E8EF', background: '#fff', padding: '10px 14px', borderRadius: 12, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13 }}>پرداخت ناموفق</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   render() {
     if (this.state.page === 'tenants' && CAN('tenants')) return this.renderTenantsPage();
+    if (this.state.page === 'account' && ME.tenantId) return this.renderAccountPage();
     return <AppView vm={this.renderVals()} />;
   }
 }
@@ -3176,10 +3294,10 @@ export default class App extends LiveApp {
   const vms=C.filter(c=>c.st==='voicemail'&&this.deptOk(c,s));const AI=C.filter(c=>c.ai&&!c.ai.pending);
   // Mega-menu nav (AppView dropdowns): voipMenu / repMenu / aiMenu must be set for تنظیمات، گزارش‌ها، هوش مصنوعی to open.
   const nv=(p,count)=>({go:()=>{this.setState({page:p,voipOpen:false,repOpen:false,aiOpen:false});window.scrollTo(0,0);},mfg:s.page===p?'#0E7C7B':'#7A889C',mbg:s.page===p?'#E3F2F1':'transparent',tbg:s.page===p?'#E3F2F1':'#fff',tbd:s.page===p?'#0E7C7B':'#E3E8EF',hasCount:!!count,bg:s.page===p?'#F3F5F8':'transparent',fg:s.page===p?'#0B2545':'#C9D3E3',count,cbg:s.page===p?'#0B2545':'rgba(255,255,255,.14)',cfg:s.page===p?'#FFFFFF':'#E6ECF5',ul:s.page===p?'#0E7C7B':'transparent',sfg:s.page===p?'#0B2545':'#5B6B82',sbg:s.page===p?'#E3F2F1':'transparent'});
-  const nav={calls:nv('calls',C.length),inbound:nv('inbound',C.filter(c=>c.dir==='in').length),voice:nv('voice',vms.filter(c=>fol(c)==='new').length),reports:nv('reports',''),survey:nv('survey',C.filter(c=>c.survey).length),ai:nv('ai',AI.length),vext:nv('vext',s.exts.length),vtrunk:nv('vtrunk',s.trunks.length),vqueue:nv('vqueue',s.vqs.length),vivr:nv('vivr',s.ivrs.length),vsound:nv('vsound',s.snds.length),vroute:nv('vroute',s.routes.length),vout:nv('vout',(s.oroutes||[]).length),vapi:nv('vapi',''),settings:nv('settings',''),users:nv('users',''),usage:nv('usage',''),sys:nv('sys',''),live:nv('live',(s.liveCalls||[]).length),days:nv('days',''),creports:nv('creports',''),bookings:nv('bookings',(s.bcData&&s.bcData.total&&s.bcData.total.todo)||''),breport:nv('breport',''),bsurvey:nv('bsurvey',''),aiops:nv('aiops',''),vvm:nv('vvm',''),vsms:nv('vsms',''),refs:nv('refs',(s.refCount&&s.refCount.open)||''),aiconv:nv('aiconv',C.filter(c=>c.queue==='دستیار هوشمند').length),vbackup:nv('vbackup',(s.bk&&s.bk.items.filter(b=>b.status==='done').length)||''),vtime:nv('vtime',s.tconds.length),vring:nv('vring',s.rgroups.length),vfollow:nv('vfollow',Object.values(s.fmes||{}).filter(f=>f.on).length),vblack:nv('vblack',s.blist.length),vai:nv('vai',''),vagent:nv('vagent',''),vbook:nv('vbook',''),vcrm:nv('vcrm',''),vsurvey:nv('vsurvey',''),tenants:nv('tenants',''),billing:nv('billing',''),unreached:nv('unreached','')};
+  const nav={calls:nv('calls',C.length),inbound:nv('inbound',C.filter(c=>c.dir==='in').length),voice:nv('voice',vms.filter(c=>fol(c)==='new').length),reports:nv('reports',''),survey:nv('survey',C.filter(c=>c.survey).length),ai:nv('ai',AI.length),vext:nv('vext',s.exts.length),vtrunk:nv('vtrunk',s.trunks.length),vqueue:nv('vqueue',s.vqs.length),vivr:nv('vivr',s.ivrs.length),vsound:nv('vsound',s.snds.length),vroute:nv('vroute',s.routes.length),vout:nv('vout',(s.oroutes||[]).length),vapi:nv('vapi',''),settings:nv('settings',''),users:nv('users',''),usage:nv('usage',''),sys:nv('sys',''),live:nv('live',(s.liveCalls||[]).length),days:nv('days',''),creports:nv('creports',''),bookings:nv('bookings',(s.bcData&&s.bcData.total&&s.bcData.total.todo)||''),breport:nv('breport',''),bsurvey:nv('bsurvey',''),aiops:nv('aiops',''),vvm:nv('vvm',''),vsms:nv('vsms',''),refs:nv('refs',(s.refCount&&s.refCount.open)||''),aiconv:nv('aiconv',C.filter(c=>c.queue==='دستیار هوشمند').length),vbackup:nv('vbackup',(s.bk&&s.bk.items.filter(b=>b.status==='done').length)||''),vtime:nv('vtime',s.tconds.length),vring:nv('vring',s.rgroups.length),vfollow:nv('vfollow',Object.values(s.fmes||{}).filter(f=>f.on).length),vblack:nv('vblack',s.blist.length),vai:nv('vai',''),vagent:nv('vagent',''),vbook:nv('vbook',''),vcrm:nv('vcrm',''),vsurvey:nv('vsurvey',''),tenants:nv('tenants',''),billing:nv('billing',''),account:nv('account',''),unreached:nv('unreached','')};
   const isV=['vext','vtrunk','vqueue','vivr','vsound','vroute','vout','vtime','vring','vfollow','vblack','vbackup'].includes(s.page);
   nav.isVoip=isV;nav.voipMenu=!!s.voipOpen;nav.toggleVoip=()=>this.setState({voipOpen:!s.voipOpen,repOpen:false,aiOpen:false});nav.closeVoip=()=>this.setState({voipOpen:false});
-  nav.voipTabBg=isV||['sys','settings','vapi','vai','vsurvey','vcrm','vagent','vbook','users','usage','vvm','vsms','tenants','billing'].includes(s.page)?'#F3F5F8':(s.voipOpen?'rgba(255,255,255,.12)':'transparent');
+  nav.voipTabBg=isV||['sys','settings','vapi','vai','vsurvey','vcrm','vagent','vbook','users','usage','vvm','vsms','tenants','billing','account'].includes(s.page)?'#F3F5F8':(s.voipOpen?'rgba(255,255,255,.12)':'transparent');
   nav.voipTabFg=nav.voipTabBg==='#F3F5F8'?'#0B2545':'#C9D3E3';nav.voipChev=s.voipOpen?'rotate(180deg)':'none';
   const isR=['reports','days','creports','aiops','breport'].includes(s.page);
   nav.isRep=isR;nav.repMenu=!!s.repOpen;nav.toggleRep=()=>this.setState({repOpen:!s.repOpen,voipOpen:false,aiOpen:false});nav.closeRep=()=>this.setState({repOpen:false});
@@ -3187,7 +3305,7 @@ export default class App extends LiveApp {
   const isA=['ai','aiconv','bsurvey'].includes(s.page);
   nav.aiMenu=!!s.aiOpen;nav.toggleAi=()=>this.setState({aiOpen:!s.aiOpen,repOpen:false,voipOpen:false});nav.closeAi=()=>this.setState({aiOpen:false});
   nav.aiTabBg=isA?'#F3F5F8':(s.aiOpen?'rgba(255,255,255,.12)':'transparent');nav.aiTabFg=isA?'#0B2545':'#C9D3E3';nav.aiChev=s.aiOpen?'rotate(180deg)':'none';
-  const is={};['calls','inbound','voice','reports','survey','ai','vext','vtrunk','vqueue','vivr','vsound','vroute','vtime','vring','vfollow','vblack','vout','unreached','vapi','billing','vbackup','settings','vai','vsurvey','vcrm','vagent','vbook','bookings','breport','bsurvey','aiconv','days','live','sys','usage','users','tenants','creports','vvm','vsms','refs','file','aiops'].forEach(p=>is[p]=s.page===p);
+  const is={};['calls','inbound','voice','reports','survey','ai','vext','vtrunk','vqueue','vivr','vsound','vroute','vtime','vring','vfollow','vblack','vout','unreached','vapi','billing','vbackup','settings','vai','vsurvey','vcrm','vagent','vbook','bookings','breport','bsurvey','aiconv','days','live','sys','usage','users','tenants','account','creports','vvm','vsms','refs','file','aiops'].forEach(p=>is[p]=s.page===p);
   const qm=(c,q)=>!q||c.name.includes(q)||c.phoneRaw.includes(q.replace(/\s/g,''));
   const pill=(on)=>({bg:on?'#2E2F31':'#fff',fg:on?'#fff':'#3a3b3d',bd:on?'#2E2F31':'#e1e3dc'});
   const ops=OPS.map(o=>({id:o.id,label:o.name+' ('+o.ext+')'}));
@@ -3330,6 +3448,6 @@ export default class App extends LiveApp {
    seek:e=>{const b=e.currentTarget.getBoundingClientRect();this.setState({pos:Math.min(1,Math.max(0,(b.right-e.clientX)/b.width))*(this.audDur||pc.dur)});},
    pct:s.pos/(this.audDur||pc.dur)*100+'%',posText:fmt(s.pos),durText:fmt((this.audDur||pc.dur)),speedText:s.speed+'x',cycleSpeed:()=>this.setState({speed:SP[(SP.indexOf(s.speed)+1)%SP.length]}),download:()=>this.download(pc)}:{show:false};
 
-  return {...this.voip(s),...this.voip2(s),...this.voipOut(s),...this.apiVals(s),...this.backupVals(s),...this.settingsVals(s),...this.aiSettingsVals(s),...this.surveyVals(s),...this.crmVals(s),...this.agentVals(s),...this.aiConvVals(s),...this.daysVals(s),...this.liveVals(s),...this.sysVals(s),...this.callViewVals(s),...this.usageVals(s),...this.canVals(s),...this.usersVals(s),...this.delVals(s),...this.dialVals(s),...this.creportsVals(s),...this.vmboxVals(s),...this.popVals(s),...this.smsSettingsVals(s),...this.referModalVals(s),...this.refsVals(s),...this.refDetailVals(s),...this.fileExtraVals(s,fl.length>0),...this.voiceboxVals(s),pf,call,toast,nav:{...nav,unreached:nv('unreached',urV.navCount)},is,ur:urV,cl,ib,vm,rp,sv,ai,player,showAi,dates:[],hours:HOURS,ops,queues:s.vqs.map(q=>q.name),statuses,cats,me:this.meVals(),todayLong:jLong(new Date())};
+  return {...this.voip(s),...this.voip2(s),...this.voipOut(s),...this.apiVals(s),...this.backupVals(s),...this.settingsVals(s),...this.aiSettingsVals(s),...this.surveyVals(s),...this.crmVals(s),...this.agentVals(s),...this.aiConvVals(s),...this.daysVals(s),...this.liveVals(s),...this.sysVals(s),...this.callViewVals(s),...this.usageVals(s),...this.canVals(s),...this.usersVals(s),...this.delVals(s),...this.dialVals(s),...this.creportsVals(s),...this.vmboxVals(s),...this.popVals(s),...this.smsSettingsVals(s),...this.referModalVals(s),...this.refsVals(s),...this.refDetailVals(s),...this.fileExtraVals(s,fl.length>0),...this.voiceboxVals(s),pf,call,toast,nav:{...nav,unreached:nv('unreached',urV.navCount)},is,ur:urV,cl,ib,vm,rp,sv,ai,player,showAi,dates:[],hours:HOURS,ops,queues:s.vqs.map(q=>q.name),statuses,cats,me:this.meVals(),todayLong:jLong(new Date()),tenant:(()=>{const t=this.tenantInfo;if(!t||!ME.tenantId)return null;const dids=t.dids||[];return{...t,dids,didLabel:dids.map(x=>x.did||x).join(' · '),nameChip:t.name?' · '+t.name:'',goAccount:()=>this.setState({page:'account',voipOpen:false,repOpen:false,aiOpen:false})};})()};
  }
 }

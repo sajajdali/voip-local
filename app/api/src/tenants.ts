@@ -9,6 +9,7 @@ import {
   DEFAULT_TENANT_FEATURES, DID_POOL_MAX, DID_POOL_MIN, DID_POOL_PREFIX, FEATURE_SECTIONS, PLAN_PERIODS, TENANT_FEATURE_LABELS,
   cleanFeatures, cleanPlanPeriod, didFromSuffix, extendExpiry, isPoolDid, normalizePoolDid, planLabel, tenantAccess, type TenantFeatures,
 } from './tenant-scope';
+import { DEFAULT_STORAGE_MB, storageSnapshot, tenantUsedBytes } from './tenant-storage';
 
 export { DID_POOL_MIN, DID_POOL_MAX, DID_POOL_PREFIX, isPoolDid, normalizePoolDid };
 
@@ -109,6 +110,7 @@ export class TenantsService {
       loginUrl: 'https://voip.s8n.ir',
       tenants: tenants.map(t => {
         const access = tenantAccess(t);
+        const quotaMb = (t as any).storageQuotaMb ?? DEFAULT_STORAGE_MB;
         return {
           ...t,
           features: cleanFeatures(t.features),
@@ -120,11 +122,47 @@ export class TenantsService {
           expired: access.expired,
           accessReason: access.reason,
           accessOk: access.active,
+          storageQuotaMb: quotaMb,
           dids: (byTenant.get(t.id) || []).map(d => ({ id: d.id, did: d.did, note: d.note || '' })),
           users: (usersBy.get(t.id) || []).map(u => ({ id: u.id, username: u.username, name: u.name, role: u.role, active: u.active })),
         };
       }),
     };
+  }
+
+  async storageOf(tenantId: string) {
+    const t = await this.db.tenant.findUnique({ where: { id: tenantId } });
+    if (!t) throw new BadRequestException('مستأجر پیدا نشد');
+    const used = await tenantUsedBytes(this.db, tenantId);
+    return storageSnapshot((t as any).storageQuotaMb ?? DEFAULT_STORAGE_MB, used);
+  }
+
+  async buyStorage(tenantId: string, opts: { gb?: number; success?: boolean; byUserId?: string; byName?: string; priceToman?: number }) {
+    const t = await this.db.tenant.findUnique({ where: { id: tenantId } });
+    if (!t) throw new BadRequestException('مستأجر پیدا نشد');
+    const gb = Math.max(1, Math.min(50, Math.floor(Number(opts.gb) || 1)));
+    const amount = Math.max(0, Math.floor(Number(opts.priceToman) || gb * 100000));
+    if (opts.success === false) {
+      await this.db.tenantPayment.create({
+        data: {
+          tenantId, amount, period: `storage+${gb}g`, success: false, simulated: true,
+          note: `خرید ${gb} گیگابایت فضا ناموفق (شبیه‌ساز)`, byUserId: opts.byUserId || null, byName: opts.byName || null,
+        },
+      });
+      return { ok: false, message: 'پرداخت ناموفق بود؛ فضا افزایش نیافت', storage: await this.storageOf(tenantId) };
+    }
+    const cur = (t as any).storageQuotaMb ?? DEFAULT_STORAGE_MB;
+    const next = cur + gb * 1024;
+    await this.db.tenant.update({ where: { id: tenantId }, data: { storageQuotaMb: next } as any });
+    await this.db.tenantPayment.create({
+      data: {
+        tenantId, amount, period: `storage+${gb}g`, success: true, simulated: true,
+        note: `خرید ${gb} گیگابایت فضا (شبیه‌ساز) → سهمیه ${next} مگابایت`, byUserId: opts.byUserId || null, byName: opts.byName || null,
+      },
+    });
+    forgetUser();
+    const storage = await this.storageOf(tenantId);
+    return { ok: true, addedGb: gb, storageQuotaMb: next, storage, message: `${gb} گیگابایت به فضای شما اضافه شد` };
   }
 
   async applyPayment(tenantId: string, opts: { success: boolean; byUserId?: string; byName?: string; simulated?: boolean; note?: string }) {
@@ -228,18 +266,22 @@ export class TenantsController {
     const features = cleanFeatures(t.features);
     const access = tenantAccess(t);
     const payments = await this.db.tenantPayment.findMany({ where: { tenantId: t.id }, orderBy: { createdAt: 'desc' }, take: 10 });
+    const storage = await this.tenants.storageOf(t.id);
     return {
       superAdmin: false,
       loginUrl: 'https://voip.s8n.ir',
       paywall: access.locked,
       access,
+      meUser: { id: me.id, username: me.username, name: me.name, role: me.role, ext: me.ext },
       tenant: {
         id: t.id, name: t.name, slug: t.slug, active: t.active, defaultDest: t.defaultDest, note: t.note,
         planPeriod: t.planPeriod || '1m', planLabel: planLabel(t.planPeriod || '1m'),
         priceToman: t.priceToman || 0, expiresAt: t.expiresAt, locked: access.locked, expired: access.expired,
+        storageQuotaMb: (t as any).storageQuotaMb ?? DEFAULT_STORAGE_MB,
       },
       features,
       featureLabels: TENANT_FEATURE_LABELS,
+      storage,
       dids: dids.map(d => ({ did: d.did, note: d.note || '' })),
       payments: payments.map(p => ({ id: p.id, at: p.createdAt, amount: p.amount, period: p.period, success: p.success, note: p.note })),
     };
@@ -251,6 +293,19 @@ export class TenantsController {
   async myPaySimulate(@Body() b: { success?: boolean }, @CurrentUser() me: Me) {
     if (!me.tenantId) throw new ForbiddenException('فقط کاربران مستأجر');
     return this.tenants.applyPayment(me.tenantId, { success: b.success !== false, byUserId: me.id, byName: me.name, simulated: true });
+  }
+
+  /** Buy more storage via payment simulator (default +1 GB). */
+  @Post('me/storage/buy')
+  async myBuyStorage(@Body() b: { gb?: number; success?: boolean; priceToman?: number }, @CurrentUser() me: Me) {
+    if (!me.tenantId) throw new ForbiddenException('فقط کاربران مستأجر');
+    return this.tenants.buyStorage(me.tenantId, { gb: b.gb, success: b.success !== false, priceToman: b.priceToman, byUserId: me.id, byName: me.name });
+  }
+
+  @Get('me/storage')
+  async myStorage(@CurrentUser() me: Me) {
+    if (!me.tenantId) throw new ForbiddenException('فقط کاربران مستأجر');
+    return this.tenants.storageOf(me.tenantId);
   }
 
   /** Tenant admin updates own inbound default destination. */
@@ -310,7 +365,8 @@ export class TenantsController {
         active: b.active !== false,
         features: features as any,
         planPeriod, priceToman, expiresAt, locked: false,
-      },
+        storageQuotaMb: Math.max(1, Math.floor(Number(b.storageQuotaMb) || DEFAULT_STORAGE_MB)),
+      } as any,
     });
     for (const did of dids) {
       await this.db.didAssignment.create({ data: { did, tenantId: t.id } });
@@ -358,6 +414,11 @@ export class TenantsController {
     if (b.features !== undefined) data.features = cleanFeatures(b.features) as any;
     if (b.planPeriod !== undefined || b.period !== undefined) data.planPeriod = cleanPlanPeriod(b.planPeriod || b.period);
     if (b.priceToman !== undefined || b.price !== undefined) data.priceToman = Math.max(0, Math.floor(Number(b.priceToman ?? b.price) || 0));
+    if (b.storageQuotaMb !== undefined) data.storageQuotaMb = Math.max(1, Math.floor(Number(b.storageQuotaMb) || DEFAULT_STORAGE_MB));
+    if (b.addStorageGb !== undefined) {
+      const add = Math.max(0, Math.floor(Number(b.addStorageGb) || 0));
+      data.storageQuotaMb = ((cur as any).storageQuotaMb ?? DEFAULT_STORAGE_MB) + add * 1024;
+    }
     // renew: set expiry from now (or extend) without payment
     if (b.renew === true || b.resetExpiry === true) {
       const period = cleanPlanPeriod(data.planPeriod || cur.planPeriod || '1m');
@@ -406,6 +467,20 @@ export class TenantsController {
   async paySimulate(@Param('id') id: string, @Body() b: { success?: boolean; note?: string }, @CurrentUser() me: Me) {
     this.assertSuper(me);
     return this.tenants.applyPayment(id, { success: b.success !== false, byUserId: me.id, byName: me.name, simulated: true, note: b.note });
+  }
+
+  @Roles('admin')
+  @Post(':id/storage/buy')
+  async adminBuyStorage(@Param('id') id: string, @Body() b: { gb?: number; success?: boolean; priceToman?: number }, @CurrentUser() me: Me) {
+    this.assertSuper(me);
+    return this.tenants.buyStorage(id, { gb: b.gb, success: b.success !== false, priceToman: b.priceToman, byUserId: me.id, byName: me.name });
+  }
+
+  @Roles('admin')
+  @Get(':id/storage')
+  async adminStorage(@Param('id') id: string, @CurrentUser() me: Me) {
+    this.assertSuper(me);
+    return this.tenants.storageOf(id);
   }
 
   @Roles('admin')

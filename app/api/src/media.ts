@@ -12,18 +12,24 @@ import { CurrentUser, Me, Roles, Perm } from './auth';
 import { ConfigStore } from './config';
 import { env } from './env';
 import { todayJ } from './jalali';
+import { PrismaService } from './prisma.service';
+import { assertTenantStorageRoom } from './tenant-storage';
 
 const run = promisify(execFile);
 
 @Controller()
 export class MediaController {
-  constructor(private store: ConfigStore, private ast: AsteriskService) {}
+  constructor(private store: ConfigStore, private ast: AsteriskService, private db: PrismaService) {}
 
   @Perm('vsound', 'add')
   @Post('sounds')
   @UseInterceptors(FileInterceptor('file', { dest: os.tmpdir(), limits: { fileSize: 40 * 1024 * 1024 } }))
   async upload(@UploadedFile() file: Express.Multer.File, @Body() b: { cat?: string }, @CurrentUser() me: Me) {
     if (!file) throw new BadRequestException('فایلی ارسال نشد');
+    // Check quota before converting (use upload size as lower bound)
+    if (me.tenantId) {
+      await assertTenantStorageRoom(this.db, me.tenantId, file.size || 0);
+    }
     const id = 's' + Date.now();
     const out = path.join(env.soundsDir, id + '.wav');
     fs.mkdirSync(env.soundsDir, { recursive: true });
@@ -33,6 +39,16 @@ export class MediaController {
     } catch (e) {
       throw new BadRequestException('فایل صوتی قابل تبدیل نیست (wav یا mp3 بارگذاری کنید)');
     } finally { fs.rmSync(file.path, { force: true }); }
+    // Re-check with actual converted size
+    if (me.tenantId) {
+      try {
+        const sz = fs.existsSync(out) ? fs.statSync(out).size : 0;
+        await assertTenantStorageRoom(this.db, me.tenantId, sz);
+      } catch (e) {
+        fs.rmSync(out, { force: true });
+        throw e;
+      }
+    }
     const { stdout } = await run('ffprobe', ['-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', out]);
     const name = Buffer.from(file.originalname, 'latin1').toString('utf8').replace(/\.[^.]+$/, '');
     const sound = { id, name, cat: ['greet', 'moh', 'queue', 'after', 'ivr'].includes(b.cat || '') ? b.cat : 'greet', dur: Math.round(+stdout || 0), date: todayJ(), file: name + '.wav' };

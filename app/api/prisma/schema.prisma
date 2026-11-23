@@ -40,6 +40,8 @@ model Tenant {
   expiresAt   DateTime?
   /// Explicit lock (admin or unpaid expiry); also derived when expiresAt < now
   locked      Boolean         @default(false)
+  /// Storage quota in mebibytes (default 2048 = 2 GB)
+  storageQuotaMb Int          @default(2048)
   createdAt   DateTime        @default(now())
   updatedAt   DateTime        @updatedAt
   dids        DidAssignment[]

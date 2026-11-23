@@ -18,6 +18,12 @@ export default function AppView({ vm }) {
               <div style={{fontSize: "11px", color: "#9FB0C8"}}>{"سامانه یکپارچه تماس، پیام صوتی و تلفن گویا"}</div>
             </div>
             <div style={{marginRight: "auto", display: "flex", alignItems: "center", gap: "10px", fontSize: "12px", color: "#C9D3E3", flexWrap: "wrap"}}>
+              {(vm.tenant?.dids && vm.tenant.dids.length) ? (<>
+                <button type="button" onClick={vm.tenant?.goAccount || vm.nav?.account?.go} title="حساب من · شماره‌های اختصاصی" style={{display: "flex", alignItems: "center", gap: "8px", whiteSpace: "nowrap", background: "rgba(43,179,163,.22)", border: "1px solid rgba(43,179,163,.45)", borderRadius: "12px", padding: "7px 12px", color: "#E6FFF9", cursor: "pointer", fontFamily: "inherit", fontSize: "12px", fontWeight: "700"}}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#2BB3A3" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2" /></svg>
+                  <span dir="ltr">{vm.tenant.didLabel || vm.tenant.dids.map(d => d.did || d).join(' · ')}</span>
+                </button>
+              </>) : null}
               <span className="cc-hdate" style={{display: "flex", alignItems: "center", gap: "8px", whiteSpace: "nowrap", background: "rgba(255,255,255,.08)", border: "1px solid rgba(255,255,255,.14)", borderRadius: "12px", padding: "7px 12px"}}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#F2B134" strokeWidth="1.9">
                   <rect x="3" y="5" width="18" height="16" rx="3" />
@@ -32,14 +38,16 @@ export default function AppView({ vm }) {
                 </>) : null}
               </span>
               <div className="cc-user" style={{display: "flex", alignItems: "center", gap: "10px", background: "rgba(255,255,255,.08)", border: "1px solid rgba(255,255,255,.14)", borderRadius: "14px", padding: "4px 4px 4px 6px"}}>
-                <span style={{position: "relative", width: "30px", height: "30px", borderRadius: "50%", background: "linear-gradient(135deg,#F2B134,#F7D27A)", color: "#FFFFFF", display: "grid", placeItems: "center", fontWeight: "800", fontSize: "11px"}}>
-                  {vm.me?.ini}
-                  <span style={{position: "absolute", bottom: "-1px", left: "-1px", width: "9px", height: "9px", borderRadius: "50%", background: vm.me?.dot, border: "2px solid #123A66"}} />
-                </span>
-                <div className="cc-uname">
-                  <div style={{fontSize: "12.5px", color: "#fff", fontWeight: "600"}}>{vm.me?.name}</div>
-                  <div style={{fontSize: "10.5px", color: "#9FB0C8"}}>{vm.me?.roleLabel}{vm.me?.extText}</div>
-                </div>
+                <button type="button" onClick={vm.me?.goAccount || (() => {})} title="حساب من" style={{display: "flex", alignItems: "center", gap: "10px", border: "none", background: "transparent", color: "inherit", cursor: vm.me?.goAccount ? "pointer" : "default", fontFamily: "inherit", padding: "0", textAlign: "right"}}>
+                  <span style={{position: "relative", width: "30px", height: "30px", borderRadius: "50%", background: "linear-gradient(135deg,#F2B134,#F7D27A)", color: "#FFFFFF", display: "grid", placeItems: "center", fontWeight: "800", fontSize: "11px"}}>
+                    {vm.me?.ini}
+                    <span style={{position: "absolute", bottom: "-1px", left: "-1px", width: "9px", height: "9px", borderRadius: "50%", background: vm.me?.dot, border: "2px solid #123A66"}} />
+                  </span>
+                  <div className="cc-uname">
+                    <div style={{fontSize: "12.5px", color: "#fff", fontWeight: "600"}}>{vm.me?.name}</div>
+                    <div style={{fontSize: "10.5px", color: "#9FB0C8"}}>{vm.me?.roleLabel}{vm.me?.extText}{vm.tenant?.nameChip || ""}</div>
+                  </div>
+                </button>
                 <button onClick={vm.me?.logout} title="خروج" style={{border: "none", background: "rgba(255,255,255,.1)", color: "#E6ECF5", width: "30px", height: "30px", borderRadius: "10px", cursor: "pointer", display: "grid", placeItems: "center"}} styleHover="background:rgba(255,255,255,.2)">
                   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M15 4h4v16h-4M10 8l-4 4 4 4M6 12h10" /></svg>
                 </button>
@@ -350,6 +358,15 @@ export default function AppView({ vm }) {
                           <span style={{fontSize: "11px", color: "#5B6B82"}}>{"سرویس‌ها، دیسک و ترانک‌ها"}</span>
                         </span>
                         <span style={{fontSize: "11px", color: "#5B6B82", fontWeight: "600"}}>{vm.nav?.sys?.count}</span>
+                      </button>
+                    </>) : null}
+                    {(vm.can?.account) ? (<>
+                      <button onClick={vm.nav?.account?.go} style={{display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "10px", textAlign: "right", border: "none", background: vm.nav?.account?.sbg, padding: "10px 12px", borderRadius: "12px", cursor: "pointer", fontFamily: "inherit", width: "100%"}} styleHover="background:#F3F5F8">
+                        <span style={{display: "flex", flexDirection: "column", gap: "2px"}}>
+                          <span style={{fontSize: "13px", fontWeight: "600", color: "#0B2545"}}>{"حساب من"}</span>
+                          <span style={{fontSize: "11px", color: "#5B6B82"}}>{"شماره، اشتراک، فضا و مشخصات"}</span>
+                        </span>
+                        <span style={{fontSize: "11px", color: "#5B6B82", fontWeight: "600"}}>{vm.nav?.account?.count}</span>
                       </button>
                     </>) : null}
                     {(vm.can?.tenants) ? (<>

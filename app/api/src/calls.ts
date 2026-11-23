@@ -21,6 +21,7 @@ import { PrismaService } from './prisma.service';
 import { WebhookService, publicSurvey } from './webhook';
 import { referralsByCall } from './referrals';
 import { cleanFeatures, normalizeInboundDid, planLabel, tenantAccess } from './tenant-scope';
+import { assertTenantStorageRoom, callStorageBytes, DEFAULT_STORAGE_MB, storageSnapshot, tenantUsedBytes } from './tenant-storage';
 
 const run = promisify(execFile);
 const digits = (s: any) => String(s ?? '').replace(/\D/g, '');
@@ -149,6 +150,23 @@ export class CallsService {
     const id = 'C' + String(q.uid || start).replace(/[^0-9.]/g, '');
     let recPath: string | null = q.rec ? path.join(env.monitorDir, q.rec.replace(/\.\.+/g, '')) : null;
     if (recPath) { await new Promise(r => setTimeout(r, 1200)); if (!fs.existsSync(recPath) || fs.statSync(recPath).size < 2000) recPath = null; }
+    // tenantId resolved early so we can drop recordings when storage is full
+    let tenantIdEarly = q.tenant ? String(q.tenant).replace(/[^A-Za-z0-9_-]/g, '') || null : null;
+    const didEarly = normalizeInboundDid(q.did) || digits(q.did) || null;
+    if (!tenantIdEarly && didEarly) {
+      const asg = await this.db.didAssignment.findUnique({ where: { did: didEarly }, select: { tenantId: true } }).catch(() => null);
+      if (asg) tenantIdEarly = asg.tenantId;
+    }
+    if (recPath && tenantIdEarly) {
+      try {
+        const need = callStorageBytes({ recPath });
+        await assertTenantStorageRoom(this.db, tenantIdEarly, need);
+      } catch {
+        // Quota full: keep the call row but do not attach / keep the recording
+        try { fs.rmSync(recPath, { force: true }); } catch { /* ignore */ }
+        recPath = null;
+      }
+    }
     const info = recPath ? await audioInfo(recPath) : { dur: 0, wave: [] };
     let st: string, dur: number, wait: number;
     if (q.vm === '1') { st = recPath && info.dur >= 1 ? 'voicemail' : 'missed'; dur = recPath ? info.dur : 0; wait = Math.max(0, end - start - dur); }
@@ -162,15 +180,24 @@ export class CallsService {
     const orig = q.orig ? this.origs.get(q.orig) : undefined;
     const at = new Date(start * 1000);
     const opExt = dir === 'in' ? digits(q.ansext) || null : digits(q.opext || q.ansext) || null;
-    const did = normalizeInboundDid(q.did) || digits(q.did) || null;
-    let tenantId = q.tenant ? String(q.tenant).replace(/[^A-Za-z0-9_-]/g, '') || null : null;
+    const did = didEarly;
+    let tenantId = tenantIdEarly;
     if (!tenantId && did) {
-      const asg = await this.db.didAssignment.findUnique({ where: { did }, select: { tenantId: true } }).catch(() => null);
-      if (asg) tenantId = asg.tenantId;
-      else if (did.length > 8) {
+      if (did.length > 8) {
         const last8 = did.slice(-8);
         const asg2 = await this.db.didAssignment.findUnique({ where: { did: last8 }, select: { tenantId: true } }).catch(() => null);
         if (asg2) tenantId = asg2.tenantId;
+      }
+    }
+    // Survey voice also counts toward quota
+    if (svRec && tenantId) {
+      try {
+        const need = fs.existsSync(svRec) ? fs.statSync(svRec).size : 0;
+        await assertTenantStorageRoom(this.db, tenantId, need);
+      } catch {
+        try { fs.rmSync(svRec, { force: true }); } catch { /* ignore */ }
+        svRec = null;
+        if (survey) delete (survey as any).rec;
       }
     }
     const data = {
@@ -254,15 +281,17 @@ export class CallsController {
         const access = tenantAccess(t);
         if (access.locked) {
           const dids = await this.db.didAssignment.findMany({ where: { tenantId: t.id }, select: { did: true, note: true } });
+          const storage = storageSnapshot((t as any).storageQuotaMb ?? DEFAULT_STORAGE_MB, await tenantUsedBytes(this.db, t.id));
           return {
             me, sections: [], operators: [], config: {}, workflow: {}, calls: [],
             paywall: true,
             access,
             tenant: {
               id: t.id, name: t.name, slug: t.slug, defaultDest: t.defaultDest,
-              features: cleanFeatures(t.features), dids,
+              features: cleanFeatures(t.features), dids, storage,
               planPeriod: t.planPeriod || '1m', planLabel: planLabel(t.planPeriod || '1m'),
               priceToman: t.priceToman || 0, expiresAt: t.expiresAt, locked: true, expired: access.expired,
+              storageQuotaMb: (t as any).storageQuotaMb ?? DEFAULT_STORAGE_MB,
             },
           };
         }
@@ -276,10 +305,13 @@ export class CallsController {
       me.tenantId ? this.db.tenant.findUnique({ where: { id: me.tenantId } }).then(async t => {
         if (!t) return null;
         const access = tenantAccess(t);
+        const storage = storageSnapshot((t as any).storageQuotaMb ?? DEFAULT_STORAGE_MB, await tenantUsedBytes(this.db, t.id));
         return {
           id: t.id, name: t.name, slug: t.slug, defaultDest: t.defaultDest, features: t.features,
           planPeriod: t.planPeriod || '1m', planLabel: planLabel(t.planPeriod || '1m'),
           priceToman: t.priceToman || 0, expiresAt: t.expiresAt, locked: access.locked, expired: access.expired,
+          storageQuotaMb: (t as any).storageQuotaMb ?? DEFAULT_STORAGE_MB,
+          storage,
           dids: await this.db.didAssignment.findMany({ where: { tenantId: t.id }, select: { did: true, note: true } }),
         };
       }) : Promise.resolve(null),
