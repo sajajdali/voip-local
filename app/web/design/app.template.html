@@ -4573,6 +4573,34 @@
 <div style="font-size:12px;color:#5B6B82;line-height:1.8">آدرس سرور دستغیب را وارد کنید (مثل http://192.168.1.2:8001 یا https://clinic1.example.ir)؛ مسیر /external-api/voip/v1/patients/by-phone/ خودکار اضافه می‌شود. توکن را در دستغیب از «تنظیمات ← ارتباط با VoIP» بسازید و اینجا بزنید؛ مطب از روی توکن شناخته می‌شود و دامنه مطب لازم نیست. اگر توکن خالی بماند، توکن قبلی حفظ می‌شود.</div>
 </div>
 </sc-if>
+<sc-if value="{{ crm2.isKm }}">
+<div style="background:#fff;border:1px solid #E3E8EF;border-radius:20px;padding:20px;display:flex;flex-direction:column;gap:14px;flex:1 1 360px;min-width:0">
+<div style="font-weight:700;font-size:15px">اتصال به کامیلو</div>
+<label style="display:flex;flex-direction:column;gap:4px;font-size:11px;color:#5B6B82">آدرس API کامیلو<input type="text" value="{{ crm2.f.kmUrl }}" sc-camel-on-change="{{ crm2.set.kmUrl }}" placeholder="https://127.0.0.1/github/kamilo/public" style="border:1px solid #E3E8EF;border-radius:10px;padding:10px 12px;font-size:13px;outline:none;background:#fff;color:#16213A;font-family:inherit;width:100%;direction:ltr;text-align:left">
+</label>
+<label style="display:flex;flex-direction:column;gap:4px;font-size:11px;color:#5B6B82">توکن API<input type="password" value="{{ crm2.f.kmToken }}" sc-camel-on-change="{{ crm2.set.kmToken }}" placeholder="{{ crm2.kmTokenPh }}" style="border:1px solid #E3E8EF;border-radius:10px;padding:10px 12px;font-size:13px;outline:none;background:#fff;color:#16213A;font-family:inherit;width:100%;direction:ltr;text-align:left">
+</label>
+<div style="font-size:12px;color:#5B6B82;line-height:1.8">آدرس ریشهٔ کامیلو را بزنید (مثل https://HOST/github/kamilo/public یا https://kamilo.ir). مسیر /external-api/voip/v1/… خودکار اضافه می‌شود. توکن را در کامیلو با php artisan voip:token بسازید؛ پزشک از روی توکن محدود می‌شود. اگر توکن خالی بماند، توکن قبلی حفظ می‌شود.</div>
+<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:4px">
+<input value="{{ crm2.apptDate }}" sc-camel-on-change="{{ crm2.setApptDate }}" placeholder="1404/08/26 تاریخ شمسی (خالی=امروز)" style="border:1px solid #E3E8EF;border-radius:10px;padding:10px 12px;font-size:13px;outline:none;background:#fff;color:#16213A;font-family:inherit;flex:1 1 180px;direction:ltr;text-align:left">
+<button sc-camel-on-click="{{ crm2.loadAppts }}" style="background:#0B2545;color:#fff;border:none;padding:10px 16px;border-radius:12px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">{{ crm2.apptLabel }}</button>
+</div>
+<sc-if value="{{ crm2.apptErr }}"><div style="font-size:12px;color:#b42318;line-height:1.7">{{ crm2.apptErr }}</div></sc-if>
+<sc-if value="{{ crm2.hasAppts }}">
+<div style="font-size:12px;color:#5B6B82">{{ crm2.apptCount }} نوبت</div>
+<div style="border:1px solid #E3E8EF;border-radius:12px;max-height:280px;overflow:auto">
+<sc-for list="{{ crm2.apptRows }}" as="row">
+<div style="display:grid;grid-template-columns:110px 1fr 1fr 90px;gap:8px;padding:8px 12px;border-bottom:1px solid #EEF1F5;font-size:12px">
+<div style="color:#5B6B82;direction:ltr;text-align:left">{{ row.when }}</div>
+<div style="font-weight:700;color:#0B2545">{{ row.patient }}</div>
+<div style="color:#5B6B82">{{ row.service }}</div>
+<div style="color:#0E7C7B">{{ row.status }}</div>
+</div>
+</sc-for>
+</div>
+</sc-if>
+</div>
+</sc-if>
 <sc-if value="{{ crm2.isCrm }}">
 <div style="background:#fff;border:1px solid #E3E8EF;border-radius:20px;padding:20px;display:flex;flex-direction:column;gap:14px;flex:1 1 360px;min-width:0">
 <div style="font-weight:700;font-size:15px">اتصال</div>

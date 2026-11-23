@@ -1,6 +1,6 @@
 // Patient directory: names come from the clinic CRM, looked up once per inbound call and cached locally.
 // The CRM logs every lookup as a call, so it is asked exactly once per inbound call and never in bulk.
-import { BadRequestException, Body, Controller, Get, Injectable, Logger, Param, Post, Put } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Get, Injectable, Logger, Param, Post, Put, Query } from '@nestjs/common';
 import * as http from 'http';
 import * as https from 'https';
 import { CurrentUser, Me, Roles, Perm } from './auth';
@@ -12,22 +12,30 @@ export interface CrmSettings {
   enabled: boolean; url: string; param: string; user: string; pass: string;
   phoneFormat: '0' | '98' | '+98' | '9'; nameField: string; timeoutMs: number;
   phoneName: 'fa' | 'latin' | 'off'; showSurgery: boolean;
-  // «دستغیب» clinic app: its own address and token, kept apart so switching back keeps the CRM's settings
-  provider: 'crm' | 'dastgheib'; dgUrl: string; dgToken: string; dgHost: string;
+  // «دستغیب» / «کامیلو»: own address + token, kept apart so switching back keeps each provider's settings
+  provider: 'crm' | 'dastgheib' | 'kamilo'; dgUrl: string; dgToken: string; dgHost: string;
+  kmUrl: string; kmToken: string;
 }
 const DEFAULTS: CrmSettings = {
   enabled: false, url: 'https://crm.drpouriaaflaki.com/api/v1/voip/surgery-status', param: 'mobile', user: '', pass: '',
   phoneFormat: '0', nameField: 'name', timeoutMs: 4000, phoneName: 'fa', showSurgery: true,
-  provider: 'crm', dgUrl: '', dgToken: '', dgHost: '',
+  provider: 'crm', dgUrl: '', dgToken: '', dgHost: '', kmUrl: '', kmToken: '',
 };
 
 const DG_PATH = '/external-api/voip/v1/patients/by-phone/';
+const KM_PATIENT_PATH = '/external-api/voip/v1/patients/by-phone/';
+const KM_APPT_PATH = '/external-api/voip/v1/appointments';
 
-/** GET with a chosen Host header (fetch() ignores it): the clinic app picks the clinic by its domain. */
+/** GET with a chosen Host header (fetch() ignores it): the clinic app picks the clinic by its domain.
+ *  Clinic boxes often use self-signed LAN certs — TLS verify is off on purpose. */
 function httpGet(url: URL, headers: Record<string, string>, host: string, timeoutMs: number) {
   return new Promise<{ status: number; type: string; body: Buffer }>((resolve, reject) => {
     const lib = url.protocol === 'https:' ? https : http;
-    const req = lib.get(url, { headers: { ...headers, Host: host }, timeout: timeoutMs, ...(url.protocol === 'https:' ? { servername: host.replace(/:\d+$/, '') } : {}) }, res => {
+    const opts: https.RequestOptions = {
+      headers: { ...headers, Host: host }, timeout: timeoutMs,
+      ...(url.protocol === 'https:' ? { servername: host.replace(/:\d+$/, ''), rejectUnauthorized: false } : {}),
+    };
+    const req = lib.get(url, opts, res => {
       const chunks: Buffer[] = [];
       let size = 0;
       res.on('data', (c: Buffer) => { size += c.length; if (size > 5e6) { req.destroy(new Error('پاسخ سامانه بیماران بیش از حد بزرگ است')); return; } chunks.push(c); });
@@ -112,15 +120,17 @@ export class PatientsService {
   }
 
   publicView(s: CrmSettings) {
-    const { pass, dgToken, ...rest } = s;
-    return { ...rest, hasPass: !!pass, hasDgToken: !!dgToken };
+    const { pass, dgToken, kmToken, ...rest } = s;
+    return { ...rest, hasPass: !!pass, hasDgToken: !!dgToken, hasKmToken: !!kmToken };
   }
 
   async save(b: any, me: Me) {
     const cur = await this.settings(me.tenantId);
     const url = String(b.url ?? cur.url).trim();
     const dgUrl = String(b.dgUrl ?? cur.dgUrl).trim().replace(/\/+$/, '');
-    for (const u of [url, dgUrl]) if (u && !/^https?:\/\/\S+$/i.test(u)) throw new BadRequestException('آدرس باید با http:// یا https:// شروع شود');
+    const kmUrl = String(b.kmUrl ?? cur.kmUrl).trim().replace(/\/+$/, '');
+    for (const u of [url, dgUrl, kmUrl]) if (u && !/^https?:\/\/\S+$/i.test(u)) throw new BadRequestException('آدرس باید با http:// یا https:// شروع شود');
+    const provider = b.provider === 'dastgheib' || b.provider === 'crm' || b.provider === 'kamilo' ? b.provider : cur.provider;
     const next: CrmSettings = {
       enabled: !!(b.enabled ?? cur.enabled), url,
       param: String(b.param ?? cur.param).trim() || 'mobile',
@@ -131,28 +141,36 @@ export class PatientsService {
       timeoutMs: Math.min(15000, Math.max(1000, +(b.timeoutMs ?? cur.timeoutMs) || 4000)),
       phoneName: ['fa', 'latin', 'off'].includes(b.phoneName) ? b.phoneName : cur.phoneName,
       showSurgery: !!(b.showSurgery ?? cur.showSurgery),
-      provider: b.provider === 'dastgheib' || b.provider === 'crm' ? b.provider : cur.provider,
+      provider,
       dgUrl, dgToken: typeof b.dgToken === 'string' && b.dgToken.trim() ? b.dgToken.trim() : cur.dgToken,
       dgHost: String(b.dgHost ?? cur.dgHost).trim().replace(/^https?:\/\//i, '').replace(/\/.*$/, ''),
+      kmUrl, kmToken: typeof b.kmToken === 'string' && b.kmToken.trim() ? b.kmToken.trim() : cur.kmToken,
     };
     if (b.clearPass) next.pass = '';
     if (next.enabled && next.provider === 'crm' && !next.url) throw new BadRequestException('آدرس API را وارد کنید');
     if (next.enabled && next.provider === 'dastgheib' && (!next.dgUrl || !next.dgToken)) throw new BadRequestException('آدرس و توکن API دستغیب را وارد کنید');
+    if (next.enabled && next.provider === 'kamilo' && (!next.kmUrl || !next.kmToken)) throw new BadRequestException('آدرس و توکن API کامیلو را وارد کنید');
     await writeSetting(this.db, 'crm', next as any, me);
     this.caches.set(scopeKey(me.tenantId), next);
     this.fails = 0; this.pausedUntil = 0; this.lastError = '';
     this.bus.emit('crm-saved');
-    const { pass, dgToken, ...safe } = next;
-    await this.db.auditLog.create({ data: { userId: me.id, userName: me.name, action: 'crm.save', target: 'crm', detail: { ...safe, passChanged: !!b.pass, dgTokenChanged: !!b.dgToken } as any } });
+    const { pass, dgToken, kmToken, ...safe } = next;
+    await this.db.auditLog.create({ data: { userId: me.id, userName: me.name, action: 'crm.save', target: 'crm', detail: { ...safe, passChanged: !!b.pass, dgTokenChanged: !!b.dgToken, kmTokenChanged: !!b.kmToken } as any } });
     return this.publicView(next);
   }
 
   /** True when the settings point at a usable patient system. */
-  ready(s: CrmSettings) { return s.enabled && (s.provider === 'dastgheib' ? !!(s.dgUrl && s.dgToken) : !!s.url); }
+  ready(s: CrmSettings) {
+    if (!s.enabled) return false;
+    if (s.provider === 'dastgheib') return !!(s.dgUrl && s.dgToken);
+    if (s.provider === 'kamilo') return !!(s.kmUrl && s.kmToken);
+    return !!s.url;
+  }
 
   /** One request to the CRM; returns the raw answer and the extracted name. */
   async fetchCrm(phone: string, s: CrmSettings) {
     if (s.provider === 'dastgheib') return this.fetchDastgheib(phone, s);
+    if (s.provider === 'kamilo') return this.fetchKamilo(phone, s);
     const u = new URL(s.url);
     u.searchParams.set(s.param, formatPhone(phone, s.phoneFormat));
     const headers: Record<string, string> = { Accept: 'application/json' };
@@ -196,6 +214,46 @@ export class PatientsService {
     }
     const name = d.found && d.patient ? String(d.patient.name || '').replace(/\s+/g, ' ').trim() : '';
     return { name, surgery: null as string | null, raw: d, ms: Date.now() - t0 };
+  }
+
+  /** «کامیلو»: patient card + appointment lists by phone (Bearer token). */
+  async fetchKamilo(phone: string, s: CrmSettings) {
+    const base = s.kmUrl.replace(/\/+$/, '');
+    const u = new URL(base.includes('/external-api/')
+      ? (base.includes('/patients/by-phone') ? base.replace(/\/?$/, '/') + phone : base.replace(/\/+$/, '') + '/' + phone)
+      : base + KM_PATIENT_PATH + phone);
+    const t0 = Date.now();
+    const r = await httpGet(u, { Accept: 'application/json', Authorization: 'Bearer ' + s.kmToken }, u.host, s.timeoutMs);
+    if (r.status !== 200) throw new Error(`پاسخ ${r.status} از کامیلو${r.status === 401 ? ' (توکن اشتباه است)' : r.status === 403 ? ' (ارتباط با VoIP در کامیلو غیرفعال است)' : r.status === 404 ? ' (آدرس درست نیست)' : ''}`);
+    let d: any;
+    try { d = JSON.parse(r.body.toString('utf8')); } catch { throw new Error('پاسخ کامیلو JSON نیست'); }
+    if (!d || typeof d !== 'object' || typeof d.found !== 'boolean') throw new Error('پاسخ کامیلو قالب مورد انتظار را ندارد');
+    if (Array.isArray(d.in_person_appointments)) d.in_person_appointments = d.in_person_appointments.slice(0, 400);
+    if (Array.isArray(d.online_appointments)) d.online_appointments = d.online_appointments.slice(0, 400);
+    const name = d.found ? String(d.name || '').replace(/\s+/g, ' ').trim() : '';
+    return { name, surgery: null as string | null, raw: d, ms: Date.now() - t0 };
+  }
+
+  /** Appointment list for the tenant's kamilo connection (scoped by token's doctor). */
+  async fetchKamiloAppointments(s: CrmSettings, q: { date?: string; from?: string; to?: string; limit?: number; confirmed?: boolean } = {}) {
+    if (!s.kmUrl || !s.kmToken) throw new BadRequestException('آدرس و توکن API کامیلو وارد نشده است');
+    const root = s.kmUrl.replace(/\/+$/, '');
+    const href = /\/appointments\/?$/.test(root) ? root
+      : /\/external-api\/voip\/v1\/?$/.test(root) ? root + '/appointments'
+      : /\/external-api\/voip\/?$/.test(root) ? root + '/v1/appointments'
+      : root + KM_APPT_PATH;
+    const final = new URL(href);
+    if (q.date) final.searchParams.set('date', q.date);
+    if (q.from) final.searchParams.set('from', q.from);
+    if (q.to) final.searchParams.set('to', q.to);
+    if (q.limit) final.searchParams.set('limit', String(q.limit));
+    if (q.confirmed) final.searchParams.set('confirmed', '1');
+    const r = await httpGet(final, { Accept: 'application/json', Authorization: 'Bearer ' + s.kmToken }, final.host, s.timeoutMs);
+    if (r.status !== 200) throw new Error(`پاسخ ${r.status} از کامیلو${r.status === 401 ? ' (توکن اشتباه است)' : r.status === 403 ? ' (ارتباط با VoIP در کامیلو غیرفعال است)' : ''}`);
+    let d: any;
+    try { d = JSON.parse(r.body.toString('utf8')); } catch { throw new Error('پاسخ کامیلو JSON نیست'); }
+    if (!d || !Array.isArray(d.appointments)) throw new Error('پاسخ کامیلو لیست نوبت ندارد');
+    return d;
   }
 
   /** Inbound call started: ask the CRM in the background (never delays the call). */
@@ -302,7 +360,9 @@ export class CrmController {
     const phone = String(b.phone || '').replace(/\D/g, '').replace(/^98/, '0').replace(/^9/, '09');
     if (!/^09\d{9}$/.test(phone)) throw new BadRequestException('یک شماره موبایل معتبر وارد کنید (مثل ۰۹۱۲…)');
     const s = await this.patients.settings(me.tenantId);
-    if (s.provider === 'dastgheib' ? !s.dgUrl || !s.dgToken : !s.url) throw new BadRequestException(s.provider === 'dastgheib' ? 'آدرس و توکن API دستغیب وارد نشده است' : 'آدرس API وارد نشده است');
+    if (s.provider === 'dastgheib' ? !s.dgUrl || !s.dgToken : s.provider === 'kamilo' ? !s.kmUrl || !s.kmToken : !s.url) {
+      throw new BadRequestException(s.provider === 'dastgheib' ? 'آدرس و توکن API دستغیب وارد نشده است' : s.provider === 'kamilo' ? 'آدرس و توکن API کامیلو وارد نشده است' : 'آدرس API وارد نشده است');
+    }
     try {
       const r = await this.patients.fetchCrm(phone, s);
       if (s.provider === 'dastgheib') {
@@ -310,10 +370,50 @@ export class CrmController {
         const raw = { ...r.raw, patient: r.raw.patient ? { ...p, avatar: p.avatar ? '(عکس پروفایل دریافت شد)' : undefined } : undefined };
         return { ok: true, name: r.name, surgery: r.raw.found ? `${(r.raw.services || []).length} سابقه خدمت · ${(r.raw.details || []).length} فیلد تکمیلی` : 'این شماره در دستغیب پرونده ندارد', phone: await this.preview(r.name, null, s), ms: r.ms, raw: JSON.stringify(raw, null, 2).slice(0, 3000), latin: r.name ? toLatin(r.name) : '' };
       }
+      if (s.provider === 'kamilo') {
+        const n = r.raw.found ? `${r.raw.appointments_total || 0} نوبت` : 'این شماره در کامیلو پرونده ندارد';
+        return { ok: true, name: r.name, surgery: n, phone: await this.preview(r.name, null, s), ms: r.ms, raw: JSON.stringify(r.raw, null, 2).slice(0, 3000), latin: r.name ? toLatin(r.name) : '' };
+      }
       const note = surgeryNote(daysSince(r.surgery), false);
       return { ok: true, name: r.name, surgery: r.surgery ? note : 'در این سامانه جراحی تکمیل‌شده‌ای ثبت نشده', phone: await this.preview(r.name, r.surgery, s), ms: r.ms, raw: JSON.stringify(r.raw, null, 2).slice(0, 3000), latin: r.name ? toLatin(r.name) : '' };
     } catch (e) {
       return { ok: false, error: (e as Error).name === 'TimeoutError' ? 'سامانه بیماران در زمان تعیین‌شده جواب نداد' : (e as Error).message };
+    }
+  }
+
+  /** نوبت‌های کامیلو برای مستأجر لاگین‌شده (تنظیمات TenantConfig). */
+  @Get('appointments')
+  async appointments(
+    @CurrentUser() me: Me,
+    @Query('date') date?: string,
+    @Query('from') from?: string,
+    @Query('to') to?: string,
+    @Query('limit') limit?: string,
+    @Query('confirmed') confirmed?: string,
+  ) {
+    return this.listAppointments(me, { date, from, to, limit: limit ? +limit : undefined, confirmed: confirmed === '1' || confirmed === 'true' });
+  }
+
+  @Post('appointments')
+  async appointmentsPost(@Body() b: { date?: string; from?: string; to?: string; limit?: number; confirmed?: boolean }, @CurrentUser() me: Me) {
+    return this.listAppointments(me, b || {});
+  }
+
+  private async listAppointments(me: Me, b: { date?: string; from?: string; to?: string; limit?: number; confirmed?: boolean }) {
+    const s = await this.patients.settings(me.tenantId);
+    if (s.provider !== 'kamilo') throw new BadRequestException('برای دریافت لیست نوبت، نوع سامانه را روی «کامیلو» بگذارید');
+    if (!this.patients.ready(s)) throw new BadRequestException('آدرس و توکن کامیلو را ذخیره کنید');
+    try {
+      const d = await this.patients.fetchKamiloAppointments(s, {
+        date: b.date ? String(b.date) : undefined,
+        from: b.from ? String(b.from) : undefined,
+        to: b.to ? String(b.to) : undefined,
+        limit: b.limit ? +b.limit : 100,
+        confirmed: !!b.confirmed,
+      });
+      return { ok: true, doctorId: d.doctor_id ?? null, count: d.count ?? (d.appointments || []).length, appointments: d.appointments || [] };
+    } catch (e) {
+      throw new BadRequestException((e as Error).name === 'TimeoutError' ? 'کامیلو در زمان تعیین‌شده جواب نداد' : (e as Error).message);
     }
   }
 }
@@ -437,8 +537,9 @@ export class PatientCardController {
     const days = daysSince(pt?.surgery);
     // crm: on (connection off) · mobile (only mobiles are looked up) · found / none / never / error
     const dgOn = s.provider === 'dastgheib';
-    // the clinic app is not charged per lookup: an open file older than two minutes is asked again in the background
-    if (dgOn && this.patients.ready(s) && /^09\d{9}$/.test(p) && !this.patients.isLooking(p) && (!chk || chk.at.getTime() < Date.now() - 120e3)) this.patients.lookup(p, me.tenantId);
+    const kmOn = s.provider === 'kamilo';
+    // dastgheib/kamilo are not charged per lookup: refresh open files older than two minutes
+    if ((dgOn || kmOn) && this.patients.ready(s) && /^09\d{9}$/.test(p) && !this.patients.isLooking(p) && (!chk || chk.at.getTime() < Date.now() - 120e3)) this.patients.lookup(p, me.tenantId);
     const crmState = !s.enabled ? 'off' : !/^09\d{9}$/.test(p) ? 'nomobile' : this.patients.isLooking(p) ? 'looking'
       // the newest answer wins: a later «no file» or failure is shown over an older stored file
       : chk && (!pt?.crmAt || chk.at >= pt.crmAt) ? (chk.found ? 'found' : chk.error ? (pt?.crm ? 'found' : 'error') : 'none') : pt?.crm ? 'found' : 'never';

@@ -633,7 +633,7 @@ class LiveApp extends React.Component {
         crmData: d,
         crmForm: st.crmForm && st.page === 'vcrm' && st.crmLoaded
           ? st.crmForm
-          : { ...d.settings, pass: '', dgToken: '' },
+          : { ...d.settings, pass: '', dgToken: '', kmToken: '' },
         crmLoaded: true,
       }));
     } catch (e) { this.toast('بارگذاری تنظیمات سامانه بیماران ناموفق بود: ' + e.message); }
@@ -641,13 +641,15 @@ class LiveApp extends React.Component {
 
   crmVals(s) {
     const d = s.crmData;
-    const f = s.crmForm || { enabled: false, url: '', param: 'mobile', user: '', pass: '', phoneFormat: '0', nameField: 'name', timeoutMs: 4000, phoneName: 'fa', showSurgery: true, provider: 'crm', dgUrl: '', dgToken: '', dgHost: '' };
+    const f = s.crmForm || { enabled: false, url: '', param: 'mobile', user: '', pass: '', phoneFormat: '0', nameField: 'name', timeoutMs: 4000, phoneName: 'fa', showSurgery: true, provider: 'crm', dgUrl: '', dgToken: '', dgHost: '', kmUrl: '', kmToken: '' };
     const setF = o => this.setState({ crmForm: { ...f, ...o } });
     const tg = on => ({ bg: on ? '#8DC63F' : '#d9dad6', j: on ? 'flex-end' : 'flex-start' });
     const isDg = f.provider === 'dastgheib';
+    const isKm = f.provider === 'kamilo';
+    const isCrm = f.provider === 'crm' || (!isDg && !isKm);
     const persist = async () => {
       const r = await api('/crm', f, 'PUT');
-      this.setState(x => ({ crmData: { ...(x.crmData || { status: {} }), settings: r }, crmForm: { ...f, pass: '', dgToken: '' } }));
+      this.setState(x => ({ crmData: { ...(x.crmData || { status: {} }), settings: r }, crmForm: { ...f, pass: '', dgToken: '', kmToken: '' } }));
       return r;
     };
     const t = s.crmTest;
@@ -659,17 +661,20 @@ class LiveApp extends React.Component {
     const st = d ? d.status : null;
     const pickBd = on => (on ? '#0E7C7B' : '#E3E8EF');
     const pickBg = on => (on ? '#E3F2F1' : '#fff');
+    const appts = s.crmAppts || null;
     return { crm2: {
       f, onT: tg(f.enabled), onLabel: f.enabled ? 'فعال' : 'غیرفعال', tog: () => setF({ enabled: !f.enabled }),
-      isDg, isCrm: !isDg,
+      isDg, isKm, isCrm,
       providers: [
-        { title: 'API عمومی (CRM)', sub: 'آدرس JSON و Basic Auth — سامانه نوبت/جراحی کلینیک', pick: () => setF({ provider: 'crm' }), bg: pickBg(!isDg), bd: pickBd(!isDg) },
+        { title: 'API عمومی (CRM)', sub: 'آدرس JSON و Basic Auth — سامانه نوبت/جراحی کلینیک', pick: () => setF({ provider: 'crm' }), bg: pickBg(isCrm), bd: pickBd(isCrm) },
         { title: 'دستغیب', sub: 'اپلیکیشن مطب دستغیب؛ آدرس سرور و توکن VoIP', pick: () => setF({ provider: 'dastgheib' }), bg: pickBg(isDg), bd: pickBd(isDg) },
+        { title: 'اتصال به کامیلو', sub: 'سامانه نوبت کامیلو؛ آدرس سرور و توکن VoIP', pick: () => setF({ provider: 'kamilo' }), bg: pickBg(isKm), bd: pickBd(isKm) },
       ],
-      set: Object.fromEntries(['url', 'param', 'user', 'pass', 'phoneFormat', 'nameField', 'timeoutMs', 'phoneName', 'showSurgery', 'dgUrl', 'dgToken', 'dgHost'].map(k => [k, e => setF({ [k]: k === 'timeoutMs' ? (parseInt(e.target.value, 10) || 0) : k === 'showSurgery' ? e.target.value === '1' : e.target.value })])),
+      set: Object.fromEntries(['url', 'param', 'user', 'pass', 'phoneFormat', 'nameField', 'timeoutMs', 'phoneName', 'showSurgery', 'dgUrl', 'dgToken', 'dgHost', 'kmUrl', 'kmToken'].map(k => [k, e => setF({ [k]: k === 'timeoutMs' ? (parseInt(e.target.value, 10) || 0) : k === 'showSurgery' ? e.target.value === '1' : e.target.value })])),
       surgSel: f.showSurgery === false ? '0' : '1',
       passPh: d && d.settings.hasPass ? '•••••••• (ذخیره‌شده؛ برای تغییر، رمز جدید را وارد کنید)' : 'رمز عبور',
       dgTokenPh: d && d.settings.hasDgToken ? '•••••••• (ذخیره‌شده؛ برای تغییر، توکن جدید را وارد کنید)' : 'توکن API',
+      kmTokenPh: d && d.settings.hasKmToken ? '•••••••• (ذخیره‌شده؛ برای تغییر، توکن جدید را وارد کنید)' : 'توکن API',
       kpis: [
         { label: 'نام‌های دریافت‌شده از سامانه', value: st ? (st.named || 0).toLocaleString('fa-IR') : '…', color: '#3d6a0c' },
         { label: 'کل بیماران شناخته‌شده', value: st ? (st.total || 0).toLocaleString('fa-IR') : '…', color: '#232425' },
@@ -685,6 +690,27 @@ class LiveApp extends React.Component {
         catch (e) { this.setState({ crmTest: { ok: false, error: e.message }, crmBusy: false }); }
       },
       hasResult: result.length > 0, result, raw: t && t.raw ? t.raw : '', hasRaw: !!(t && t.raw),
+      apptDate: s.crmApptDate || '', setApptDate: e => this.setState({ crmApptDate: e.target.value }),
+      apptBusy: !!s.crmApptBusy, apptLabel: s.crmApptBusy ? 'در حال دریافت…' : 'دریافت نوبت‌ها',
+      hasAppts: !!(appts && Array.isArray(appts.appointments)), apptCount: appts ? (appts.count || 0).toLocaleString('fa-IR') : '۰',
+      apptErr: appts && appts.error ? appts.error : '',
+      apptRows: (appts && appts.appointments || []).slice(0, 80).map(a => ({
+        id: a.id, when: (a.date || '') + ' · ' + (a.time || ''),
+        patient: (a.patient && (a.patient.name || a.patient.mobile)) || '—',
+        mobile: (a.patient && a.patient.mobile) || '',
+        service: a.service || a.part || '—',
+        status: a.status_label || '—',
+      })),
+      loadAppts: async () => {
+        this.setState({ crmApptBusy: true, crmAppts: null });
+        try {
+          await persist();
+          const q = s.crmApptDate ? ('?date=' + encodeURIComponent(s.crmApptDate)) : '';
+          const r = await api('/crm/appointments' + q);
+          this.setState({ crmAppts: r, crmApptBusy: false });
+          this.toast((r.count || 0).toLocaleString('fa-IR') + ' نوبت دریافت شد');
+        } catch (e) { this.setState({ crmAppts: { error: e.message, appointments: [] }, crmApptBusy: false }); }
+      },
     } };
   }
 
