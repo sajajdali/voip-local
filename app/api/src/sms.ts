@@ -3,6 +3,7 @@
 // Sends are never retried automatically (a timeout may still have sent the message).
 import { BadRequestException, Body, Controller, ForbiddenException, Get, Injectable, Logger, Param, Post, Put } from '@nestjs/common';
 import { CurrentUser, Me, Perm } from './auth';
+import { readSetting, writeSetting, scopeKey } from './tenant-settings';
 import { Bus } from './bus';
 import { hhmm, jalaliDate } from './jalali';
 import { clinicalOf } from './patients';
@@ -39,15 +40,16 @@ const ICONS = ['calendar', 'app', 'missed', 'pin', 'card', 'heart', 'chat', 'sta
 @Injectable()
 export class SmsService {
   private log = new Logger('Sms');
-  private cache: SmsSettings | null = null;
+  private caches = new Map<string, SmsSettings>();
   constructor(private db: PrismaService, private bus: Bus) {}
 
-  async settings(): Promise<SmsSettings> {
-    if (!this.cache) {
-      const r = await this.db.configEntry.findUnique({ where: { key: 'sms' } });
-      this.cache = { ...DEFAULTS, ...((r?.data as any) || {}) };
+  async settings(tenantId?: string | null): Promise<SmsSettings> {
+    const k = scopeKey(tenantId);
+    if (!this.caches.has(k)) {
+      const r = await readSetting(this.db, 'sms', tenantId);
+      this.caches.set(k, { ...DEFAULTS, ...((r as any) || {}) });
     }
-    return this.cache!;
+    return this.caches.get(k)!;
   }
 
   publicView(s: SmsSettings) {
@@ -56,7 +58,7 @@ export class SmsService {
   }
 
   async save(b: any, me: Me) {
-    const cur = await this.settings();
+    const cur = await this.settings(me.tenantId);
     const tpls: SmsTemplate[] = (Array.isArray(b.templates) ? b.templates : cur.templates).slice(0, 20).map((t: any, i: number) => ({
       id: /^[a-z0-9_-]{2,30}$/i.test(t.id || '') ? t.id : 't' + Date.now().toString(36) + i,
       title: String(t.title || '').trim().slice(0, 40) || 'پیامک',
@@ -72,8 +74,8 @@ export class SmsService {
       templates: tpls,
     };
     if (next.enabled && !next.dryRun && !next.token) throw new BadRequestException('برای ارسال واقعی، توکن API پنل پیامک را وارد کنید (یا حالت آزمایشی را روشن بگذارید)');
-    await this.db.configEntry.upsert({ where: { key: 'sms' }, create: { key: 'sms', data: next as any, updatedBy: me.id }, update: { data: next as any, updatedBy: me.id } });
-    this.cache = next;
+    await writeSetting(this.db, 'sms', next as any, me);
+    this.caches.set(scopeKey(me.tenantId), next);
     const { token, ...safe } = next;
     await this.db.auditLog.create({ data: { userId: me.id, userName: me.name, action: 'sms.save', target: 'sms', detail: { ...safe, tokenChanged: !!b.token } as any } });
     this.bus.emit('sms', {});
@@ -81,8 +83,8 @@ export class SmsService {
   }
 
   /** Account credit (`data.ballance`, spelled with two l's by the service); null = unknown, 0 is a real value. */
-  async budget() {
-    const s = await this.settings();
+  async budget(tenantId?: string | null) {
+    const s = await this.settings(tenantId);
     if (!s.token) throw new BadRequestException('توکن API پنل پیامک وارد نشده است');
     const r = await fetch(BASE + '/budget', { headers: { Authorization: 'Bearer ' + s.token, Accept: 'application/json' }, signal: AbortSignal.timeout(10000) });
     if (r.status === 401 || r.status === 403) throw new BadRequestException('توکن پنل پیامک پذیرفته نشد');
@@ -111,7 +113,7 @@ export class SmsService {
   }
 
   async send(callKey: string, phone: string, templateId: string, me: Me) {
-    const s = await this.settings();
+    const s = await this.settings(me.tenantId);
     if (!s.enabled) throw new BadRequestException('ارسال پیامک در تنظیمات فعال نیست');
     const t = s.templates.find(x => x.id === templateId && x.on);
     if (!t) throw new BadRequestException('این قالب پیامک تعریف نشده یا غیرفعال است');
@@ -165,14 +167,14 @@ export class SmsController {
   /** Buttons for the panel: titles and icons only (never the token). */
   @Perm('calls')
   @Get('buttons')
-  async buttons() {
-    const s = await this.sms.settings();
+  async buttons(@CurrentUser() me: Me) {
+    const s = await this.sms.settings(me.tenantId);
     return { enabled: s.enabled, dryRun: s.dryRun, buttons: s.templates.filter(t => t.on).map(t => ({ id: t.id, title: t.title, icon: t.icon, ready: !!t.template })) };
   }
 
   @Perm('vsms')
   @Get('settings')
-  async get() { return this.sms.publicView(await this.sms.settings()); }
+  async get(@CurrentUser() me: Me) { return this.sms.publicView(await this.sms.settings(me.tenantId)); }
 
   @Perm('vsms', 'edit')
   @Put('settings')
@@ -180,7 +182,7 @@ export class SmsController {
 
   @Perm('vsms')
   @Get('budget')
-  budget() { return this.sms.budget(); }
+  budget(@CurrentUser() me: Me) { return this.sms.budget(me.tenantId); }
 
   @Perm('calls', 'edit')
   @Post('send')

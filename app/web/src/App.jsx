@@ -14,8 +14,8 @@ let SECTIONS = [];
 // page → the permission section that guards it
 const PAGE_SECTION = { calls: 'calls', file: 'calls', inbound: 'inbound', live: 'live', voice: 'voice', unreached: 'unreached', reports: 'reports', days: 'reports', creports: 'calls', bookings: 'bookings', breport: 'reports', bsurvey: 'bsurvey', aiops: 'coach', vvm: 'vvm', vsms: 'vsms', refs: 'refer', survey: 'survey', ai: 'ai', aiconv: 'aiconv', sys: 'sys', usage: 'usage', users: 'users', tenants: 'tenants', vai: 'vai', vagent: 'vagent', vbook: 'vbook', vcrm: 'vcrm', vapi: 'vapi', billing: 'billing', vbackup: 'vbackup', vsurvey: 'vsurvey', vext: 'vext', vtrunk: 'vtrunk', vqueue: 'vqueue', vivr: 'vivr', vsound: 'vsound', vroute: 'vroute', vout: 'vout', vtime: 'vtime', vring: 'vring', vfollow: 'vfollow', vblack: 'vblack' };
 const VOIP_SECTIONS = ['vext', 'vtrunk', 'vqueue', 'vivr', 'vsound', 'vroute', 'vout', 'vtime', 'vring', 'vfollow', 'vblack', 'vsurvey', 'vvm'];
-const SETTING_SECTIONS = [...VOIP_SECTIONS, 'vai', 'vagent', 'vbook', 'vcrm', 'vapi', 'billing', 'usage', 'vbackup', 'sys', 'users', 'tenants'];
-const PLATFORM_SECTIONS = new Set(['vtrunk', 'tenants', 'vbackup', 'billing', 'usage', 'sys', 'vai', 'vagent', 'vapi']);
+const SETTING_SECTIONS = [...VOIP_SECTIONS, 'vai', 'vagent', 'vbook', 'vcrm', 'vapi', 'vsms', 'billing', 'usage', 'vbackup', 'sys', 'users', 'tenants'];
+const PLATFORM_SECTIONS = new Set(['vtrunk', 'tenants', 'vbackup', 'billing', 'usage', 'sys']);
 const CAN = (section, action = 'view') => {
   if (ME.tenantId && PLATFORM_SECTIONS.has(section)) return false;
   if (ME.role === 'admin' && !ME.tenantId) return true;
@@ -156,7 +156,15 @@ class LiveApp extends React.Component {
     if (s.page === 'usage' && (prev.page !== 'usage' || prev.uF2 !== s.uF2)) this.loadUsage();
     if (s.page === 'sys' && prev.page !== 'sys') { this.loadSys(); clearInterval(this.sysT); this.sysT = setInterval(() => { if (this.state.page === 'sys') this.loadSys(); else clearInterval(this.sysT); }, 5000); }
     if (s.page === 'vagent' && prev.page !== 'vagent') this.loadAgent();
-    if (s.page === 'settings' && prev.page !== 'settings') { this.loadAi(); this.loadApi(); this.loadBackups(); this.loadCrm(); this.loadAgent(); if (CAN('tenants')) this.loadTenants(); }
+    if (s.page === 'settings' && prev.page !== 'settings') {
+      if (CAN('vai')) this.loadAi();
+      if (CAN('vapi')) this.loadApi();
+      if (CAN('vbackup')) this.loadBackups();
+      if (CAN('vcrm')) this.loadCrm();
+      if (CAN('vagent')) this.loadAgent();
+      if (CAN('vsms')) this.loadSmsButtons();
+      if (CAN('tenants')) this.loadTenants();
+    }
     if (this.remote) return;
     VOIP_KEYS.forEach(k => {
       if (s[k] === prev[k]) return;

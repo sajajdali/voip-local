@@ -4,6 +4,7 @@ import { BadRequestException, Body, Controller, Get, Injectable, Logger, Param, 
 import * as http from 'http';
 import * as https from 'https';
 import { CurrentUser, Me, Roles, Perm } from './auth';
+import { readSetting, writeSetting, scopeKey } from './tenant-settings';
 import { Bus } from './bus';
 import { PrismaService } from './prisma.service';
 
@@ -93,7 +94,7 @@ export function toLatin(s: string) {
 @Injectable()
 export class PatientsService {
   private log = new Logger('Patients');
-  private cache: CrmSettings | null = null;
+  private caches = new Map<string, CrmSettings>();
   private recent = new Map<string, number>();
   private inflight = new Map<string, Promise<void>>();
   private fails = 0;
@@ -101,12 +102,13 @@ export class PatientsService {
   lastError = '';
   constructor(private db: PrismaService, private bus: Bus) {}
 
-  async settings(): Promise<CrmSettings> {
-    if (!this.cache) {
-      const r = await this.db.configEntry.findUnique({ where: { key: 'crm' } });
-      this.cache = { ...DEFAULTS, ...((r?.data as any) || {}) };
+  async settings(tenantId?: string | null): Promise<CrmSettings> {
+    const k = scopeKey(tenantId);
+    if (!this.caches.has(k)) {
+      const r = await readSetting(this.db, 'crm', tenantId);
+      this.caches.set(k, { ...DEFAULTS, ...((r as any) || {}) });
     }
-    return this.cache!;
+    return this.caches.get(k)!;
   }
 
   publicView(s: CrmSettings) {
@@ -115,7 +117,7 @@ export class PatientsService {
   }
 
   async save(b: any, me: Me) {
-    const cur = await this.settings();
+    const cur = await this.settings(me.tenantId);
     const url = String(b.url ?? cur.url).trim();
     const dgUrl = String(b.dgUrl ?? cur.dgUrl).trim().replace(/\/+$/, '');
     for (const u of [url, dgUrl]) if (u && !/^https?:\/\/\S+$/i.test(u)) throw new BadRequestException('آدرس باید با http:// یا https:// شروع شود');
@@ -136,8 +138,8 @@ export class PatientsService {
     if (b.clearPass) next.pass = '';
     if (next.enabled && next.provider === 'crm' && !next.url) throw new BadRequestException('آدرس API را وارد کنید');
     if (next.enabled && next.provider === 'dastgheib' && (!next.dgUrl || !next.dgToken)) throw new BadRequestException('آدرس و توکن API دستغیب را وارد کنید');
-    await this.db.configEntry.upsert({ where: { key: 'crm' }, create: { key: 'crm', data: next as any, updatedBy: me.id }, update: { data: next as any, updatedBy: me.id } });
-    this.cache = next;
+    await writeSetting(this.db, 'crm', next as any, me);
+    this.caches.set(scopeKey(me.tenantId), next);
     this.fails = 0; this.pausedUntil = 0; this.lastError = '';
     this.bus.emit('crm-saved');
     const { pass, dgToken, ...safe } = next;
@@ -197,9 +199,9 @@ export class PatientsService {
   }
 
   /** Inbound call started: ask the CRM in the background (never delays the call). */
-  lookup(phone: string) {
+  lookup(phone: string, tenantId?: string | null) {
     const job = (async () => {
-      const s = await this.settings();
+      const s = await this.settings(tenantId);
       if (!this.ready(s) || !/^09\d{9}$/.test(phone)) return;
       const now = Date.now();
       // the same caller again within a minute (redial, retry) is not a new CRM lookup
@@ -255,8 +257,8 @@ export class PatientsService {
   }
 
   /** Name for the desk phone display, from the local cache only (instant). */
-  async phoneName(phone: string) {
-    const s = await this.settings();
+  async phoneName(phone: string, tenantId?: string | null) {
+    const s = await this.settings(tenantId);
     if (!s.enabled || s.phoneName === 'off' || !phone) return '';
     const p = await this.db.patient.findUnique({ where: { phone } });
     if (!p) return '';
@@ -284,8 +286,8 @@ export class CrmController {
   }
 
   @Get()
-  async get() {
-    const s = await this.patients.settings();
+  async get(@CurrentUser() me: Me) {
+    const s = await this.patients.settings(me.tenantId);
     const [named, total] = await Promise.all([this.db.patient.count({ where: { source: 'crm' } }), this.db.patient.count()]);
     return { settings: this.patients.publicView(s), status: { named, total, lastError: this.patients.lastError } };
   }
@@ -296,10 +298,10 @@ export class CrmController {
   /** One real lookup (the CRM logs it like a call). */
   @Perm('vcrm', 'edit')
   @Post('test')
-  async test(@Body() b: { phone?: string }) {
+  async test(@Body() b: { phone?: string }, @CurrentUser() me: Me) {
     const phone = String(b.phone || '').replace(/\D/g, '').replace(/^98/, '0').replace(/^9/, '09');
     if (!/^09\d{9}$/.test(phone)) throw new BadRequestException('یک شماره موبایل معتبر وارد کنید (مثل ۰۹۱۲…)');
-    const s = await this.patients.settings();
+    const s = await this.patients.settings(me.tenantId);
     if (s.provider === 'dastgheib' ? !s.dgUrl || !s.dgToken : !s.url) throw new BadRequestException(s.provider === 'dastgheib' ? 'آدرس و توکن API دستغیب وارد نشده است' : 'آدرس API وارد نشده است');
     try {
       const r = await this.patients.fetchCrm(phone, s);
@@ -425,10 +427,10 @@ export class PatientCardController {
 
   @Perm('calls')
   @Get(':phone/card')
-  async card(@Param('phone') phone: string) {
+  async card(@Param('phone') phone: string, @CurrentUser() me: Me) {
     const p = String(phone).replace(/\D/g, '');
     const [pt, s, reports, chk] = await Promise.all([
-      this.db.patient.findUnique({ where: { phone: p } }), this.patients.settings(),
+      this.db.patient.findUnique({ where: { phone: p } }), this.patients.settings(me.tenantId),
       this.db.callReport.findMany({ where: { phone: p }, orderBy: { createdAt: 'desc' }, take: 20 }),
       this.db.crmCheck.findUnique({ where: { phone: p } }),
     ]);
@@ -436,7 +438,7 @@ export class PatientCardController {
     // crm: on (connection off) · mobile (only mobiles are looked up) · found / none / never / error
     const dgOn = s.provider === 'dastgheib';
     // the clinic app is not charged per lookup: an open file older than two minutes is asked again in the background
-    if (dgOn && this.patients.ready(s) && /^09\d{9}$/.test(p) && !this.patients.isLooking(p) && (!chk || chk.at.getTime() < Date.now() - 120e3)) this.patients.lookup(p);
+    if (dgOn && this.patients.ready(s) && /^09\d{9}$/.test(p) && !this.patients.isLooking(p) && (!chk || chk.at.getTime() < Date.now() - 120e3)) this.patients.lookup(p, me.tenantId);
     const crmState = !s.enabled ? 'off' : !/^09\d{9}$/.test(p) ? 'nomobile' : this.patients.isLooking(p) ? 'looking'
       // the newest answer wins: a later «no file» or failure is shown over an older stored file
       : chk && (!pt?.crmAt || chk.at >= pt.crmAt) ? (chk.found ? 'found' : chk.error ? (pt?.crm ? 'found' : 'error') : 'none') : pt?.crm ? 'found' : 'never';
@@ -453,10 +455,10 @@ export class PatientCardController {
   private last = new Map<string, number>();
   @Perm('calls', 'edit')
   @Post(':phone/refresh')
-  async refresh(@Param('phone') phone: string) {
+  async refresh(@Param('phone') phone: string, @CurrentUser() me: Me) {
     const p = String(phone).replace(/\D/g, '');
     if (!/^09\d{9}$/.test(p)) throw new BadRequestException('فقط شماره موبایل در سامانه بیماران جستجو می‌شود');
-    const s = await this.patients.settings();
+    const s = await this.patients.settings(me.tenantId);
     if (!this.patients.ready(s)) throw new BadRequestException('اتصال به سامانه بیماران در تنظیمات فعال نیست');
     if ((this.last.get(p) || 0) > Date.now() - 60e3) throw new BadRequestException('همین الان به‌روزرسانی شد؛ یک دقیقه دیگر دوباره امتحان کنید');
     this.last.set(p, Date.now());
@@ -469,6 +471,6 @@ export class PatientCardController {
       await this.patients.check(p, null, msg);
       throw new BadRequestException(msg);
     }
-    return this.card(p);
+    return this.card(p, me);
   }
 }

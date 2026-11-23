@@ -19,6 +19,11 @@ export const DEFAULT_TENANT_FEATURES = {
   inbound: true,
   outbound: true,
   recordings: true,
+  ai: true,
+  agent: true,
+  crm: true,
+  api: true,
+  sms: true,
 };
 
 export type TenantFeatures = typeof DEFAULT_TENANT_FEATURES;
@@ -32,6 +37,11 @@ export const TENANT_FEATURE_LABELS: Record<keyof TenantFeatures, string> = {
   inbound: 'مسیر ورودی',
   outbound: 'مسیر خروجی',
   recordings: 'گزارش و ضبط مکالمه',
+  ai: 'هوش مصنوعی (تحلیل و مدل)',
+  agent: 'دستیار هوشمند تلفنی',
+  crm: 'سامانه بیماران / CRM',
+  api: 'ارسال تماس‌ها (API / وب‌هوک)',
+  sms: 'پیامک',
 };
 
 export const digits = (s: any) => String(s ?? '').replace(/\D/g, '');
@@ -133,6 +143,11 @@ export const FEATURE_SECTIONS: Record<keyof TenantFeatures, string[]> = {
   inbound: ['vroute'],
   outbound: ['vout'],
   recordings: [],
+  ai: ['vai', 'ai', 'coach'],
+  agent: ['vagent', 'aiconv'],
+  crm: ['vcrm'],
+  api: ['vapi'],
+  sms: ['vsms'],
 };
 
 /** Build full pool DID from a 3-digit suffix (000–999). */

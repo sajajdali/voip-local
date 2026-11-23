@@ -7,6 +7,7 @@ import { BadRequestException, Body, Controller, Get, Injectable, Logger, Post, P
 import { randomUUID } from 'crypto';
 import * as fs from 'fs';
 import { CurrentUser, Me, Roles, Perm } from './auth';
+import { readSetting, writeSetting, scopeKey } from './tenant-settings';
 import { Bus } from './bus';
 import { BillingService } from './billing';
 import { UsageService, usageCtx, wavSeconds } from './usage';
@@ -221,7 +222,7 @@ export function keywordAnalysis(t: string) {
 @Injectable()
 export class AiService implements OnModuleInit {
   private log = new Logger('AI');
-  private cache: AiSettings | null = null;
+  private caches = new Map<string, AiSettings>();
   private q: string[] = [];
   private busy = false;
   constructor(private db: PrismaService, private bus: Bus, private usage: UsageService, private billing: BillingService) {}
@@ -232,12 +233,12 @@ export class AiService implements OnModuleInit {
   }
 
   private async recover() {
-    const s = await this.settings();
     const recent = new Date(Date.now() - 12 * 3600e3);
-    const stuck = await this.db.call.findMany({ where: { aiState: 'queued' }, select: { id: true, st: true, recPath: true, dur: true, startedAt: true, queue: true }, orderBy: { startedAt: 'asc' } });
+    const stuck = await this.db.call.findMany({ where: { aiState: 'queued' }, select: { id: true, st: true, recPath: true, dur: true, startedAt: true, queue: true, tenantId: true }, orderBy: { startedAt: 'asc' } });
     let again = 0, cleared = 0;
     for (const c of stuck) {
       if (c.queue === 'دستیار هوشمند') { if (c.startedAt < new Date(Date.now() - 600e3)) { await this.db.call.update({ where: { id: c.id }, data: { aiState: 'none' } }); cleared++; } continue; }
+      const s = await this.settings(c.tenantId);
       if (c.startedAt >= recent && (await this.eligible(c, s))) { if (!this.q.includes(c.id)) this.q.push(c.id); again++; }
       else { await this.db.call.update({ where: { id: c.id }, data: { aiState: 'none' } }); cleared++; }
     }
@@ -245,12 +246,13 @@ export class AiService implements OnModuleInit {
     this.next();
   }
 
-  async settings(): Promise<AiSettings> {
-    if (!this.cache) {
-      const r = await this.db.configEntry.findUnique({ where: { key: 'ai' } });
-      this.cache = { ...DEFAULTS, ...((r?.data as any) || {}) };
+  async settings(tenantId?: string | null): Promise<AiSettings> {
+    const k = scopeKey(tenantId);
+    if (!this.caches.has(k)) {
+      const data = await readSetting(this.db, 'ai', tenantId);
+      this.caches.set(k, { ...DEFAULTS, ...((data as any) || {}) });
     }
-    return this.cache!;
+    return this.caches.get(k)!;
   }
 
   publicView(s: AiSettings) {
@@ -260,7 +262,7 @@ export class AiService implements OnModuleInit {
   }
 
   async save(b: any, me: Me) {
-    const cur = await this.settings();
+    const cur = await this.settings(me.tenantId);
     const url = (v: any, d: string) => { const u = String(v ?? d).trim().replace(/\/+$/, ''); if (u && !/^https?:\/\/\S+$/i.test(u)) throw new BadRequestException('آدرس باید با http:// یا https:// شروع شود'); return u; };
     const next: AiSettings = {
       enabled: !!(b.enabled ?? cur.enabled),
@@ -279,8 +281,8 @@ export class AiService implements OnModuleInit {
     if (next.llmProvider !== 'keywords' && !next.llmModel) throw new BadRequestException('نام مدل تحلیل را وارد کنید');
     if (next.llmProvider === 'openai' && !next.llmUrl) throw new BadRequestException('آدرس سرویس تحلیل را وارد کنید');
     if (next.sttProvider !== 'none' && !next.sttUrl) throw new BadRequestException('آدرس سرویس تبدیل گفتار را وارد کنید');
-    await this.db.configEntry.upsert({ where: { key: 'ai' }, create: { key: 'ai', data: next as any, updatedBy: me.id }, update: { data: next as any, updatedBy: me.id } });
-    this.cache = next;
+    await writeSetting(this.db, 'ai', next as any, me);
+    this.caches.set(scopeKey(me.tenantId), next);
     const { sttKey, llmKey, ...safe } = next;
     await this.db.auditLog.create({ data: { userId: me.id, userName: me.name, action: 'ai.save', target: 'ai', detail: { ...safe, sttKeyChanged: !!b.sttKey, llmKeyChanged: !!b.llmKey } as any } });
     return this.publicView(next);
@@ -390,13 +392,13 @@ export class AiService implements OnModuleInit {
   }
 
   /** Speech-to-text settings; falls back to the AI receptionist's OpenAI key when none is set here. */
-  private async effectiveStt(): Promise<AiSettings> {
-    const s = await this.settings();
+  private async effectiveStt(tenantId?: string | null): Promise<AiSettings> {
+    const s = await this.settings(tenantId);
     const b = await this.billed(s);
     if (b) return b;
     if (s.sttProvider === 'none' || s.sttKey || s.sttProvider === 'custom') return s;
-    const r = await this.db.configEntry.findUnique({ where: { key: 'aiagent' } });
-    const key = String((r?.data as any)?.openaiKey || '');
+    const agent = await readSetting(this.db, 'aiagent', tenantId);
+    const key = String((agent as any)?.openaiKey || '');
     return key ? { ...s, sttProvider: 'openai', sttUrl: 'https://api.openai.com/v1', sttKey: key, sttModel: s.sttModel || 'gpt-transcribe' } : s;
   }
 
@@ -448,14 +450,14 @@ export class AiService implements OnModuleInit {
   }
 
   /** The analysis model to use; falls back to the AI receptionist's OpenAI key when analysis has no key of its own. */
-  private async effectiveLlm(): Promise<AiSettings> {
-    const s = await this.settings();
+  private async effectiveLlm(tenantId?: string | null): Promise<AiSettings> {
+    const s = await this.settings(tenantId);
     const b = await this.billed(s);
     if (b) return b;
     const hasOwn = s.llmProvider === 'keywords' || !!s.llmKey || (s.llmProvider === 'claude' && !!s.llmUrl);
     if (hasOwn) return s;
-    const r = await this.db.configEntry.findUnique({ where: { key: 'aiagent' } });
-    const key = String((r?.data as any)?.openaiKey || '');
+    const agent = await readSetting(this.db, 'aiagent', tenantId);
+    const key = String((agent as any)?.openaiKey || '');
     if (!key) return { ...s, llmProvider: 'keywords' };
     return { ...s, llmProvider: 'openai', llmUrl: 'https://api.openai.com/v1', llmKey: key, llmModel: s.llmProvider === 'openai' && s.llmModel ? s.llmModel : 'gpt-6-luna' };
   }
@@ -544,7 +546,8 @@ export class AiService implements OnModuleInit {
 
   enqueue(id: string) {
     (async () => {
-      const [s, c] = await Promise.all([this.settings(), this.db.call.findUnique({ where: { id } })]);
+      const c = await this.db.call.findUnique({ where: { id } });
+      const s = await this.settings(c?.tenantId);
       if (!c || !(await this.eligible(c, s))) return;
       await this.db.call.update({ where: { id }, data: { aiState: 'queued' } });
       if (!this.q.includes(id)) this.q.push(id);
@@ -566,7 +569,8 @@ export class AiService implements OnModuleInit {
   }
 
   private async process(id: string) {
-    const [st, llm] = await Promise.all([this.effectiveStt(), this.effectiveLlm()]);
+    const c0 = await this.db.call.findUnique({ where: { id }, select: { tenantId: true } });
+    const [st, llm] = await Promise.all([this.effectiveStt(c0?.tenantId), this.effectiveLlm(c0?.tenantId)]);
     const c = await this.db.call.findUnique({ where: { id } });
     if (!c || !c.recPath || !fs.existsSync(c.recPath)) throw new Error('فایل صوتی پیدا نشد');
     const uc = usageCtx.getStore();
@@ -598,31 +602,38 @@ export class AiService implements OnModuleInit {
     else if (ai.urg === 'high') this.bus.emit('notify', { role: '*', text: 'پیام فوری: ' + (ai.sum[0] || 'یک تماس با اولویت فوری تحلیل شد') });
   }
 
-  async status() {
-    const rows = await this.db.call.groupBy({ by: ['aiState'], _count: { _all: true }, where: { recPath: { not: null } } });
+  async status(tenantId?: string | null) {
+    const where: any = { recPath: { not: null } };
+    if (tenantId) where.tenantId = tenantId;
+    const rows = await this.db.call.groupBy({ by: ['aiState'], _count: { _all: true }, where });
     const by = Object.fromEntries(rows.map(r => [r.aiState, r._count._all]));
-    const lastFail = await this.db.call.findFirst({ where: { aiState: 'failed' }, orderBy: { startedAt: 'desc' }, select: { aiError: true } });
+    const lastFail = await this.db.call.findFirst({ where: { aiState: 'failed', ...(tenantId ? { tenantId } : {}) }, orderBy: { startedAt: 'desc' }, select: { aiError: true } });
     return { done: by.done || 0, queued: (by.queued || 0), failed: by.failed || 0, waiting: by.none || 0, inQueue: this.q.length + (this.busy ? 1 : 0), lastError: lastFail?.aiError || '' };
   }
 
   /** Queue everything eligible that is not analysed yet (or failed) from the last N days. */
-  async requeue(days: number, includeFailed: boolean) {
-    const s = await this.settings();
+  async requeue(days: number, includeFailed: boolean, tenantId?: string | null) {
+    const s = await this.settings(tenantId);
     if (!s.enabled) throw new BadRequestException('ابتدا تحلیل خودکار را فعال و ذخیره کنید');
     const since = new Date(Date.now() - days * 86400e3);
-    const list = await this.db.call.findMany({ where: { startedAt: { gte: since }, recPath: { not: null }, aiState: { in: includeFailed ? ['none', 'queued', 'failed'] : ['none', 'queued'] } }, orderBy: { startedAt: 'desc' }, take: 500 });
+    const where: any = { startedAt: { gte: since }, recPath: { not: null }, aiState: { in: includeFailed ? ['none', 'queued', 'failed'] : ['none', 'queued'] } };
+    if (tenantId) where.tenantId = tenantId;
+    const list = await this.db.call.findMany({ where, orderBy: { startedAt: 'desc' }, take: 500 });
     let n = 0;
-    for (const c of list) if (await this.eligible(c, s)) { this.enqueue(c.id); n++; }
+    for (const c of list) {
+      const sc = await this.settings(c.tenantId);
+      if (await this.eligible(c, sc)) { this.enqueue(c.id); n++; }
+    }
     return { queued: n };
   }
 
   /** Settings test: analyse a sample sentence, and optionally transcribe the latest eligible recording. */
-  test(text: string, withStt: boolean) {
-    return usageCtx.run({ feature: 'test' }, () => this.testNow(text, withStt));
+  test(text: string, withStt: boolean, tenantId?: string | null) {
+    return usageCtx.run({ feature: 'test' }, () => this.testNow(text, withStt, tenantId));
   }
 
-  private async testNow(text: string, withStt: boolean) {
-    const own = await this.settings();
+  private async testNow(text: string, withStt: boolean, tenantId?: string | null) {
+    const own = await this.settings(tenantId);
     const s = (await this.billed(own)) || own;
     const out: any = {};
     const t0 = Date.now();
@@ -649,15 +660,15 @@ export class AiController {
   constructor(private ai: AiService) {}
 
   @Get()
-  async get() { return { settings: this.ai.publicView(await this.ai.settings()), status: await this.ai.status(), categories: CATEGORIES.map(({ id, name }) => ({ id, name })) }; }
+  async get(@CurrentUser() me: Me) { return { settings: this.ai.publicView(await this.ai.settings(me.tenantId)), status: await this.ai.status(me.tenantId), categories: CATEGORIES.map(({ id, name }) => ({ id, name })) }; }
 
   @Put()
   save(@Body() b: any, @CurrentUser() me: Me) { return this.ai.save(b, me); }
 
   @Perm('vai', 'edit')
   @Post('test')
-  test(@Body() b: { text?: string; stt?: boolean }) {
-    return this.ai.test(String(b.text || 'سلام وقت بخیر، هفته پیش عمل بینی کردم و از دیشب ورم و درد دارم، لطفاً هرچه زودتر با من تماس بگیرید.').slice(0, 2000), !!b.stt);
+  test(@Body() b: { text?: string; stt?: boolean }, @CurrentUser() me: Me) {
+    return this.ai.test(String(b.text || 'سلام وقت بخیر، هفته پیش عمل بینی کردم و از دیشب ورم و درد دارم، لطفاً هرچه زودتر با من تماس بگیرید.').slice(0, 2000), !!b.stt, me.tenantId);
   }
 
   @Perm('ai', 'edit')
@@ -666,5 +677,5 @@ export class AiController {
 
   @Perm('vai', 'edit')
   @Post('requeue')
-  requeue(@Body() b: { days?: number; failed?: boolean }) { return this.ai.requeue(Math.min(90, Math.max(1, +(b.days ?? 7) || 7)), !!b.failed); }
+  requeue(@Body() b: { days?: number; failed?: boolean }, @CurrentUser() me: Me) { return this.ai.requeue(Math.min(90, Math.max(1, +(b.days ?? 7) || 7)), !!b.failed, me.tenantId); }
 }

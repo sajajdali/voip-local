@@ -50,7 +50,8 @@ export const SECTIONS: Section[] = [
 ];
 const KEYS = new Set(SECTIONS.map(s => s.key));
 
-export const PLATFORM_SECTIONS = new Set(['vtrunk', 'tenants', 'vbackup', 'billing', 'usage', 'sys', 'vai', 'vagent', 'vapi']);
+/** Super-admin only — never granted to tenant users (even with role admin). */
+export const PLATFORM_SECTIONS = new Set(['vtrunk', 'tenants', 'vbackup', 'billing', 'usage', 'sys']);
 
 /** Starting points for the «قالب» buttons and for users created before permissions existed. */
 export function rolePerms(role: string): Perms {

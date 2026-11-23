@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { generate } from '../asterisk/generator';
 import { can, permsOf, PLATFORM_SECTIONS } from '../perms';
-import { isPoolDid, normalizePoolDid, DID_POOL_MIN, DID_POOL_MAX } from '../tenants';
+import { isPoolDid, normalizePoolDid, DID_POOL_MIN, DID_POOL_MAX, tenantAdminPerms } from '../tenants';
 import { isSuperAdmin } from '../auth';
 import {
   cleanFeatures, featureAllows, normalizeInboundDid, prefixDest, prefixDestIfOwned, prefixEntityId, prefixTenantCollection, tenantPrefix,
@@ -51,9 +51,25 @@ describe('feature flags + id prefix', () => {
   it('defaults all features on', () => {
     const f = cleanFeatures(null);
     assert.equal(f.booking, true);
+    assert.equal(f.ai, true);
+    assert.equal(f.api, true);
     assert.equal(featureAllows(f, 'booking'), true);
     assert.equal(featureAllows({ ...f, booking: false }, 'booking'), false);
     assert.equal(featureAllows({ ...f, queues: false }, 'vqs'), false);
+  });
+  it('tenant admin gets AI/integration settings when features on', () => {
+    const p = tenantAdminPerms();
+    for (const s of ['vai', 'vagent', 'vcrm', 'vapi', 'vsms', 'ai', 'aiconv']) {
+      assert.ok(p[s]?.includes('view'), s + ' missing');
+    }
+    for (const s of PLATFORM_SECTIONS) assert.equal(p[s], undefined);
+  });
+  it('tenant admin loses AI/API when those features are off', () => {
+    const p = tenantAdminPerms({ ...cleanFeatures(null), ai: false, api: false, agent: false, crm: false, sms: false });
+    for (const s of ['vai', 'vagent', 'vcrm', 'vapi', 'vsms', 'ai', 'aiconv', 'coach']) {
+      assert.equal(p[s], undefined, s + ' should be stripped');
+    }
+    assert.ok(p.vext?.includes('view'));
   });
   it('prefixes entity ids per tenant without collision', () => {
     const a = prefixEntityId('tenantAAA', 'q1');

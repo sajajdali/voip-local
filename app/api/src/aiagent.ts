@@ -5,6 +5,7 @@ import * as fs from 'fs';
 import * as net from 'net';
 import * as path from 'path';
 import { CurrentUser, Me, Roles, Perm } from './auth';
+import { readSetting, writeSetting, scopeKey } from './tenant-settings';
 import { AiService } from './ai';
 import { UsageService } from './usage';
 import { Bus } from './bus';
@@ -67,9 +68,15 @@ export class AiAgentService implements OnModuleInit {
     }
   }
 
-  async settings(): Promise<AiAgentSettings> {
-    const r = await this.db.configEntry.findUnique({ where: { key: 'aiagent' } });
-    return { ...AI_AGENT_DEFAULTS, ...((r?.data as any) || {}) };
+  private caches = new Map<string, AiAgentSettings>();
+
+  async settings(tenantId?: string | null): Promise<AiAgentSettings> {
+    const k = scopeKey(tenantId);
+    if (!this.caches.has(k)) {
+      const r = await readSetting(this.db, 'aiagent', tenantId);
+      this.caches.set(k, { ...AI_AGENT_DEFAULTS, ...((r as any) || {}) });
+    }
+    return { ...this.caches.get(k)! };
   }
 
   publicView(s: AiAgentSettings) {
@@ -79,7 +86,7 @@ export class AiAgentService implements OnModuleInit {
   }
 
   async save(b: any, me: Me) {
-    const cur = await this.settings();
+    const cur = await this.settings(me.tenantId);
     const cfg = await this.store.all();
     const str = (k: keyof AiAgentSettings) => String(b[k] ?? cur[k]).trim();
     const int = (k: keyof AiAgentSettings, min: number, max: number) => Math.min(max, Math.max(min, Math.round(+(b[k] ?? cur[k]) || min)));
@@ -108,20 +115,24 @@ export class AiAgentService implements OnModuleInit {
     if (next.transferExt && !cfg.exts.some(e => e.n === next.transferExt)) throw new BadRequestException('داخلی انتقال وجود ندارد: ' + next.transferExt);
     if (next.fallback === 'ai') next.fallback = 'vm';
     if (next.enabled && !(next.provider === 'openai' ? next.openaiKey : next.geminiKey)) throw new BadRequestException('برای روشن کردن دستیار، کلید API سرویس انتخاب‌شده را وارد کنید');
-    await this.db.configEntry.upsert({ where: { key: 'aiagent' }, create: { key: 'aiagent', data: next as any, updatedBy: me.id }, update: { data: next as any, updatedBy: me.id } });
+    await writeSetting(this.db, 'aiagent', next as any, me);
+    this.caches.set(scopeKey(me.tenantId), next);
     const safe: any = { ...next }; SECRET_KEYS.forEach(k => delete safe[k]);
     await this.db.auditLog.create({ data: { userId: me.id, userName: me.name, action: 'aiagent.save', target: 'aiagent', detail: { ...safe, openaiKeyChanged: !!b.openaiKey, geminiKeyChanged: !!b.geminiKey } } });
-    await this.writeEnv(next);
-    // the dialplan (code, destination, transfer) depends on these settings
-    this.store.reset();
-    const applied = await this.store.applyAll().then(() => true).catch(e => { this.log.warn(e.message); return false; });
-    return { ...this.publicView(next), applied };
+    // Platform only: bridge env + dialplan live under one Asterisk. Tenant settings stay in TenantConfig.
+    let applied = false;
+    if (!me.tenantId) {
+      await this.writeEnv(next);
+      this.store.reset();
+      applied = await this.store.applyAll().then(() => true).catch(e => { this.log.warn(e.message); return false; });
+    }
+    return { ...this.publicView(next), applied, tenantScoped: !!me.tenantId };
   }
 
   /** Environment files read by the bridge service; a systemd path unit restarts it when agent.env changes. */
   async writeEnv(s?: AiAgentSettings) {
     s = s || await this.settings();
-    const crm = await this.patients.settings();
+    const crm = await this.patients.settings(); // platform CRM for bridge env
     fs.mkdirSync(AI_DIR, { recursive: true });
     const write = (name: string, lines: string[]) => {
       const file = path.join(AI_DIR, name), body = lines.join('\n') + '\n';
@@ -224,10 +235,12 @@ export class AiAgentController {
   constructor(private agent: AiAgentService, private db: PrismaService) {}
 
   @Get()
-  async get() {
-    const s = await this.agent.settings();
+  async get(@CurrentUser() me: Me) {
+    const s = await this.agent.settings(me.tenantId);
     const since = new Date(Date.now() - 30 * 864e5);
-    const calls = await this.db.call.count({ where: { queue: 'دستیار هوشمند', startedAt: { gte: since } } });
+    const where: any = { queue: 'دستیار هوشمند', startedAt: { gte: since } };
+    if (me.tenantId) where.tenantId = me.tenantId;
+    const calls = await this.db.call.count({ where });
     return { settings: this.agent.publicView(s), status: { running: await this.agent.running(), calls30: calls } };
   }
 

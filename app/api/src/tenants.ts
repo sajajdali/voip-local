@@ -45,6 +45,15 @@ export function tenantAdminPerms(features?: TenantFeatures | null): Perms {
     bookings: ['view', 'edit'] as Action[],
     vout: ['view'] as Action[],
     users: ['view', 'add', 'edit', 'delete'] as Action[],
+    // Integrations / AI (tenant-scoped settings; gated by feature flags below)
+    vai: ['view', 'edit'] as Action[],
+    ai: ['view', 'edit'] as Action[],
+    coach: ['view'] as Action[],
+    vagent: ['view', 'edit'] as Action[],
+    aiconv: ['view'] as Action[],
+    vcrm: ['view', 'edit'] as Action[],
+    vapi: ['view', 'edit'] as Action[],
+    vsms: ['view', 'edit'] as Action[],
   });
   for (const [feat, sections] of Object.entries(FEATURE_SECTIONS) as [keyof TenantFeatures, string[]][]) {
     if (f[feat]) continue;

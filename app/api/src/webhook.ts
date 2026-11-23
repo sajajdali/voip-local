@@ -5,6 +5,7 @@
 import { BadRequestException, Body, Controller, Get, Injectable, Logger, NotFoundException, OnModuleInit, Param, Post, Put } from '@nestjs/common';
 import { createHmac, randomUUID } from 'crypto';
 import { CurrentUser, Me, Perm } from './auth';
+import { readSetting, writeSetting, scopeKey } from './tenant-settings';
 import { env } from './env';
 import { PrismaService } from './prisma.service';
 
@@ -55,7 +56,7 @@ export function signature(secret: string, ts: string, body: string) {
 @Injectable()
 export class WebhookService implements OnModuleInit {
   private log = new Logger('Webhook');
-  private cache: WebhookSettings | null = null;
+  private caches = new Map<string, WebhookSettings>();
   private seqs = new Map<string, number>();
   private chain: Promise<any> = Promise.resolve();
   private busy = new Set<string>();   // calls with a delivery in flight
@@ -69,18 +70,19 @@ export class WebhookService implements OnModuleInit {
     setInterval(() => this.cleanup().catch(() => {}), 6 * 3600e3);
   }
 
-  async settings(): Promise<WebhookSettings> {
-    if (!this.cache) {
-      const row = await this.db.configEntry.findUnique({ where: { key: 'webhook' } });
-      const d: any = row?.data || {};
-      // installs from before the event list only sent the end of each call
-      this.cache = { ...DEFAULTS, ...d, events: Array.isArray(d.events) ? d.events.filter((k: string) => EVENT_KEYS.includes(k)) : row ? ['call.ended'] : [...EVENT_KEYS] };
+  async settings(tenantId?: string | null): Promise<WebhookSettings> {
+    const k = scopeKey(tenantId);
+    if (!this.caches.has(k)) {
+      const row = await readSetting(this.db, 'webhook', tenantId);
+      const d: any = row || {};
+      const had = row != null;
+      this.caches.set(k, { ...DEFAULTS, ...d, events: Array.isArray(d.events) ? d.events.filter((x: string) => EVENT_KEYS.includes(x)) : had ? ['call.ended'] : [...EVENT_KEYS] });
     }
-    return this.cache!;
+    return this.caches.get(k)!;
   }
 
   async save(b: Partial<WebhookSettings> & { clearToken?: boolean; clearSecret?: boolean }, me: Me) {
-    const cur = await this.settings();
+    const cur = await this.settings(me.tenantId);
     const url = String(b.url ?? cur.url).trim();
     if (url && !/^https?:\/\/[^\s]+$/i.test(url)) throw new BadRequestException('آدرس باید با http:// یا https:// شروع شود');
     if (b.enabled && !url) throw new BadRequestException('برای فعال کردن، آدرس مقصد را وارد کنید');
@@ -96,12 +98,30 @@ export class WebhookService implements OnModuleInit {
     };
     if (b.clearToken) next.token = '';
     if (b.clearSecret) next.secret = '';
-    await this.db.configEntry.upsert({ where: { key: 'webhook' }, create: { key: 'webhook', data: next as any, updatedBy: me.id }, update: { data: next as any, updatedBy: me.id } });
-    this.cache = next;
+    await writeSetting(this.db, 'webhook', next as any, me);
+    this.caches.set(scopeKey(me.tenantId), next);
     // switched off: what is still waiting would arrive late and out of context
-    if (!next.enabled) await this.db.callEvent.updateMany({ where: { state: 'pending' }, data: { state: 'cancelled' } });
+    if (!next.enabled) {
+      if (me.tenantId) {
+        const ids = (await this.db.call.findMany({ where: { tenantId: me.tenantId }, select: { id: true } })).map(c => c.id);
+        if (ids.length) await this.db.callEvent.updateMany({ where: { state: 'pending', callId: { in: ids } }, data: { state: 'cancelled' } });
+      } else {
+        await this.db.callEvent.updateMany({ where: { state: 'pending' }, data: { state: 'cancelled' } });
+      }
+    }
     await this.db.auditLog.create({ data: { userId: me.id, userName: me.name, action: 'webhook.save', target: 'webhook', detail: { enabled: next.enabled, url: next.url, headerName: next.headerName, events: next.events, tokenChanged: !!b.token, secretChanged: !!b.secret } } });
     return this.publicView(next);
+  }
+
+
+  private async tenantOfCall(callId: string | null | undefined): Promise<string | null> {
+    if (!callId || callId === 'test') return null;
+    try {
+      const c = await this.db.call.findUnique({ where: { id: callId }, select: { tenantId: true } });
+      return c?.tenantId || null;
+    } catch {
+      return null;
+    }
   }
 
   publicView(s: WebhookSettings) {
@@ -153,7 +173,8 @@ export class WebhookService implements OnModuleInit {
    */
   record(event: string, callId: string, data: Record<string, any>, occurredAt = new Date()) {
     this.chain = this.chain.then(async () => {
-      const s = await this.settings();
+      const tenantId = await this.tenantOfCall(callId);
+      const s = await this.settings(tenantId);
       if (!s.enabled || !s.url || !s.events.includes(event)) return;
       let seq = this.seqs.get(callId);
       if (seq === undefined) seq = (await this.db.callEvent.aggregate({ where: { callId }, _max: { seq: true } }))._max.seq || 0;
@@ -179,8 +200,7 @@ export class WebhookService implements OnModuleInit {
 
   /** Deliver what is due: the oldest waiting event of each call, a few calls at a time. */
   async pump() {
-    const s = await this.settings();
-    if (!s.enabled || !s.url || this.busy.size >= PARALLEL) return;
+    if (this.busy.size >= PARALLEL) return;
     const due = await this.db.callEvent.findMany({ where: { state: 'pending' }, orderBy: { id: 'asc' }, take: 200, select: { id: true, callId: true, nextAt: true } });
     const firstOfCall = new Map<string, { id: number; nextAt: Date }>();
     for (const e of due) if (!firstOfCall.has(e.callId)) firstOfCall.set(e.callId, e);
@@ -188,6 +208,9 @@ export class WebhookService implements OnModuleInit {
     for (const [callId, e] of firstOfCall) {
       if (this.busy.size >= PARALLEL) break;
       if (this.busy.has(callId) || e.nextAt.getTime() > now) continue;
+      const tenantId = await this.tenantOfCall(callId);
+      const s = await this.settings(tenantId);
+      if (!s.enabled || !s.url) continue;
       this.busy.add(callId);
       this.deliver(e.id).catch(err => this.log.warn('deliver: ' + err.message)).finally(() => { this.busy.delete(callId); setImmediate(() => this.pump().catch(() => {})); });
     }
@@ -207,8 +230,9 @@ export class WebhookService implements OnModuleInit {
   }
 
   /** One HTTP attempt; logged in WebhookLog. */
-  async post(body: any, attempt = 1, eventRef: number | null = null) {
-    const s = await this.settings();
+  async post(body: any, attempt = 1, eventRef: number | null = null, tenantId?: string | null) {
+    const tid = tenantId !== undefined ? tenantId : await this.tenantOfCall(body?.callId);
+    const s = await this.settings(tid);
     if (!s.url) return { ok: false, code: null as number | null, ms: 0, error: 'آدرس مقصد تنظیم نشده است' };
     const json = JSON.stringify(body);
     const t0 = Date.now();
@@ -243,8 +267,8 @@ export class WebhookService implements OnModuleInit {
   }
 
   /** A realistic example of each event (from the latest call when there is one). */
-  async samples(): Promise<Record<string, any>> {
-    const latest = await this.db.call.findFirst({ where: { dir: 'in' }, orderBy: { startedAt: 'desc' } });
+  async samples(tenantId?: string | null): Promise<Record<string, any>> {
+    const latest = await this.db.call.findFirst({ where: { dir: 'in', ...(tenantId ? { tenantId } : {}) }, orderBy: { startedAt: 'desc' } });
     const ended = latest ? await this.endedData(latest.id) : null;
     const callId = latest?.id || 'C1730371234.552';
     const t0 = latest ? latest.startedAt.getTime() : Date.now() - 120e3;
@@ -286,20 +310,27 @@ export class WebhookService implements OnModuleInit {
     return out;
   }
 
-  async test(event: string) {
+  async test(event: string, tenantId?: string | null) {
     if (!EVENT_KEYS.includes(event)) throw new BadRequestException('رویداد نامعتبر است');
-    const sample = (await this.samples())[event];
-    return this.post({ ...sample, callId: 'test', eventId: randomUUID(), occurredAt: new Date().toISOString() }, 1, null);
+    const sample = (await this.samples(tenantId))[event];
+    return this.post({ ...sample, callId: 'test', eventId: randomUUID(), occurredAt: new Date().toISOString() }, 1, null, tenantId);
   }
 
-  async logs() {
+  async logs(tenantId?: string | null) {
     const since = new Date(Date.now() - 24 * 3600e3);
+    // WebhookLog has callId; for tenants filter via their calls when possible
+    let callIds: string[] | null = null;
+    if (tenantId) {
+      const calls = await this.db.call.findMany({ where: { tenantId }, select: { id: true }, take: 5000, orderBy: { startedAt: 'desc' } });
+      callIds = calls.map(c => c.id).concat(['test']);
+    }
+    const logWhere = callIds ? { callId: { in: callIds } } : {};
     const [rows, sent, failed, pending, dead] = await Promise.all([
-      this.db.webhookLog.findMany({ orderBy: { id: 'desc' }, take: 80 }),
-      this.db.webhookLog.count({ where: { at: { gte: since }, ok: true } }),
-      this.db.webhookLog.count({ where: { at: { gte: since }, ok: false } }),
-      this.db.callEvent.count({ where: { state: 'pending' } }),
-      this.db.callEvent.count({ where: { state: 'failed', createdAt: { gte: since } } }),
+      this.db.webhookLog.findMany({ where: logWhere, orderBy: { id: 'desc' }, take: 80 }),
+      this.db.webhookLog.count({ where: { ...logWhere, at: { gte: since }, ok: true } }),
+      this.db.webhookLog.count({ where: { ...logWhere, at: { gte: since }, ok: false } }),
+      this.db.callEvent.count({ where: { state: 'pending', ...(callIds ? { callId: { in: callIds } } : {}) } }),
+      this.db.callEvent.count({ where: { state: 'failed', createdAt: { gte: since }, ...(callIds ? { callId: { in: callIds } } : {}) } }),
     ]);
     return { rows, sent24: sent, failed24: failed, pending, dead24: dead };
   }
@@ -317,8 +348,8 @@ export class WebhookController {
   constructor(private hooks: WebhookService) {}
 
   @Get()
-  async get() {
-    return { settings: this.hooks.publicView(await this.hooks.settings()), events: EVENTS, ...(await this.hooks.logs()), samples: await this.hooks.samples() };
+  async get(@CurrentUser() me: Me) {
+    return { settings: this.hooks.publicView(await this.hooks.settings(me.tenantId)), events: EVENTS, ...(await this.hooks.logs(me.tenantId)), samples: await this.hooks.samples(me.tenantId) };
   }
 
   @Put()
@@ -326,7 +357,7 @@ export class WebhookController {
 
   @Perm('vapi', 'edit')
   @Post('test')
-  test(@Body() b: any) { return this.hooks.test(String(b?.event || 'call.ended')); }
+  test(@Body() b: any, @CurrentUser() me: Me) { return this.hooks.test(String(b?.event || 'call.ended'), me.tenantId); }
 
   @Perm('vapi', 'edit')
   @Post('resend/:id')

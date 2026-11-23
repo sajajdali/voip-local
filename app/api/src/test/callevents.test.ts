@@ -32,6 +32,8 @@ function fakeDb() {
       deleteMany: async () => ({}),
     },
     webhookLog: { create: async ({ data }: any) => { logs.push(data); }, findMany: async () => logs, count: async () => 0, deleteMany: async () => ({}) },
+    call: { findUnique: async () => null, findMany: async () => [] },
+    tenantConfig: { findUnique: async () => null, upsert: async () => ({}) },
   } as any;
 }
 

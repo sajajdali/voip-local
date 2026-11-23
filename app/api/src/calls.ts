@@ -242,6 +242,14 @@ export class CallsService {
     this.bus.emit('cb', { userId: o.userId, origId, stage: 'ended', answered });
     this.origs.delete(origId);
   }
+
+  /** Resolve tenant from an inbound DID (for CRM lookup / display name). */
+  async tenantForDid(raw: string | null | undefined): Promise<string | null> {
+    const did = normalizeInboundDid(raw);
+    if (!did) return null;
+    const asg = await this.db.didAssignment.findUnique({ where: { did }, select: { tenantId: true } }).catch(() => null);
+    return asg?.tenantId || null;
+  }
 }
 
 @Controller()
@@ -678,10 +686,11 @@ export class HooksController {
   /** Inbound call entered the dialplan: start the CRM lookup in the background and answer at once. */
   @Public()
   @Post('lookup')
-  lookup(@Req() req: Request, @Query('s') s: string, @Body() b: Record<string, string>) {
+  async lookup(@Req() req: Request, @Query('s') s: string, @Body() b: Record<string, string>) {
     this.check(req, s);
     const phone = normalizePhone(b.num || (req.query.num as string));
-    if (phone) this.patients.lookup(phone);
+    const tenantId = await this.calls.tenantForDid(b.did || (req.query.did as string));
+    if (phone) this.patients.lookup(phone, tenantId);
     return 'ok';
   }
 
@@ -700,7 +709,8 @@ export class HooksController {
   async cname(@Req() req: Request, @Query('s') s: string, @Body() b: Record<string, string>) {
     this.check(req, s);
     const phone = normalizePhone(b.num || (req.query.num as string));
-    return phone ? this.patients.phoneName(phone) : '';
+    const tenantId = await this.calls.tenantForDid(b.did || (req.query.did as string));
+    return phone ? this.patients.phoneName(phone, tenantId) : '';
   }
 
   @Public()
