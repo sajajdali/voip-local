@@ -3,10 +3,19 @@
 // The panel replaces Issabel/FreePBX, so everything a call needs is generated here.
 import { jalaliToGregorianCompact } from '../jalali';
 
+export interface DidRoute {
+  did: string;
+  tenantId: string;
+  dest: string;
+  name?: string;
+}
+
 export interface VoipConfig {
   exts: any[]; trunks: any[]; vqs: any[]; ivrs: any[]; snds: any[]; routes: any[];
   tgroups: any[]; tconds: any[]; holidays: any[]; rgroups: any[]; fmes: Record<string, any>;
   blist: any[]; bset: any; oroutes?: any[]; survey?: any; vmbox?: any; aiagent?: any;
+  /** Multi-tenant DID assignments (31985 pool) → tenant default destination; generated ahead of panel routes. */
+  didRoutes?: DidRoute[];
 }
 
 export interface Generated {
@@ -228,8 +237,13 @@ function dialplan(cfg: VoipConfig, opts: { hookUrl: string; hookSecret: string }
     ' same => n,Goto(cc-inbound,s,1)',
   ]);
 
-  // --- inbound: blacklist -> route matching
+  // --- inbound: blacklist -> tenant DID routes -> panel routes
   const routeLines: string[] = [];
+  for (const d of cfg.didRoutes || []) {
+    const did = digits(d.did);
+    if (!did) continue;
+    routeLines.push(` same => n,GotoIf($["\${CC_DID}"="${did}"]?cc-tenant-${sid(d.tenantId)}-${did},s,1)`);
+  }
   for (const r of sortRoutes(cfg.routes).filter(r => r.on)) {
     const conds: string[] = [];
     if (r.did) conds.push(`"\${CC_DID}"="${digits(r.did)}"`);
@@ -257,6 +271,17 @@ function dialplan(cfg: VoipConfig, opts: { hookUrl: string; hookSecret: string }
     ...routeLines,
     ' same => n,Hangup(21)',
   ]);
+
+  for (const d of cfg.didRoutes || []) {
+    const did = digits(d.did);
+    if (!did) continue;
+    X(`cc-tenant-${sid(d.tenantId)}-${did}`, [
+      `exten => s,1,NoOp(Tenant ${safe(d.name || d.tenantId)} DID ${did})`,
+      ` same => n,Set(__CC_TENANT=${sid(d.tenantId)})`,
+      ` same => n,Set(__CC_DID=${did})`,
+      ` same => n,Goto(${destTarget(d.dest, cfg)})`,
+    ]);
+  }
 
   // --- internal test entry: *88<DID> simulates an inbound call on that DID from this extension
   for (const r of cfg.routes) {
@@ -514,7 +539,7 @@ function dialplan(cfg: VoipConfig, opts: { hookUrl: string; hookSecret: string }
   // --- hangup handler on the caller (master) channel: reports the finished call to the panel
   X('cc-hangup', [
     'exten => s,1,GotoIf($["${CC_DIR}"=""]?done)',
-    ' same => n,' + hook('call', 'uid=${URIENCODE(${UNIQUEID})}&start=${CC_START}&end=${EPOCH}&cid=${URIENCODE(${CALLERID(num)})}&num=${URIENCODE(${CC_NUM})}&did=${CC_DID}&dir=${CC_DIR}&queue=${URIENCODE(${CC_QUEUE})}&ansext=${CC_ANSEXT}&ansts=${CC_ANSTS}&xfer=${CC_XFER}&vm=${CC_VM}&vmbox=${CC_VMBOX}&rec=${URIENCODE(${CC_REC})}&orig=${CC_ORIG}&opext=${CC_OPEXT}&sv=${CC_SV1}${CC_SV2}${CC_SV3}${CC_SV4}${CC_SV5}&svrec=${URIENCODE(${CC_SVREC})}&aiuuid=${AI_CALL_UUID}&blocked=${CC_BLOCKED}'),
+    ' same => n,' + hook('call', 'uid=${URIENCODE(${UNIQUEID})}&start=${CC_START}&end=${EPOCH}&cid=${URIENCODE(${CALLERID(num)})}&num=${URIENCODE(${CC_NUM})}&did=${CC_DID}&tenant=${CC_TENANT}&dir=${CC_DIR}&queue=${URIENCODE(${CC_QUEUE})}&ansext=${CC_ANSEXT}&ansts=${CC_ANSTS}&xfer=${CC_XFER}&vm=${CC_VM}&vmbox=${CC_VMBOX}&rec=${URIENCODE(${CC_REC})}&orig=${CC_ORIG}&opext=${CC_OPEXT}&sv=${CC_SV1}${CC_SV2}${CC_SV3}${CC_SV4}${CC_SV5}&svrec=${URIENCODE(${CC_SVREC})}&aiuuid=${AI_CALL_UUID}&blocked=${CC_BLOCKED}'),
     ' same => n(done),Return()',
   ]);
 

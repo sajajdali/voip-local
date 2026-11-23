@@ -1,7 +1,7 @@
 // VoIP configuration store: one JSON document per collection; every save regenerates Asterisk config.
 import { BadRequestException, Body, Controller, Get, Injectable, Param, Put, ForbiddenException } from '@nestjs/common';
 import { randomBytes } from 'crypto';
-import { CurrentUser, Me, Roles, Perm } from './auth';
+import { CurrentUser, Me, Roles, Perm, isSuperAdmin } from './auth';
 import { Action, CONFIG_SECTION, can } from './perms';
 import { AsteriskService } from './asterisk/asterisk.service';
 import { VoipConfig } from './asterisk/generator';
@@ -41,7 +41,20 @@ export class ConfigStore {
     return this.cache as VoipConfig;
   }
 
-  async applyAll() { return this.ast.apply(await this.all()); }
+  /** Attach active DID→tenant routes for dialplan generation (not persisted in ConfigEntry). */
+  async withDidRoutes(cfg?: VoipConfig): Promise<VoipConfig> {
+    const base = cfg || await this.all();
+    const rows = await this.db.didAssignment.findMany({
+      include: { tenant: { select: { id: true, name: true, active: true, defaultDest: true } } },
+      orderBy: { did: 'asc' },
+    });
+    const didRoutes = rows
+      .filter(r => r.tenant.active && r.tenant.defaultDest)
+      .map(r => ({ did: r.did, tenantId: r.tenant.id, dest: r.tenant.defaultDest, name: r.tenant.name }));
+    return { ...base, didRoutes };
+  }
+
+  async applyAll() { return this.ast.apply(await this.withDidRoutes()); }
 
   /** Forget cached settings (after a restore wrote them straight to the database). */
   reset() { this.cache = null; }
@@ -83,9 +96,9 @@ export class ConfigStore {
     await this.db.configEntry.upsert({ where: { key }, create: { key, data: merged, updatedBy: me?.id }, update: { data: merged, updatedBy: me?.id } });
     (cfg as any)[key] = merged;
     if (me) await this.db.auditLog.create({ data: { userId: me.id, userName: me.name, action: 'config.save', target: key, detail: diff(key, old, merged) as any } });
-    this.bus.emit('config', { key, data: this.publicView(key, merged, 'admin'), by: me?.id });
+    this.bus.emit('config', { key, data: this.publicView(key, merged, me || { role: 'admin', tenantId: null }), by: me?.id });
     let res: any = { applied: true };
-    if (reapply) res = await this.ast.apply(cfg).catch(e => ({ applied: false, error: e.message }));
+    if (reapply) res = await this.ast.apply(await this.withDidRoutes(cfg)).catch(e => ({ applied: false, error: e.message }));
     return { data: merged, ...res };
   }
 
@@ -97,19 +110,25 @@ export class ConfigStore {
     this.bus.emit('config', { key, data, by: null });
   }
 
-  /** Non-admins never receive SIP secrets or trunk passwords. */
-  publicView(key: string, data: any, role: string) {
-    if (role === 'admin' || !Array.isArray(data)) return data;
+  /** Non-admins never receive SIP secrets or trunk passwords. Tenant users never see trunks at all. */
+  publicView(key: string, data: any, me: Me | { role: string; tenantId?: string | null }) {
+    if (!Array.isArray(data)) return data;
+    if (key === 'trunks' && !isSuperAdmin(me as Me)) return [];
+    if (isSuperAdmin(me as Me)) return data;
     if (key === 'exts') return data.map((e: any) => ({ ...e, secret: undefined }));
     if (key === 'trunks') return data.map((t: any) => ({ ...t, pass: undefined, user: undefined }));
     return data;
   }
 
-  async forRole(role: string) {
+  async forUser(me: Me) {
     const c = await this.all();
     const out: Record<string, any> = {};
-    for (const k of KEYS) out[k] = this.publicView(k, (c as any)[k], role);
+    for (const k of KEYS) out[k] = this.publicView(k, (c as any)[k], me);
     return out;
+  }
+
+  async forRole(role: string) {
+    return this.forUser({ id: '', name: '', role, ext: null, username: '', tenantId: role === 'admin' ? null : 'x' } as Me);
   }
 }
 
@@ -134,7 +153,8 @@ export class ConfigController {
   async save(@Param('key') key: string, @Body() b: { data: any }, @CurrentUser() me: Me) {
     const section = CONFIG_SECTION[key];
     if (!section) throw new ForbiddenException('دسترسی به این بخش مجاز نیست');
-    if (me.role !== 'admin') {
+    if (key === 'trunks' && !isSuperAdmin(me)) throw new ForbiddenException('تعریف و ویرایش ترانک فقط برای مدیر سامانه است');
+    if (!isSuperAdmin(me)) {
       const cfg = await this.store.all();
       const old = (cfg as any)[key];
       let add = false, del = false, edit = false;

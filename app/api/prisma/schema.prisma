@@ -17,7 +17,39 @@ model User {
   title     String? // shown under the name after login, instead of «role · extension»
   active    Boolean  @default(true)
   perms     Json? // {section: [view|add|edit|delete]}; empty = the role's defaults
+  /// null = platform / super-admin scope; set = this user belongs to one tenant only
+  tenantId  String?
+  tenant    Tenant?  @relation(fields: [tenantId], references: [id], onDelete: SetNull)
   createdAt DateTime @default(now())
+
+  @@index([tenantId])
+}
+
+/// Multi-tenant customer on trunk 31985 (DIDs 31985000…31985999).
+model Tenant {
+  id          String          @id @default(cuid())
+  name        String
+  slug        String          @unique
+  active      Boolean         @default(true)
+  /// Inbound destination for assigned DIDs, same syntax as routes.dest (q:… / ivr:… / e:…).
+  defaultDest String          @default("")
+  note        String?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  dids        DidAssignment[]
+  users       User[]
+}
+
+/// One DID from the 31985 pool assigned to exactly one tenant.
+model DidAssignment {
+  id        String   @id @default(cuid())
+  did       String   @unique
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  note      String?
+  createdAt DateTime @default(now())
+
+  @@index([tenantId])
 }
 
 /// One row per VoIP collection (exts, trunks, vqs, ivrs, snds, routes, tgroups, tconds, holidays, rgroups, fmes, blist, bset).
@@ -63,6 +95,8 @@ model Call {
   dur       Int      @default(0)
   wait      Int      @default(0)
   did       String?
+  /// Resolved from DidAssignment at ingest when the inbound DID is assigned.
+  tenantId  String?
   recPath   String?
   ai        Json?
   aiState   String   @default("none") // none | queued | done | failed
@@ -76,6 +110,8 @@ model Call {
 
   @@index([date])
   @@index([phone])
+  @@index([tenantId])
+  @@index([did])
 }
 
 model Follow {

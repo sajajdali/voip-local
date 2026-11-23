@@ -14,15 +14,16 @@ export class UsersController {
   constructor(private db: PrismaService) {}
 
   @Get()
-  async list() {
+  async list(@CurrentUser() me: Me) {
+    const where: any = me.tenantId ? { tenantId: me.tenantId } : {};
     const [users, logins] = await Promise.all([
-      this.db.user.findMany({ orderBy: [{ role: 'asc' }, { username: 'asc' }] }),
+      this.db.user.findMany({ where, orderBy: [{ role: 'asc' }, { username: 'asc' }] }),
       this.db.auditLog.groupBy({ by: ['userId'], where: { action: 'login' }, _max: { at: true } }),
     ]);
     const last = new Map(logins.map(l => [l.userId, l._max.at]));
     return {
       sections: SECTIONS, roles: ROLES.map(r => ({ id: r, label: ROLE_LABEL[r], perms: rolePerms(r) })),
-      users: users.map(u => ({ id: u.id, username: u.username, name: u.name, title: u.title || '', role: u.role, ext: u.ext, active: u.active, perms: permsOf(u), custom: !!u.perms && u.role !== 'admin', lastLogin: last.get(u.id) || null })),
+      users: users.map(u => ({ id: u.id, username: u.username, name: u.name, title: u.title || '', role: u.role, ext: u.ext, active: u.active, tenantId: u.tenantId || null, perms: permsOf(u), custom: !!u.perms && !(u.role === 'admin' && !u.tenantId), lastLogin: last.get(u.id) || null })),
     };
   }
 
@@ -51,9 +52,17 @@ export class UsersController {
     if (!b.password) throw new BadRequestException('رمز عبور را وارد کنید');
     if (!String(b.name || '').trim()) throw new BadRequestException('نام را وارد کنید');
     const role = b.role || 'operator';
+    const tenantId = b.tenantId ? String(b.tenantId) : null;
+    if (tenantId) {
+      const t = await this.db.tenant.findUnique({ where: { id: tenantId } });
+      if (!t) throw new BadRequestException('مستأجر پیدا نشد');
+    }
+    if (role === 'admin' && !tenantId && me.tenantId) throw new BadRequestException('ساخت مدیر سامانه از حساب مستأجر مجاز نیست');
     const u = await this.db.user.create({ data: {
       username, name: String(b.name).trim().slice(0, 60), title: String(b.title || '').trim().slice(0, 60) || null, role, ext: b.ext ? String(b.ext) : null, active: b.active !== false,
-      password: await bcrypt.hash(String(b.password), 10), perms: role === 'admin' ? undefined : (cleanPerms(b.perms) as any),
+      tenantId: me.tenantId || tenantId,
+      password: await bcrypt.hash(String(b.password), 10),
+      perms: role === 'admin' && !(me.tenantId || tenantId) ? undefined : (cleanPerms(b.perms) as any),
     } });
     await this.db.auditLog.create({ data: { userId: me.id, userName: me.name, action: 'user.create', target: u.username, detail: { role, perms: role === 'admin' ? 'all' : cleanPerms(b.perms) } as any } });
     return { id: u.id };

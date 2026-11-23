@@ -91,9 +91,15 @@ export class CallsService {
     setInterval(() => { const t = Date.now(); for (const [id, o] of this.origs) if (t - o.at > 3 * 3600e3) this.origs.delete(id); }, 600e3);
   }
 
-  async list(from = jAddDays(-120)) {
+  async list(from = jAddDays(-120), scope?: { tenantId?: string | null; dids?: string[] }) {
+    let where: any = { date: { gte: from } };
+    if (scope && scope.tenantId) {
+      const or: any[] = [{ tenantId: scope.tenantId }];
+      if (scope.dids && scope.dids.length) or.push({ did: { in: scope.dids } });
+      where = { AND: [where, { OR: or }] };
+    }
     const [rows, pats, users, cfg, follows, reps] = await Promise.all([
-      this.db.call.findMany({ where: { date: { gte: from } }, orderBy: { startedAt: 'desc' } }),
+      this.db.call.findMany({ where, orderBy: { startedAt: 'desc' } }),
       this.db.patient.findMany(), this.db.user.findMany({ where: { ext: { not: null } } }), this.store.all(), this.db.follow.findMany(),
       this.db.callReport.groupBy({ by: ['callId'], _count: { _all: true } }),
     ]);
@@ -151,9 +157,15 @@ export class CallsService {
     const orig = q.orig ? this.origs.get(q.orig) : undefined;
     const at = new Date(start * 1000);
     const opExt = dir === 'in' ? digits(q.ansext) || null : digits(q.opext || q.ansext) || null;
+    const did = digits(q.did) || null;
+    let tenantId: string | null = q.tenant ? String(q.tenant).replace(/[^A-Za-z0-9_-]/g, '') || null : null;
+    if (!tenantId && did) {
+      const asg = await this.db.didAssignment.findUnique({ where: { did }, select: { tenantId: true } }).catch(() => null);
+      if (asg) tenantId = asg.tenantId;
+    }
     const data = {
       startedAt: at, date: jalaliDate(at), time: hhmm(at), phone, dir, st, queue: q.queue || (dir === 'out' ? 'تماس خروجی' : '—'), opExt,
-      dur, wait, did: digits(q.did) || null, recPath, survey: survey as any, callback: !!q.orig, summary: orig?.note || null, wave: info.wave as any,
+      dur, wait, did, tenantId, recPath, survey: survey as any, callback: !!q.orig, summary: orig?.note || null, wave: info.wave as any,
       // «queued» is set by the AI queue itself when the call is really going to be analysed
       aiState: q.aiuuid ? 'queued' : 'none',
     };
@@ -205,15 +217,31 @@ export class CallsController {
 
   @Get('bootstrap')
   async bootstrap(@CurrentUser() me: Me) {
-    const [config, workflow, calls, users] = await Promise.all([this.store.forRole(me.role), this.calls.workflow(), this.calls.list(), this.db.user.findMany({ where: { active: true } })]);
+    const dids = me.tenantId
+      ? (await this.db.didAssignment.findMany({ where: { tenantId: me.tenantId }, select: { did: true } })).map(d => d.did)
+      : undefined;
+    const scope = me.tenantId ? { tenantId: me.tenantId, dids } : undefined;
+    const userWhere: any = { active: true };
+    if (me.tenantId) userWhere.tenantId = me.tenantId;
+    const [config, workflow, calls, users] = await Promise.all([
+      this.store.forUser(me), this.calls.workflow(), this.calls.list(undefined, scope),
+      this.db.user.findMany({ where: userWhere }),
+    ]);
     const live = this.ast.live;
     config.exts = config.exts.map((e: any) => ({ ...e, st: live.exts[e.n]?.st || 'offline', dev: live.exts[e.n]?.dev || e.dev }));
     const operators = users.filter(u => u.ext).map(u => ({ id: u.id, name: u.name, ext: u.ext }));
-    return { me, sections: SECTIONS, operators, config, workflow, calls };
+    return { me, sections: SECTIONS, operators, config, workflow, calls, tenantDids: dids || [] };
   }
 
   @Get('calls')
-  async list(@Query('from') from?: string) { return { calls: await this.calls.list(from && /^\d{4}\/\d{2}\/\d{2}$/.test(from) ? from : undefined) }; }
+  async list(@Query('from') from?: string, @CurrentUser() me?: Me) {
+    let scope: { tenantId?: string | null; dids?: string[] } | undefined;
+    if (me?.tenantId) {
+      const dids = (await this.db.didAssignment.findMany({ where: { tenantId: me.tenantId }, select: { did: true } })).map(d => d.did);
+      scope = { tenantId: me.tenantId, dids };
+    }
+    return { calls: await this.calls.list(from && /^\d{4}\/\d{2}\/\d{2}$/.test(from) ? from : undefined, scope) };
+  }
 
   /** Extensions the «تماس» button can ring first, with their live state (free / in a call / offline). */
   @Perm('calls', 'edit')

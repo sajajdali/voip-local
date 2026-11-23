@@ -8,7 +8,12 @@ import { env } from './env';
 import { Action, Perms, can, permsOf } from './perms';
 import { PrismaService } from './prisma.service';
 
-export interface Me { id: string; name: string; role: string; ext: string | null; username: string; title?: string | null; perms?: Perms }
+export interface Me { id: string; name: string; role: string; ext: string | null; username: string; title?: string | null; perms?: Perms; tenantId?: string | null }
+
+/** Platform admin: role admin and not bound to a tenant. */
+export function isSuperAdmin(me: Me | null | undefined) {
+  return !!me && me.role === 'admin' && !me.tenantId;
+}
 
 export const Roles = (...r: string[]) => SetMetadata('roles', r);
 /** Section permission; the action defaults from the HTTP method (GET view, POST add, PUT/PATCH edit, DELETE delete). */
@@ -55,7 +60,7 @@ export async function currentUser(db: PrismaService, id: string): Promise<Me | n
   const c = userCache.get(id);
   if (c && Date.now() - c.at < 15e3) return c.me;
   const u = await db.user.findUnique({ where: { id } });
-  const me: Me | null = u && u.active ? { id: u.id, name: u.name, role: u.role, ext: u.ext, username: u.username, title: u.title, perms: permsOf(u) } : null;
+  const me: Me | null = u && u.active ? { id: u.id, name: u.name, role: u.role, ext: u.ext, username: u.username, title: u.title, tenantId: u.tenantId || null, perms: permsOf(u) } : null;
   userCache.set(id, { at: Date.now(), me });
   return me;
 }

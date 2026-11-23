@@ -42,8 +42,12 @@ export const SECTIONS: Section[] = [
   { key: 'vbackup', label: 'بکاپ و بازیابی', group: 'تنظیمات سامانه', actions: ALL, hint: { add: 'گرفتن بکاپ', edit: 'بازیابی و زمان‌بندی' } },
   { key: 'sys', label: 'وضعیت سرور', group: 'تنظیمات سامانه', actions: ['view'] },
   { key: 'users', label: 'کاربران و دسترسی‌ها', group: 'تنظیمات سامانه', actions: ALL },
+  { key: 'tenants', label: 'مستأجرها و تخصیص DID', group: 'تنظیمات سامانه', actions: ALL, hint: { add: 'ساخت مستأجر و تخصیص شماره', edit: 'ویرایش مستأجر و مقصد ورودی', delete: 'حذف مستأجر یا آزاد کردن DID' } },
 ];
 const KEYS = new Set(SECTIONS.map(s => s.key));
+
+/** Platform-only sections: never granted to tenant-scoped users. */
+export const PLATFORM_SECTIONS = new Set(['vtrunk', 'tenants', 'vbackup', 'usage', 'sys', 'vai', 'vagent', 'vapi']);
 
 /** Starting points for the «قالب» buttons and for users created before permissions existed. */
 export function rolePerms(role: string): Perms {
@@ -66,15 +70,23 @@ export function cleanPerms(p: any): Perms {
   return out;
 }
 
-export function permsOf(u: { role: string; perms?: any }): Perms {
-  return u.role === 'admin' ? rolePerms('admin') : u.perms ? cleanPerms(u.perms) : rolePerms(u.role);
+export function permsOf(u: { role: string; perms?: any; tenantId?: string | null }): Perms {
+  // tenant-scoped accounts never inherit platform-wide «admin = everything» (no trunk / DID pool)
+  if (u.role === 'admin' && !u.tenantId) return rolePerms('admin');
+  const base = u.perms ? cleanPerms(u.perms) : rolePerms(u.role === 'admin' && u.tenantId ? 'supervisor' : u.role);
+  if (!u.tenantId) return base;
+  const out: Perms = { ...base };
+  for (const k of PLATFORM_SECTIONS) delete out[k];
+  return out;
 }
 
-export function can(u: { role: string; perms?: Perms } | null | undefined, section: string, action: Action = 'view') {
+export function can(u: { role: string; perms?: Perms; tenantId?: string | null } | null | undefined, section: string, action: Action = 'view') {
   if (!u) return false;
-  if (u.role === 'admin') return true;
+  if (u.tenantId && PLATFORM_SECTIONS.has(section)) return false;
+  if (u.role === 'admin' && !u.tenantId) return true;
   if (!KEYS.has(section)) return false;
-  return !!(u.perms && u.perms[section] && u.perms[section].includes(action));
+  const p = u.perms || permsOf(u);
+  return !!(p[section] && p[section].includes(action));
 }
 
 /** VoIP collections → the section that owns them. */

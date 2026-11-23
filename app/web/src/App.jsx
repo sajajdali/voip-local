@@ -12,10 +12,15 @@ let ME = { id: '', name: '', ext: '', role: 'operator', perms: {} };
 const REF_TOPICS_FA = { appt: 'نوبت‌دهی / تغییر نوبت', postop: 'پیگیری بعد از عمل', medical: 'سؤال پزشکی', finance: 'امور مالی و پرداخت', complaint: 'شکایت / نارضایتی', doctor: 'درخواست تماس با پزشک', docs: 'مدارک و پرونده', urgent: 'موضوع فوری / اورژانسی', other: 'سایر' };
 let SECTIONS = [];
 // page → the permission section that guards it
-const PAGE_SECTION = { calls: 'calls', file: 'calls', inbound: 'inbound', live: 'live', voice: 'voice', unreached: 'unreached', reports: 'reports', days: 'reports', creports: 'calls', vvm: 'vvm', vsms: 'vsms', refs: 'refer', survey: 'survey', ai: 'ai', aiconv: 'aiconv', sys: 'sys', usage: 'usage', users: 'users', vai: 'vai', vagent: 'vagent', vcrm: 'vcrm', vapi: 'vapi', vbackup: 'vbackup', vsurvey: 'vsurvey', vext: 'vext', vtrunk: 'vtrunk', vqueue: 'vqueue', vivr: 'vivr', vsound: 'vsound', vroute: 'vroute', vout: 'vout', vtime: 'vtime', vring: 'vring', vfollow: 'vfollow', vblack: 'vblack' };
+const PAGE_SECTION = { calls: 'calls', file: 'calls', inbound: 'inbound', live: 'live', voice: 'voice', unreached: 'unreached', reports: 'reports', days: 'reports', creports: 'calls', vvm: 'vvm', vsms: 'vsms', refs: 'refer', survey: 'survey', ai: 'ai', aiconv: 'aiconv', sys: 'sys', usage: 'usage', users: 'users', tenants: 'tenants', vai: 'vai', vagent: 'vagent', vcrm: 'vcrm', vapi: 'vapi', vbackup: 'vbackup', vsurvey: 'vsurvey', vext: 'vext', vtrunk: 'vtrunk', vqueue: 'vqueue', vivr: 'vivr', vsound: 'vsound', vroute: 'vroute', vout: 'vout', vtime: 'vtime', vring: 'vring', vfollow: 'vfollow', vblack: 'vblack' };
 const VOIP_SECTIONS = ['vext', 'vtrunk', 'vqueue', 'vivr', 'vsound', 'vroute', 'vout', 'vtime', 'vring', 'vfollow', 'vblack', 'vsurvey', 'vvm'];
-const SETTING_SECTIONS = [...VOIP_SECTIONS, 'vai', 'vagent', 'vcrm', 'vapi', 'usage', 'vbackup', 'sys', 'users'];
-const CAN = (section, action = 'view') => ME.role === 'admin' || !!(ME.perms && ME.perms[section] && ME.perms[section].includes(action));
+const SETTING_SECTIONS = [...VOIP_SECTIONS, 'vai', 'vagent', 'vcrm', 'vapi', 'usage', 'vbackup', 'sys', 'users', 'tenants'];
+const PLATFORM_SECTIONS = new Set(['vtrunk', 'tenants', 'vbackup', 'usage', 'sys', 'vai', 'vagent', 'vapi']);
+const CAN = (section, action = 'view') => {
+  if (ME.tenantId && PLATFORM_SECTIONS.has(section)) return false;
+  if (ME.role === 'admin' && !ME.tenantId) return true;
+  return !!(ME.perms && ME.perms[section] && ME.perms[section].includes(action));
+};
 const canPage = p => (p === 'settings' ? SETTING_SECTIONS.some(k => CAN(k)) : PAGE_SECTION[p] ? CAN(PAGE_SECTION[p]) : true);
 let OPS = [];
 
@@ -139,6 +144,7 @@ class LiveApp extends React.Component {
     if (s.page === 'vai' && prev.page !== 'vai') this.loadAi();
     if (s.page === 'vcrm' && prev.page !== 'vcrm') this.loadCrm();
     if (s.page === 'users' && prev.page !== 'users') this.loadUsers();
+    if (s.page === 'tenants' && prev.page !== 'tenants') this.loadTenants();
     if (s.page === 'creports' && prev.page !== 'creports') this.loadCReports();
     if (s.page === 'vsms' && prev.page !== 'vsms') this.loadSmsSettings();
     if (s.page === 'refs' && (prev.page !== 'refs' || prev.rfF !== s.rfF)) this.loadRefs();
@@ -528,12 +534,14 @@ class LiveApp extends React.Component {
         card('vapi', 'ارسال تماس‌ها (API)', I.code, 'ارسال اطلاعات هر تماس بعد از پایان به آدرس دلخواه', wh ? (wh.enabled ? 'فعال' : 'غیرفعال') : '…', wh && wh.enabled ? ok : off, K),
       ] },
       { title: 'نگهداری', sub: 'پشتیبان‌گیری و بازگردانی', items: [
+        card('tenants', 'مستأجرها و DID (۳۱۹۸۵)', I.phone, 'ساخت مستأجر، تخصیص شماره‌های ۳۱۹۸۵۰۰۰ تا ۳۱۹۸۵۹۹۹، مقصد ورودی هر مستأجر', s.tenantsData ? s.tenantsData.tenants.length + ' مستأجر · ' + (s.tenantsData.pool?.free || 0).toLocaleString('fa-IR') + ' DID آزاد' : 'مدیریت چندمستأجری', null, G),
         card('users', 'کاربران و دسترسی‌ها', I.user, 'تعریف کاربر، نقش، دسترسی به هر بخش و غیرفعال یا حذف کردن کاربر', s.usersData ? s.usersData.users.length + ' کاربر' : 'مدیریت کاربران', null, B),
         card('vbackup', 'بکاپ و بازیابی', I.db, 'بکاپ گرفتن از بخش‌های دلخواه، دانلود و بازیابی', bks ? bks.length + ' بکاپ' + (s.bk.schedule && s.bk.schedule.enabled ? ' · خودکار فعال' : '') : '…', null, G),
       ] },
     ];
     const TITLES = { vext: 'داخلی‌ها', vtrunk: 'ترانک‌ها', vqueue: 'صف‌ها', vivr: 'منوهای IVR', vsound: 'صداها', vroute: 'مسیرهای ورودی', vout: 'مسیرهای خروجی', vtime: 'شرایط و گروه‌های زمانی', vring: 'گروه زنگ', vfollow: 'دنبال‌کردن تماس', vblack: 'لیست سیاه', vsurvey: 'نظرسنجی بعد از تماس', vai: 'هوش مصنوعی', vcrm: 'سامانه بیماران (نام تماس‌گیرنده)', vagent: 'دستیار هوشمند تلفنی', usage: 'مصرف توکن هوش مصنوعی', vapi: 'ارسال تماس‌ها (API)', vbackup: 'بکاپ و بازیابی' };
     TITLES.users = 'کاربران و دسترسی‌ها';
+    TITLES.tenants = 'مستأجرها و تخصیص DID';
     TITLES.vvm = 'صندوق پیام صوتی';
     TITLES.vsms = 'پیامک';
     const shown = groups.map(g => ({ ...g, items: g.items.filter(it => canPage(it.page)) })).filter(g => g.items.length);
@@ -1411,6 +1419,11 @@ class LiveApp extends React.Component {
   // ---- «کاربران و دسترسی‌ها»
   async loadUsers() {
     try { this.setState({ usersData: await api('/users') }); } catch (e) { this.toast('بارگذاری کاربران ناموفق بود: ' + e.message); }
+  }
+
+  async loadTenants() {
+    try { this.setState({ tenantsData: await api('/tenants'), tnForm: null, tnDid: '' }); }
+    catch (e) { this.toast('بارگذاری مستأجرها ناموفق بود: ' + e.message); }
   }
 
   // ---- permanent delete of calls (list / report builder): three steps, the last two re-checked by the server
@@ -2638,7 +2651,90 @@ class LiveApp extends React.Component {
     this.reloadCalls();
   }
 
+  renderTenantsPage() {
+    const s = this.state;
+    const d = s.tenantsData;
+    const f = s.tnForm || { name: '', slug: '', defaultDest: '', username: '', password: '', userName: '' };
+    const setF = (p) => this.setState({ tnForm: { ...f, ...p } });
+    const queues = (s.vqs || []).map(q => ({ id: 'q:' + q.id, label: 'صف · ' + (q.name || q.id) }));
+    const destOpts = [{ id: '', label: '— انتخاب مقصد —' }, ...queues, ...(s.ivrs || []).map(i => ({ id: 'ivr:' + i.id, label: 'IVR · ' + (i.name || i.id) })), ...(s.exts || []).map(e => ({ id: 'e:' + e.n, label: 'داخلی · ' + e.n }))];
+    const back = () => this.setState({ page: 'settings' });
+    if (!d) return <div style={{ padding: 40, fontFamily: 'IRANSansX, Tahoma, sans-serif', direction: 'rtl' }}>در حال بارگذاری…</div>;
+    return (
+      <div style={{ minHeight: '100vh', background: 'linear-gradient(160deg,#F7F9FC 0%,#EEF8F7 45%,#E2ECFA 100%)', padding: '24px 20px 48px', fontFamily: 'IRANSansX, Tahoma, sans-serif', direction: 'rtl', color: '#0B2545' }}>
+        <div style={{ maxWidth: 960, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 18 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+            <div>
+              <button type="button" onClick={back} style={{ border: '1px solid #E3E8EF', background: '#fff', borderRadius: 10, padding: '6px 12px', cursor: 'pointer', marginBottom: 10, fontFamily: 'inherit' }}>← بازگشت به تنظیمات</button>
+              <h1 style={{ margin: 0, fontSize: 22, fontFamily: "'Noto Kufi Arabic',sans-serif" }}>مستأجرها و DID ترانک ۳۱۹۸۵</h1>
+              <div style={{ color: '#5B6B82', fontSize: 13, marginTop: 4 }}>بازه {d.pool.min}…{d.pool.max} · آزاد: {(d.pool.free || 0).toLocaleString('fa-IR')} از {d.pool.total.toLocaleString('fa-IR')}</div>
+            </div>
+            <button type="button" onClick={() => this.setState({ tnForm: { name: '', slug: '', defaultDest: (queues[0] && queues[0].id) || '', username: '', password: '', userName: '' } })} style={{ border: 'none', background: 'linear-gradient(135deg,#0B2545,#1D4E89)', color: '#fff', padding: '10px 16px', borderRadius: 12, cursor: 'pointer', fontFamily: 'inherit', fontWeight: 600 }}>مستأجر جدید</button>
+          </div>
+          {s.tnForm && (
+            <div style={{ background: '#fff', border: '1px solid #9FCFCC', borderRadius: 16, padding: 18, display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <div style={{ fontWeight: 800 }}>ساخت مستأجر</div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(180px,1fr))', gap: 10 }}>
+                <label style={{ fontSize: 11, color: '#5B6B82', display: 'flex', flexDirection: 'column', gap: 4 }}>نام<input value={f.name} onChange={e => setF({ name: e.target.value })} style={{ padding: 9, borderRadius: 10, border: '1px solid #E3E8EF', fontFamily: 'inherit' }} /></label>
+                <label style={{ fontSize: 11, color: '#5B6B82', display: 'flex', flexDirection: 'column', gap: 4 }}>شناسه انگلیسی (اختیاری)<input value={f.slug} onChange={e => setF({ slug: e.target.value })} dir="ltr" style={{ padding: 9, borderRadius: 10, border: '1px solid #E3E8EF', fontFamily: 'inherit', textAlign: 'left' }} /></label>
+                <label style={{ fontSize: 11, color: '#5B6B82', display: 'flex', flexDirection: 'column', gap: 4 }}>مقصد ورودی<select value={f.defaultDest} onChange={e => setF({ defaultDest: e.target.value })} style={{ padding: 9, borderRadius: 10, border: '1px solid #E3E8EF', fontFamily: 'inherit' }}>{destOpts.map(o => <option key={o.id || 'x'} value={o.id}>{o.label}</option>)}</select></label>
+                <label style={{ fontSize: 11, color: '#5B6B82', display: 'flex', flexDirection: 'column', gap: 4 }}>کاربر ورود (اختیاری)<input value={f.username} onChange={e => setF({ username: e.target.value })} dir="ltr" placeholder="tenant1" style={{ padding: 9, borderRadius: 10, border: '1px solid #E3E8EF', fontFamily: 'inherit', textAlign: 'left' }} /></label>
+                <label style={{ fontSize: 11, color: '#5B6B82', display: 'flex', flexDirection: 'column', gap: 4 }}>رمز کاربر<input type="password" value={f.password} onChange={e => setF({ password: e.target.value })} style={{ padding: 9, borderRadius: 10, border: '1px solid #E3E8EF', fontFamily: 'inherit' }} /></label>
+              </div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button type="button" onClick={async () => {
+                  try {
+                    await api('/tenants', { name: f.name, slug: f.slug || undefined, defaultDest: f.defaultDest, username: f.username || undefined, password: f.password || undefined, userName: f.userName || f.name });
+                    this.toast('مستأجر ساخته شد'); this.setState({ tnForm: null }); this.loadTenants();
+                  } catch (e) { this.toast(e.message); }
+                }} style={{ border: 'none', background: '#0B2545', color: '#fff', padding: '8px 14px', borderRadius: 10, cursor: 'pointer', fontFamily: 'inherit' }}>ذخیره</button>
+                <button type="button" onClick={() => this.setState({ tnForm: null })} style={{ border: '1px solid #E3E8EF', background: '#fff', padding: '8px 14px', borderRadius: 10, cursor: 'pointer', fontFamily: 'inherit' }}>انصراف</button>
+              </div>
+            </div>
+          )}
+          {(d.tenants || []).map(t => (
+            <div key={t.id} style={{ background: '#fff', border: '1px solid #E3E8EF', borderRadius: 16, padding: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
+                <div>
+                  <div style={{ fontWeight: 800, fontSize: 16 }}>{t.name} <span style={{ fontWeight: 500, color: '#5B6B82', fontSize: 12 }}>({t.slug})</span></div>
+                  <div style={{ fontSize: 12, color: '#5B6B82' }}>مقصد: {t.defaultDest || '—'} · کاربران: {(t.users || []).length.toLocaleString('fa-IR')} · DID: {(t.dids || []).length.toLocaleString('fa-IR')}</div>
+                </div>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <select value={t.defaultDest || ''} onChange={async e => { try { await api('/tenants/' + t.id, { defaultDest: e.target.value }, 'PUT'); this.toast('مقصد ذخیره شد'); this.loadTenants(); } catch (err) { this.toast(err.message); } }} style={{ padding: 8, borderRadius: 10, border: '1px solid #E3E8EF', fontFamily: 'inherit' }}>
+                    {destOpts.map(o => <option key={o.id || 'x'} value={o.id}>{o.label}</option>)}
+                  </select>
+                  <button type="button" onClick={async () => { if (!confirm('حذف مستأجر «' + t.name + '»؟')) return; try { await api('/tenants/' + t.id, null, 'DELETE'); this.toast('حذف شد'); this.loadTenants(); } catch (e) { this.toast(e.message); } }} style={{ border: '1px solid #f5c2c0', background: '#fdeceb', color: '#b42318', padding: '8px 12px', borderRadius: 10, cursor: 'pointer', fontFamily: 'inherit' }}>حذف</button>
+                </div>
+              </div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                {(t.dids || []).map(x => (
+                  <span key={x.did} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: '#E3F2F1', border: '1px solid #C7E6E3', borderRadius: 999, padding: '4px 10px', fontSize: 12, direction: 'ltr' }}>
+                    {x.did}
+                    <button type="button" onClick={async () => { try { await api('/tenants/' + t.id + '/dids/' + x.did, null, 'DELETE'); this.loadTenants(); } catch (e) { this.toast(e.message); } }} style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: '#b42318', fontWeight: 700 }}>×</button>
+                  </span>
+                ))}
+              </div>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+                <input value={s.tnDid || ''} onChange={e => this.setState({ tnDid: e.target.value.replace(/\D/g, '').slice(0, 8) })} placeholder="31985007" dir="ltr" style={{ padding: 8, borderRadius: 10, width: 140, textAlign: 'left', border: '1px solid #E3E8EF', fontFamily: 'inherit' }} />
+                <button type="button" onClick={async () => {
+                  try { await api('/tenants/' + t.id + '/dids', { did: s.tnDid }); this.toast('DID تخصیص داده شد'); this.setState({ tnDid: '' }); this.loadTenants(); }
+                  catch (e) { this.toast(e.message); }
+                }} style={{ border: 'none', background: '#0A5C5B', color: '#fff', padding: '8px 12px', borderRadius: 10, cursor: 'pointer', fontFamily: 'inherit' }}>تخصیص DID</button>
+                <span style={{ fontSize: 11, color: '#7A889C' }}>نمونه آزاد: {(d.freeSample || []).slice(0, 5).join(' · ') || '—'}</span>
+              </div>
+              {(t.users || []).length > 0 && (
+                <div style={{ fontSize: 12, color: '#3A4A63' }}>دسترسی ورود: {(t.users || []).map(u => u.username + (u.active ? '' : ' (غیرفعال)')).join('، ')}</div>
+              )}
+            </div>
+          ))}
+          {!d.tenants.length && <div style={{ color: '#5B6B82', padding: 20, background: '#fff', borderRadius: 16, border: '1px dashed #E3E8EF' }}>هنوز مستأجری ساخته نشده. یک مستأجر بسازید و DID مثل ۳۱۹۸۵۰۰۷ را به او بدهید.</div>}
+        </div>
+      </div>
+    );
+  }
+
   render() {
+    if (this.state.page === 'tenants' && CAN('tenants')) return this.renderTenantsPage();
     return <AppView vm={this.renderVals()} />;
   }
 }

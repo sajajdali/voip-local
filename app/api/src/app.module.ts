@@ -21,9 +21,10 @@ import { PrismaService } from './prisma.service';
 import { ReportsController } from './reports';
 import { WebhookController, WebhookService } from './webhook';
 import { BackupController, BackupService } from './backups';
+import { TenantsController, TenantsService } from './tenants';
 
 @Module({
-  controllers: [AuthController, CallsController, HooksController, ConfigController, MediaController, ReportsController, WebhookController, BackupController, AiController, CrmController, AiAgentController, SystemController, UsageController, UsersController, CallReportsController, PatientCardController, SmsController, ReferralsController],
-  providers: [PrismaService, Bus, SmsService, AsteriskService, ConfigStore, CallsService, PatientsService, AiService, AiAgentService, LiveCallsService, SystemService, UsageService, WebhookService, BackupService, LiveGateway, { provide: APP_GUARD, useClass: AuthGuard }],
+  controllers: [AuthController, CallsController, HooksController, ConfigController, MediaController, ReportsController, WebhookController, BackupController, AiController, CrmController, AiAgentController, SystemController, UsageController, UsersController, CallReportsController, PatientCardController, SmsController, ReferralsController, TenantsController],
+  providers: [PrismaService, Bus, SmsService, AsteriskService, ConfigStore, CallsService, PatientsService, AiService, AiAgentService, LiveCallsService, SystemService, UsageService, WebhookService, BackupService, TenantsService, LiveGateway, { provide: APP_GUARD, useClass: AuthGuard }],
 })
 export class AppModule {}
