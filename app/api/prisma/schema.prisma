@@ -31,13 +31,39 @@ model Tenant {
   active      Boolean         @default(true)
   defaultDest String          @default("")
   note        String?
-  /// Feature flags: { booking, ivr, queues, exts, outbound, recordings }
+  /// Feature flags: { booking, ivr, queues, exts, inbound, outbound, recordings }
   features    Json?
+  /// Subscription: 1w | 1m | 6m | 1y | 2y | 3y
+  planPeriod  String          @default("1m")
+  /// Price for one plan period (تومان)
+  priceToman  Int             @default(0)
+  expiresAt   DateTime?
+  /// Explicit lock (admin or unpaid expiry); also derived when expiresAt < now
+  locked      Boolean         @default(false)
   createdAt   DateTime        @default(now())
   updatedAt   DateTime        @updatedAt
   dids        DidAssignment[]
   users       User[]
   configs     TenantConfig[]
+  payments    TenantPayment[]
+}
+
+/// Simulated (or future real) payments that extend tenant access.
+model TenantPayment {
+  id        String   @id @default(cuid())
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  amount    Int
+  period    String
+  success   Boolean
+  simulated Boolean  @default(true)
+  note      String?
+  byUserId  String?
+  byName    String?
+  createdAt DateTime @default(now())
+
+  @@index([tenantId])
+  @@index([createdAt])
 }
 
 model DidAssignment {

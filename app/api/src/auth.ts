@@ -7,6 +7,7 @@ import * as jwt from 'jsonwebtoken';
 import { env } from './env';
 import { Action, Perms, can, permsOf } from './perms';
 import { PrismaService } from './prisma.service';
+import { tenantAccess } from './tenant-scope';
 
 export interface Me { id: string; name: string; role: string; ext: string | null; username: string; title?: string | null; perms?: Perms; tenantId?: string | null }
 
@@ -18,7 +19,23 @@ export const Roles = (...r: string[]) => SetMetadata('roles', r);
 /** Section permission; the action defaults from the HTTP method (GET view, POST add, PUT/PATCH edit, DELETE delete). */
 export const Perm = (section: string, action?: Action) => SetMetadata('perm', { section, action });
 export const Public = () => SetMetadata('public', true);
+/** Allow this route even when the tenant subscription is locked/expired (paywall). */
+export const AllowPaywall = () => SetMetadata('allowPaywall', true);
 export const CurrentUser = createParamDecorator((_: unknown, ctx: ExecutionContext) => ctx.switchToHttp().getRequest().user as Me);
+
+/** Paths tenant users may hit while subscription is locked (paywall). */
+const PAYWALL_PATH_OK = [
+  { m: 'GET', re: /^\/auth\/me\/?$/ },
+  { m: 'GET', re: /^\/bootstrap\/?$/ },
+  { m: 'GET', re: /^\/tenants\/me\/?$/ },
+  { m: 'POST', re: /^\/tenants\/me\/pay\/simulate\/?$/ },
+];
+
+function paywallPathOk(method: string, url: string) {
+  const path = String(url || '').split('?')[0];
+  const m = String(method || 'GET').toUpperCase();
+  return PAYWALL_PATH_OK.some(x => x.m === m && x.re.test(path));
+}
 
 export function verifyToken(t: string): Me | null {
   try { return jwt.verify(t, env.jwtSecret) as Me; } catch { return null; }
@@ -39,6 +56,33 @@ export class AuthGuard implements CanActivate {
     const me = await currentUser(this.db, tok.id);
     if (!me) throw new UnauthorizedException('حساب کاربری شما غیرفعال یا حذف شده است');
     req.user = me;
+
+    // Subscription lock: tenant may only hit paywall-safe routes until payment unlocks access
+    if (me.tenantId) {
+      const t = await this.db.tenant.findUnique({ where: { id: me.tenantId } });
+      const access = t ? tenantAccess(t) : { locked: true, reason: 'disabled', active: false, expired: false };
+      req.tenantAccess = access;
+      if (access.locked) {
+        const allowMeta = this.reflector.getAllAndOverride<boolean>('allowPaywall', h);
+        const path = String(req.originalUrl || req.url || '').replace(/^\/api/, '') || '/';
+        if (!allowMeta && !paywallPathOk(req.method, path)) {
+          throw new HttpException({
+            statusCode: 402,
+            code: 'TENANT_LOCKED',
+            reason: access.reason,
+            message: access.reason === 'expired'
+              ? 'اشتراک شما به پایان رسیده است؛ برای ادامه کار باید پرداخت کنید'
+              : access.reason === 'disabled'
+                ? 'حساب مستأجر شما غیرفعال است؛ با مدیر سامانه تماس بگیرید'
+                : 'دسترسی مستأجر قفل است؛ ابتدا پرداخت یا تمدید کنید',
+            expiresAt: t?.expiresAt || null,
+            priceToman: t?.priceToman || 0,
+            planPeriod: t?.planPeriod || '1m',
+          }, 402);
+        }
+      }
+    }
+
     const perm = this.reflector.getAllAndOverride<{ section: string; action?: Action }>('perm', h);
     if (perm) {
       const m = String(req.method).toUpperCase();
@@ -141,15 +185,30 @@ export class AuthController {
       await this.db.auditLog.create({ data: { userId: u ? u.id : 'unknown', userName: u ? u.name : String(b.username || '').slice(0, 40), action: 'login.failed', target: 'auth', detail: { ip } as any } }).catch(() => {});
       throw new UnauthorizedException('نام کاربری یا رمز عبور اشتباه است');
     }
+    let paywall: any = null;
     if (u.tenantId) {
       const t = await this.db.tenant.findUnique({ where: { id: u.tenantId } });
-      if (!t || !t.active) throw new UnauthorizedException('حساب مستأجر شما غیرفعال است؛ با مدیر سامانه تماس بگیرید');
+      if (!t) throw new UnauthorizedException('حساب مستأجر شما یافت نشد');
+      if (!t.active) throw new UnauthorizedException('حساب مستأجر شما غیرفعال است؛ با مدیر سامانه تماس بگیرید');
+      const access = tenantAccess(t);
+      // Expired/locked tenants may still sign in — they only see the paywall until payment unlocks them
+      if (access.locked) {
+        paywall = {
+          locked: true,
+          reason: access.reason,
+          expired: access.expired,
+          expiresAt: t.expiresAt,
+          priceToman: t.priceToman || 0,
+          planPeriod: t.planPeriod || '1m',
+          name: t.name,
+        };
+      }
     }
     failures.delete(ip);
     const me: Me = { id: u.id, name: u.name, role: u.role, ext: u.ext, username: u.username, tenantId: u.tenantId || null };
     forgetUser(u.id);
-    await this.db.auditLog.create({ data: { userId: u.id, userName: u.name, action: 'login', target: 'auth', detail: { tenantId: me.tenantId } as any } });
-    return { token: jwt.sign(me, env.jwtSecret, { expiresIn: '12h' }), me: { ...me, title: u.title, perms: permsOf(u) } };
+    await this.db.auditLog.create({ data: { userId: u.id, userName: u.name, action: 'login', target: 'auth', detail: { tenantId: me.tenantId, paywall: !!paywall } as any } });
+    return { token: jwt.sign(me, env.jwtSecret, { expiresIn: '12h' }), me: { ...me, title: u.title, perms: permsOf(u) }, paywall };
   }
 
   @Get('me')

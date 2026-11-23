@@ -2655,108 +2655,260 @@ class LiveApp extends React.Component {
   renderTenantsPage() {
     const s = this.state;
     const d = s.tenantsData;
-    const FEAT = { booking: 'نوبت‌دهی', ivr: 'IVR', queues: 'صف‌ها', exts: 'داخلی‌ها', outbound: 'خروجی', recordings: 'ضبط' };
-    const f = s.tnForm || { name: '', slug: '', defaultDest: '', username: '', password: '', userName: '' };
+    const labels = (d && d.featureLabels) || { booking: 'نوبت‌دهی', ivr: 'IVR', queues: 'صف‌ها', exts: 'داخلی‌ها', inbound: 'ورودی', outbound: 'خروجی', recordings: 'ضبط' };
+    const featKeys = Object.keys(labels);
+    const periods = (d && d.planPeriods) || [
+      { id: '1w', label: '۱ هفته' }, { id: '1m', label: '۱ ماه' }, { id: '6m', label: '۶ ماه' },
+      { id: '1y', label: '۱ سال' }, { id: '2y', label: '۲ سال' }, { id: '3y', label: '۳ سال' },
+    ];
+    const blankForm = () => ({
+      mode: 'create', id: null, name: '', slug: '', defaultDest: '', username: '', password: '', userName: '',
+      didSuffix: '', note: '', planPeriod: '1m', priceToman: '500000',
+      features: { ...((d && d.featureDefaults) || { booking: true, ivr: true, queues: true, exts: true, inbound: true, outbound: true, recordings: true }) },
+      confirm: false, createdLogin: null,
+    });
+    const f = s.tnForm;
     const setF = (p) => this.setState({ tnForm: { ...f, ...p } });
     const queues = (s.vqs || []).map(q => ({ id: 'q:' + q.id, label: 'صف · ' + (q.name || q.id) }));
     const destOpts = [{ id: '', label: '— انتخاب مقصد —' }, { id: 'book', label: 'نوبت‌دهی تلفنی' }, ...queues, ...(s.ivrs || []).map(i => ({ id: 'ivr:' + i.id, label: 'IVR · ' + (i.name || i.id) })), ...(s.exts || []).map(e => ({ id: 'e:' + e.n, label: 'داخلی · ' + e.n }))];
     const back = () => this.setState({ page: 'settings' });
-    const toggleFeat = async (t, key) => {
+    const fa = n => String(n ?? '').replace(/\d/g, x => '۰۱۲۳۴۵۶۷۸۹'[x]);
+    const statusBadge = (t) => {
+      if (!t.active) return { bg: '#fdeceb', c: '#b42318', t: 'غیرفعال' };
+      if (t.accessOk === false || t.locked || t.expired) {
+        if (t.accessReason === 'expired' || t.expired) return { bg: '#fff4e5', c: '#b54708', t: 'منقضی — قفل' };
+        return { bg: '#fdeceb', c: '#b42318', t: 'قفل' };
+      }
+      return { bg: '#E3F2F1', c: '#0A5C5B', t: 'فعال' };
+    };
+    const openEdit = (t) => this.setState({
+      tnForm: {
+        mode: 'edit', id: t.id, name: t.name, slug: t.slug, defaultDest: t.defaultDest || '', note: t.note || '',
+        username: '', password: '', userName: '', didSuffix: '',
+        planPeriod: t.planPeriod || '1m', priceToman: String(t.priceToman || 0),
+        features: { ...(d.featureDefaults || {}), ...(t.features || {}) },
+        confirm: false, createdLogin: null, active: t.active, locked: !!t.locked,
+      },
+    });
+    const toggleFeatLocal = (key) => setF({ features: { ...f.features, [key]: !f.features[key] } });
+    const toggleFeatLive = async (t, key) => {
       const features = { ...(t.features || d.featureDefaults || {}), [key]: !(t.features && t.features[key]) };
       try { await api('/tenants/' + t.id + '/features', { features }, 'PUT'); this.toast('قابلیت‌ها ذخیره شد'); this.loadTenants(); }
       catch (e) { this.toast(e.message); }
     };
     if (!d) return <div style={{ padding: 40, fontFamily: 'IRANSansX, Tahoma, sans-serif', direction: 'rtl' }}>در حال بارگذاری…</div>;
+    const inp = { padding: 9, borderRadius: 10, border: '1px solid #E3E8EF', fontFamily: 'inherit' };
     return (
       <div style={{ minHeight: '100vh', background: 'linear-gradient(160deg,#F7F9FC 0%,#EEF8F7 45%,#E2ECFA 100%)', padding: '24px 20px 48px', fontFamily: 'IRANSansX, Tahoma, sans-serif', direction: 'rtl', color: '#0B2545' }}>
-        <div style={{ maxWidth: 960, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 18 }}>
+        <div style={{ maxWidth: 980, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 18 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', alignItems: 'flex-end' }}>
             <div>
               <button type="button" onClick={back} style={{ border: '1px solid #E3E8EF', background: '#fff', borderRadius: 10, padding: '6px 12px', cursor: 'pointer', marginBottom: 10, fontFamily: 'inherit' }}>← بازگشت به تنظیمات</button>
-              <h1 style={{ margin: 0, fontSize: 22, fontFamily: "'Noto Kufi Arabic',sans-serif" }}>مستأجرها · ماتریس دسترسی · DID ۳۱۹۸۵</h1>
-              <div style={{ color: '#5B6B82', fontSize: 13, marginTop: 4 }}>بازه {d.pool.min}…{d.pool.max} · آزاد: {(d.pool.free || 0).toLocaleString('fa-IR')} از {d.pool.total.toLocaleString('fa-IR')}</div>
+              <h1 style={{ margin: 0, fontSize: 22, fontFamily: "'Noto Kufi Arabic',sans-serif" }}>مستأجرها · اشتراک · DID ۳۱۹۸۵</h1>
+              <div style={{ color: '#5B6B82', fontSize: 13, marginTop: 4 }}>ورود مستأجر: <b dir="ltr">https://voip.s8n.ir</b> · بازه {d.pool.min}…{d.pool.max} · آزاد: {fa(d.pool.free || 0)} از {fa(d.pool.total)}</div>
             </div>
-            <button type="button" onClick={() => this.setState({ tnForm: { name: '', slug: '', defaultDest: (queues[0] && queues[0].id) || '', username: '', password: '', userName: '' } })} style={{ border: 'none', background: 'linear-gradient(135deg,#0B2545,#1D4E89)', color: '#fff', padding: '10px 16px', borderRadius: 12, cursor: 'pointer', fontFamily: 'inherit', fontWeight: 600 }}>مستأجر جدید</button>
+            <button type="button" onClick={() => this.setState({ tnForm: { ...blankForm(), defaultDest: (queues[0] && queues[0].id) || '' } })} style={{ border: 'none', background: 'linear-gradient(135deg,#0B2545,#1D4E89)', color: '#fff', padding: '10px 16px', borderRadius: 12, cursor: 'pointer', fontFamily: 'inherit', fontWeight: 600 }}>مستأجر جدید</button>
           </div>
-          {s.tnForm && (
-            <div style={{ background: '#fff', border: '1px solid #9FCFCC', borderRadius: 16, padding: 18, display: 'flex', flexDirection: 'column', gap: 12 }}>
-              <div style={{ fontWeight: 800 }}>ساخت مستأجر</div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(180px,1fr))', gap: 10 }}>
-                <label style={{ fontSize: 11, color: '#5B6B82', display: 'flex', flexDirection: 'column', gap: 4 }}>نام<input value={f.name} onChange={e => setF({ name: e.target.value })} style={{ padding: 9, borderRadius: 10, border: '1px solid #E3E8EF', fontFamily: 'inherit' }} /></label>
-                <label style={{ fontSize: 11, color: '#5B6B82', display: 'flex', flexDirection: 'column', gap: 4 }}>شناسه انگلیسی (اختیاری)<input value={f.slug} onChange={e => setF({ slug: e.target.value })} dir="ltr" style={{ padding: 9, borderRadius: 10, border: '1px solid #E3E8EF', fontFamily: 'inherit', textAlign: 'left' }} /></label>
-                <label style={{ fontSize: 11, color: '#5B6B82', display: 'flex', flexDirection: 'column', gap: 4 }}>مقصد ورودی<select value={f.defaultDest} onChange={e => setF({ defaultDest: e.target.value })} style={{ padding: 9, borderRadius: 10, border: '1px solid #E3E8EF', fontFamily: 'inherit' }}>{destOpts.map(o => <option key={o.id || 'x'} value={o.id}>{o.label}</option>)}</select></label>
-                <label style={{ fontSize: 11, color: '#5B6B82', display: 'flex', flexDirection: 'column', gap: 4 }}>کاربر ورود (اختیاری)<input value={f.username} onChange={e => setF({ username: e.target.value })} dir="ltr" placeholder="tenant1" style={{ padding: 9, borderRadius: 10, border: '1px solid #E3E8EF', fontFamily: 'inherit', textAlign: 'left' }} /></label>
-                <label style={{ fontSize: 11, color: '#5B6B82', display: 'flex', flexDirection: 'column', gap: 4 }}>رمز کاربر<input type="password" value={f.password} onChange={e => setF({ password: e.target.value })} style={{ padding: 9, borderRadius: 10, border: '1px solid #E3E8EF', fontFamily: 'inherit' }} /></label>
+
+          {f && f.createdLogin && (
+            <div style={{ background: '#E3F2F1', border: '1px solid #9FCFCC', borderRadius: 16, padding: 18 }}>
+              <div style={{ fontWeight: 800, marginBottom: 8 }}>مستأجر ساخته شد — اطلاعات ورود را ذخیره کنید</div>
+              <div style={{ fontSize: 14, lineHeight: 1.8 }}>
+                آدرس: <b dir="ltr">{f.createdLogin.url}</b><br />
+                نام کاربری: <b dir="ltr">{f.createdLogin.username}</b><br />
+                رمز: <b dir="ltr">{f.createdLogin.password}</b>
               </div>
-              <div style={{ display: 'flex', gap: 8 }}>
+              <button type="button" onClick={() => this.setState({ tnForm: null })} style={{ marginTop: 12, border: 'none', background: '#0B2545', color: '#fff', padding: '8px 14px', borderRadius: 10, cursor: 'pointer', fontFamily: 'inherit' }}>بستن</button>
+            </div>
+          )}
+
+          {f && !f.createdLogin && (
+            <div style={{ background: '#fff', border: '1px solid #9FCFCC', borderRadius: 16, padding: 18, display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <div style={{ fontWeight: 800 }}>{f.mode === 'edit' ? 'ویرایش مستأجر' : 'ساخت مستأجر جدید'}</div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(180px,1fr))', gap: 10 }}>
+                <label style={{ fontSize: 11, color: '#5B6B82', display: 'flex', flexDirection: 'column', gap: 4 }}>نام سازمان<input value={f.name} onChange={e => setF({ name: e.target.value })} style={inp} /></label>
+                <label style={{ fontSize: 11, color: '#5B6B82', display: 'flex', flexDirection: 'column', gap: 4 }}>شناسه انگلیسی (اختیاری)<input value={f.slug} onChange={e => setF({ slug: e.target.value })} dir="ltr" disabled={f.mode === 'edit'} style={{ ...inp, textAlign: 'left', opacity: f.mode === 'edit' ? 0.6 : 1 }} /></label>
+                <label style={{ fontSize: 11, color: '#5B6B82', display: 'flex', flexDirection: 'column', gap: 4 }}>مقصد ورودی پیش‌فرض<select value={f.defaultDest} onChange={e => setF({ defaultDest: e.target.value })} style={inp}>{destOpts.map(o => <option key={o.id || 'x'} value={o.id}>{o.label}</option>)}</select></label>
+                {f.mode === 'create' && (
+                  <label style={{ fontSize: 11, color: '#5B6B82', display: 'flex', flexDirection: 'column', gap: 4 }}>
+                    شماره DID (۳۱۹۸۵ + سه رقم)
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <span dir="ltr" style={{ fontWeight: 700, letterSpacing: 1 }}>31985</span>
+                      <input value={f.didSuffix} onChange={e => setF({ didSuffix: e.target.value.replace(/\D/g, '').slice(0, 3) })} dir="ltr" placeholder="007" maxLength={3} style={{ ...inp, width: 72, textAlign: 'left' }} />
+                    </div>
+                  </label>
+                )}
+              </div>
+
+              {f.mode === 'create' && (
+                <div>
+                  <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 8 }}>حساب ورود مستأجر (الزامی)</div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(180px,1fr))', gap: 10 }}>
+                    <label style={{ fontSize: 11, color: '#5B6B82', display: 'flex', flexDirection: 'column', gap: 4 }}>نام کاربری<input value={f.username} onChange={e => setF({ username: e.target.value })} dir="ltr" placeholder="clinic1" style={{ ...inp, textAlign: 'left' }} /></label>
+                    <label style={{ fontSize: 11, color: '#5B6B82', display: 'flex', flexDirection: 'column', gap: 4 }}>کلمه عبور<input type="password" value={f.password} onChange={e => setF({ password: e.target.value })} style={inp} /></label>
+                    <label style={{ fontSize: 11, color: '#5B6B82', display: 'flex', flexDirection: 'column', gap: 4 }}>نام نمایشی<input value={f.userName} onChange={e => setF({ userName: e.target.value })} placeholder={f.name || 'مدیر مستأجر'} style={inp} /></label>
+                  </div>
+                </div>
+              )}
+
+              <div>
+                <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 8 }}>اشتراک و قیمت</div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(180px,1fr))', gap: 10 }}>
+                  <label style={{ fontSize: 11, color: '#5B6B82', display: 'flex', flexDirection: 'column', gap: 4 }}>مدت اشتراک
+                    <select value={f.planPeriod} onChange={e => setF({ planPeriod: e.target.value })} style={inp}>
+                      {periods.map(p => <option key={p.id} value={p.id}>{p.label}</option>)}
+                    </select>
+                  </label>
+                  <label style={{ fontSize: 11, color: '#5B6B82', display: 'flex', flexDirection: 'column', gap: 4 }}>قیمت دوره (تومان)
+                    <input value={f.priceToman} onChange={e => setF({ priceToman: e.target.value.replace(/\D/g, '') })} dir="ltr" style={{ ...inp, textAlign: 'left' }} />
+                  </label>
+                  <label style={{ fontSize: 11, color: '#5B6B82', display: 'flex', flexDirection: 'column', gap: 4 }}>یادداشت
+                    <input value={f.note || ''} onChange={e => setF({ note: e.target.value })} style={inp} />
+                  </label>
+                </div>
+              </div>
+
+              <div>
+                <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 8 }}>قابلیت‌های پنل</div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                  {featKeys.map(k => {
+                    const on = f.features[k] !== false;
+                    return (
+                      <button key={k} type="button" onClick={() => toggleFeatLocal(k)} style={{ border: '1px solid ' + (on ? '#9FCFCC' : '#E3E8EF'), background: on ? '#E3F2F1' : '#F7F9FC', color: on ? '#0A5C5B' : '#7A889C', borderRadius: 999, padding: '5px 12px', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>
+                        {labels[k]} {on ? '✓' : '✗'}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {f.mode === 'edit' && (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                  <button type="button" onClick={() => setF({ active: !f.active })} style={{ border: '1px solid #E3E8EF', background: f.active ? '#fff' : '#fdeceb', padding: '8px 12px', borderRadius: 10, cursor: 'pointer', fontFamily: 'inherit' }}>{f.active ? 'دسترسی فعال است (کلیک = غیرفعال)' : 'غیرفعال است (کلیک = فعال)'}</button>
+                  <button type="button" onClick={() => setF({ locked: !f.locked })} style={{ border: '1px solid #E3E8EF', background: f.locked ? '#fdeceb' : '#fff', padding: '8px 12px', borderRadius: 10, cursor: 'pointer', fontFamily: 'inherit' }}>{f.locked ? 'قفل دستی روشن' : 'قفل دستی خاموش'}</button>
+                  <label style={{ fontSize: 12, display: 'flex', alignItems: 'center', gap: 6, color: '#5B6B82' }}>
+                    <input type="checkbox" checked={!!f.renew} onChange={e => setF({ renew: e.target.checked })} /> تمدید از همین لحظه با مدت انتخاب‌شده
+                  </label>
+                </div>
+              )}
+
+              {f.mode === 'create' && (
+                <label style={{ fontSize: 13, display: 'flex', alignItems: 'center', gap: 8, color: '#3A4A63' }}>
+                  <input type="checkbox" checked={!!f.confirm} onChange={e => setF({ confirm: e.target.checked })} />
+                  اطلاعات ورود و شماره DID را بررسی کردم و تأیید می‌کنم
+                </label>
+              )}
+
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                 <button type="button" onClick={async () => {
                   try {
-                    await api('/tenants', { name: f.name, slug: f.slug || undefined, defaultDest: f.defaultDest, username: f.username || undefined, password: f.password || undefined, userName: f.userName || f.name });
-                    this.toast('مستأجر ساخته شد'); this.setState({ tnForm: null }); this.loadTenants();
+                    if (f.mode === 'create') {
+                      if (!f.confirm) { this.toast('ابتدا تأیید را بزنید'); return; }
+                      const r = await api('/tenants', {
+                        name: f.name, slug: f.slug || undefined, defaultDest: f.defaultDest,
+                        username: f.username, password: f.password, userName: f.userName || f.name,
+                        didSuffix: f.didSuffix, features: f.features, planPeriod: f.planPeriod,
+                        priceToman: Number(f.priceToman || 0), note: f.note,
+                      });
+                      this.setState({ tnForm: { ...f, createdLogin: r.login } });
+                      this.loadTenants();
+                      this.toast(r.message || 'ساخته شد');
+                    } else {
+                      await api('/tenants/' + f.id, {
+                        name: f.name, defaultDest: f.defaultDest, note: f.note,
+                        features: f.features, planPeriod: f.planPeriod, priceToman: Number(f.priceToman || 0),
+                        active: f.active, locked: f.locked, renew: !!f.renew,
+                      }, 'PUT');
+                      this.toast('تغییرات ذخیره شد');
+                      this.setState({ tnForm: null });
+                      this.loadTenants();
+                    }
                   } catch (e) { this.toast(e.message); }
-                }} style={{ border: 'none', background: '#0B2545', color: '#fff', padding: '8px 14px', borderRadius: 10, cursor: 'pointer', fontFamily: 'inherit' }}>ذخیره</button>
+                }} style={{ border: 'none', background: '#0B2545', color: '#fff', padding: '8px 14px', borderRadius: 10, cursor: 'pointer', fontFamily: 'inherit' }}>{f.mode === 'edit' ? 'ذخیره تغییرات' : 'ساخت مستأجر'}</button>
                 <button type="button" onClick={() => this.setState({ tnForm: null })} style={{ border: '1px solid #E3E8EF', background: '#fff', padding: '8px 14px', borderRadius: 10, cursor: 'pointer', fontFamily: 'inherit' }}>انصراف</button>
               </div>
             </div>
           )}
-          {(d.tenants || []).map(t => (
-            <div key={t.id} style={{ background: '#fff', border: '1px solid #E3E8EF', borderRadius: 16, padding: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
-                <div>
-                  <div style={{ fontWeight: 800, fontSize: 16 }}>{t.name} <span style={{ fontWeight: 500, color: '#5B6B82', fontSize: 12 }}>({t.slug})</span>{!t.active && <span style={{ marginRight: 8, color: '#b42318', fontSize: 12 }}>غیرفعال</span>}</div>
-                  <div style={{ fontSize: 12, color: '#5B6B82' }}>مقصد: {t.defaultDest || '—'} · کاربران: {(t.users || []).length.toLocaleString('fa-IR')} · DID: {(t.dids || []).length.toLocaleString('fa-IR')}</div>
+
+          {(d.tenants || []).map(t => {
+            const st = statusBadge(t);
+            const exp = t.expiresAt ? new Date(t.expiresAt).toLocaleString('fa-IR') : '—';
+            return (
+              <div key={t.id} style={{ background: '#fff', border: '1px solid ' + (t.accessOk === false ? '#f5c2c0' : '#E3E8EF'), borderRadius: 16, padding: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
+                  <div>
+                    <div style={{ fontWeight: 800, fontSize: 16 }}>
+                      {t.name}{' '}
+                      <span style={{ fontWeight: 500, color: '#5B6B82', fontSize: 12 }}>({t.slug})</span>
+                      <span style={{ marginRight: 8, background: st.bg, color: st.c, fontSize: 11, padding: '2px 8px', borderRadius: 999, fontWeight: 700 }}>{st.t}</span>
+                    </div>
+                    <div style={{ fontSize: 12, color: '#5B6B82', marginTop: 4, lineHeight: 1.7 }}>
+                      اشتراک: <b>{t.planLabel || t.planPeriod}</b> · قیمت: <b>{fa((t.priceToman || 0).toLocaleString('en-US'))} تومان</b> · انقضا: <b>{exp}</b>
+                      <br />مقصد: {t.defaultDest || '—'} · کاربران: {fa((t.users || []).length)} · DID: {fa((t.dids || []).length)}
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                    <button type="button" onClick={() => openEdit(t)} style={{ border: '1px solid #E3E8EF', background: '#fff', padding: '8px 12px', borderRadius: 10, cursor: 'pointer', fontFamily: 'inherit' }}>ویرایش</button>
+                    <button type="button" onClick={async () => {
+                      try {
+                        const r = await api('/tenants/' + t.id + '/pay/simulate', { success: true });
+                        this.toast(r.message || 'پرداخت موفق'); this.loadTenants();
+                      } catch (e) { this.toast(e.message); }
+                    }} style={{ border: 'none', background: '#0A5C5B', color: '#fff', padding: '8px 12px', borderRadius: 10, cursor: 'pointer', fontFamily: 'inherit' }}>پرداخت شبیه‌ساز ✓</button>
+                    <button type="button" onClick={async () => {
+                      try { await api('/tenants/' + t.id + '/pay/simulate', { success: false }); this.toast('پرداخت ناموفق ثبت شد'); this.loadTenants(); }
+                      catch (e) { this.toast(e.message); }
+                    }} style={{ border: '1px solid #E3E8EF', background: '#fff', padding: '8px 12px', borderRadius: 10, cursor: 'pointer', fontFamily: 'inherit', fontSize: 12 }}>ناموفق</button>
+                    <button type="button" onClick={async () => { try { await api('/tenants/' + t.id, { active: !t.active }, 'PUT'); this.loadTenants(); } catch (e) { this.toast(e.message); } }} style={{ border: '1px solid #E3E8EF', background: t.active ? '#fff' : '#fdeceb', padding: '8px 12px', borderRadius: 10, cursor: 'pointer', fontFamily: 'inherit' }}>{t.active ? 'غیرفعال' : 'فعال'}</button>
+                    <button type="button" onClick={async () => { if (!confirm('حذف مستأجر «' + t.name + '»؟')) return; try { await api('/tenants/' + t.id, null, 'DELETE'); this.toast('حذف شد'); this.loadTenants(); } catch (e) { this.toast(e.message); } }} style={{ border: '1px solid #f5c2c0', background: '#fdeceb', color: '#b42318', padding: '8px 12px', borderRadius: 10, cursor: 'pointer', fontFamily: 'inherit' }}>حذف</button>
+                  </div>
                 </div>
-                <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-                  <select value={t.defaultDest || ''} onChange={async e => { try { await api('/tenants/' + t.id, { defaultDest: e.target.value }, 'PUT'); this.toast('مقصد ذخیره شد'); this.loadTenants(); } catch (err) { this.toast(err.message); } }} style={{ padding: 8, borderRadius: 10, border: '1px solid #E3E8EF', fontFamily: 'inherit' }}>
-                    {destOpts.map(o => <option key={o.id || 'x'} value={o.id}>{o.label}</option>)}
-                  </select>
-                  <button type="button" onClick={async () => { try { await api('/tenants/' + t.id, { active: !t.active }, 'PUT'); this.loadTenants(); } catch (e) { this.toast(e.message); } }} style={{ border: '1px solid #E3E8EF', background: t.active ? '#fff' : '#fdeceb', padding: '8px 12px', borderRadius: 10, cursor: 'pointer', fontFamily: 'inherit' }}>{t.active ? 'غیرفعال' : 'فعال'}</button>
-                  <button type="button" onClick={async () => { if (!confirm('حذف مستأجر «' + t.name + '»؟')) return; try { await api('/tenants/' + t.id, null, 'DELETE'); this.toast('حذف شد'); this.loadTenants(); } catch (e) { this.toast(e.message); } }} style={{ border: '1px solid #f5c2c0', background: '#fdeceb', color: '#b42318', padding: '8px 12px', borderRadius: 10, cursor: 'pointer', fontFamily: 'inherit' }}>حذف</button>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                  {featKeys.map(k => {
+                    const on = t.features ? t.features[k] !== false : true;
+                    return (
+                      <button key={k} type="button" onClick={() => toggleFeatLive(t, k)} title="کلیک برای روشن/خاموش" style={{ border: '1px solid ' + (on ? '#9FCFCC' : '#E3E8EF'), background: on ? '#E3F2F1' : '#F7F9FC', color: on ? '#0A5C5B' : '#7A889C', borderRadius: 999, padding: '4px 10px', fontSize: 11, cursor: 'pointer', fontFamily: 'inherit' }}>
+                        {labels[k]} {on ? '✓' : '✗'}
+                      </button>
+                    );
+                  })}
+                </div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                  {(t.dids || []).map(x => (
+                    <span key={x.did} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: '#E3F2F1', border: '1px solid #C7E6E3', borderRadius: 999, padding: '4px 10px', fontSize: 12, direction: 'ltr' }}>
+                      {x.did}
+                      <button type="button" onClick={async () => { try { await api('/tenants/' + t.id + '/dids/' + x.did, null, 'DELETE'); this.loadTenants(); } catch (e) { this.toast(e.message); } }} style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: '#b42318', fontWeight: 700 }}>×</button>
+                    </span>
+                  ))}
+                </div>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+                  <span dir="ltr" style={{ fontWeight: 700 }}>31985</span>
+                  <input value={(s.tnDidSuffix && s.tnDidSuffix[t.id]) || ''} onChange={e => this.setState({ tnDidSuffix: { ...(s.tnDidSuffix || {}), [t.id]: e.target.value.replace(/\D/g, '').slice(0, 3) } })} placeholder="007" dir="ltr" maxLength={3} style={{ padding: 8, borderRadius: 10, width: 64, textAlign: 'left', border: '1px solid #E3E8EF', fontFamily: 'inherit' }} />
+                  <button type="button" onClick={async () => {
+                    const suf = (s.tnDidSuffix && s.tnDidSuffix[t.id]) || '';
+                    try { await api('/tenants/' + t.id + '/dids', { didSuffix: suf }); this.toast('DID تخصیص داده شد'); this.setState({ tnDidSuffix: { ...(s.tnDidSuffix || {}), [t.id]: '' } }); this.loadTenants(); }
+                    catch (e) { this.toast(e.message); }
+                  }} style={{ border: 'none', background: '#0A5C5B', color: '#fff', padding: '8px 12px', borderRadius: 10, cursor: 'pointer', fontFamily: 'inherit' }}>تخصیص DID</button>
+                  <span style={{ fontSize: 11, color: '#7A889C' }}>آزاد: {(d.freeSample || []).slice(0, 5).join(' · ') || '—'}</span>
+                </div>
+                {(t.users || []).length > 0 && (
+                  <div style={{ fontSize: 12, color: '#3A4A63' }}>ورود: {(t.users || []).map(u => u.username + (u.active ? '' : ' (غیرفعال)')).join('، ')}</div>
+                )}
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', borderTop: '1px dashed #E3E8EF', paddingTop: 10 }}>
+                  <input value={(s.tnUser && s.tnUser[t.id] && s.tnUser[t.id].username) || ''} onChange={e => this.setState({ tnUser: { ...(s.tnUser || {}), [t.id]: { ...(s.tnUser && s.tnUser[t.id] || {}), username: e.target.value } } })} placeholder="کاربر جدید" dir="ltr" style={{ padding: 8, borderRadius: 10, width: 120, textAlign: 'left', border: '1px solid #E3E8EF', fontFamily: 'inherit' }} />
+                  <input type="password" value={(s.tnUser && s.tnUser[t.id] && s.tnUser[t.id].password) || ''} onChange={e => this.setState({ tnUser: { ...(s.tnUser || {}), [t.id]: { ...(s.tnUser && s.tnUser[t.id] || {}), password: e.target.value } } })} placeholder="رمز" style={{ padding: 8, borderRadius: 10, width: 120, border: '1px solid #E3E8EF', fontFamily: 'inherit' }} />
+                  <button type="button" onClick={async () => {
+                    const u = (s.tnUser && s.tnUser[t.id]) || {};
+                    try {
+                      await api('/tenants/' + t.id + '/users', { username: u.username, password: u.password, name: t.name, role: 'admin' });
+                      this.toast('کاربر مستأجر ساخته شد'); this.setState({ tnUser: { ...(s.tnUser || {}), [t.id]: {} } }); this.loadTenants();
+                    } catch (e) { this.toast(e.message); }
+                  }} style={{ border: 'none', background: '#1D4E89', color: '#fff', padding: '8px 12px', borderRadius: 10, cursor: 'pointer', fontFamily: 'inherit' }}>افزودن کاربر</button>
                 </div>
               </div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                {Object.keys(FEAT).map(k => {
-                  const on = t.features ? t.features[k] !== false : true;
-                  return (
-                    <button key={k} type="button" onClick={() => toggleFeat(t, k)} title="کلیک برای روشن/خاموش" style={{ border: '1px solid ' + (on ? '#9FCFCC' : '#E3E8EF'), background: on ? '#E3F2F1' : '#F7F9FC', color: on ? '#0A5C5B' : '#7A889C', borderRadius: 999, padding: '4px 10px', fontSize: 11, cursor: 'pointer', fontFamily: 'inherit' }}>
-                      {FEAT[k]} {on ? '✓' : '✗'}
-                    </button>
-                  );
-                })}
-              </div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                {(t.dids || []).map(x => (
-                  <span key={x.did} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: '#E3F2F1', border: '1px solid #C7E6E3', borderRadius: 999, padding: '4px 10px', fontSize: 12, direction: 'ltr' }}>
-                    {x.did}
-                    <button type="button" onClick={async () => { try { await api('/tenants/' + t.id + '/dids/' + x.did, null, 'DELETE'); this.loadTenants(); } catch (e) { this.toast(e.message); } }} style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: '#b42318', fontWeight: 700 }}>×</button>
-                  </span>
-                ))}
-              </div>
-              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-                <input value={s.tnDid || ''} onChange={e => this.setState({ tnDid: e.target.value.replace(/\D/g, '').slice(0, 8) })} placeholder="31985007" dir="ltr" style={{ padding: 8, borderRadius: 10, width: 140, textAlign: 'left', border: '1px solid #E3E8EF', fontFamily: 'inherit' }} />
-                <button type="button" onClick={async () => {
-                  try { await api('/tenants/' + t.id + '/dids', { did: s.tnDid }); this.toast('DID تخصیص داده شد'); this.setState({ tnDid: '' }); this.loadTenants(); }
-                  catch (e) { this.toast(e.message); }
-                }} style={{ border: 'none', background: '#0A5C5B', color: '#fff', padding: '8px 12px', borderRadius: 10, cursor: 'pointer', fontFamily: 'inherit' }}>تخصیص DID</button>
-                <span style={{ fontSize: 11, color: '#7A889C' }}>نمونه آزاد: {(d.freeSample || []).slice(0, 5).join(' · ') || '—'}</span>
-              </div>
-              {(t.users || []).length > 0 && (
-                <div style={{ fontSize: 12, color: '#3A4A63' }}>دسترسی ورود: {(t.users || []).map(u => u.username + (u.active ? '' : ' (غیرفعال)')).join('، ')}</div>
-              )}
-              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', borderTop: '1px dashed #E3E8EF', paddingTop: 10 }}>
-                <input value={(s.tnUser && s.tnUser[t.id] && s.tnUser[t.id].username) || ''} onChange={e => this.setState({ tnUser: { ...(s.tnUser || {}), [t.id]: { ...(s.tnUser && s.tnUser[t.id] || {}), username: e.target.value } } })} placeholder="کاربر جدید" dir="ltr" style={{ padding: 8, borderRadius: 10, width: 120, textAlign: 'left', border: '1px solid #E3E8EF', fontFamily: 'inherit' }} />
-                <input type="password" value={(s.tnUser && s.tnUser[t.id] && s.tnUser[t.id].password) || ''} onChange={e => this.setState({ tnUser: { ...(s.tnUser || {}), [t.id]: { ...(s.tnUser && s.tnUser[t.id] || {}), password: e.target.value } } })} placeholder="رمز" style={{ padding: 8, borderRadius: 10, width: 120, border: '1px solid #E3E8EF', fontFamily: 'inherit' }} />
-                <button type="button" onClick={async () => {
-                  const u = (s.tnUser && s.tnUser[t.id]) || {};
-                  try {
-                    await api('/tenants/' + t.id + '/users', { username: u.username, password: u.password, name: t.name, role: 'admin' });
-                    this.toast('کاربر مستأجر ساخته شد'); this.setState({ tnUser: { ...(s.tnUser || {}), [t.id]: {} } }); this.loadTenants();
-                  } catch (e) { this.toast(e.message); }
-                }} style={{ border: 'none', background: '#1D4E89', color: '#fff', padding: '8px 12px', borderRadius: 10, cursor: 'pointer', fontFamily: 'inherit' }}>افزودن کاربر</button>
-              </div>
-            </div>
-          ))}
-          {!d.tenants.length && <div style={{ color: '#5B6B82', padding: 20, background: '#fff', borderRadius: 16, border: '1px dashed #E3E8EF' }}>هنوز مستأجری ساخته نشده. یک مستأجر بسازید و DID مثل ۳۱۹۸۵۰۰۷ را به او بدهید.</div>}
+            );
+          })}
+          {!d.tenants.length && <div style={{ color: '#5B6B82', padding: 20, background: '#fff', borderRadius: 16, border: '1px dashed #E3E8EF' }}>هنوز مستأجری ساخته نشده. با فرم بالا بسازید؛ شماره به شکل ۳۱۹۸۵ + سه رقم است.</div>}
         </div>
       </div>
     );

@@ -16,7 +16,13 @@ export async function api(path, body, method) {
   const r = await fetch('/api' + path, opts);
   if (r.status === 401 && path !== '/auth/login') { auth.logout(); throw new Error('نشست منقضی شد'); }
   const data = r.headers.get('content-type')?.includes('json') ? await r.json() : await r.text();
-  if (!r.ok) throw new Error((data && data.message) ? [].concat(data.message).join('، ') : 'خطای سرور (' + r.status + ')');
+  if (!r.ok) {
+    const err = new Error((data && data.message) ? [].concat(data.message).join('، ') : 'خطای سرور (' + r.status + ')');
+    err.status = r.status;
+    err.code = data && data.code;
+    err.payload = data;
+    throw err;
+  }
   return data;
 }
 

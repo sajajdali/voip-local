@@ -11,7 +11,7 @@ import { AiService } from './ai';
 import { SECTIONS, can } from './perms';
 import { AiAgentService } from './aiagent';
 import { AsteriskService } from './asterisk/asterisk.service';
-import { CurrentUser, Me, Public, Roles, Perm } from './auth';
+import { AllowPaywall, CurrentUser, Me, Public, Roles, Perm } from './auth';
 import { Bus } from './bus';
 import { ConfigStore } from './config';
 import { env } from './env';
@@ -20,7 +20,7 @@ import { PatientsService, daysSince } from './patients';
 import { PrismaService } from './prisma.service';
 import { WebhookService, publicSurvey } from './webhook';
 import { referralsByCall } from './referrals';
-import { normalizeInboundDid } from './tenant-scope';
+import { cleanFeatures, normalizeInboundDid, planLabel, tenantAccess } from './tenant-scope';
 
 const run = promisify(execFile);
 const digits = (s: any) => String(s ?? '').replace(/\D/g, '');
@@ -244,19 +244,50 @@ export class CallsController {
   @Public()
   health() { return { ok: true, ami: this.ast.ami.connected, time: new Date().toISOString() }; }
 
+  @AllowPaywall()
   @Get('bootstrap')
   async bootstrap(@CurrentUser() me: Me) {
+    // Locked tenants get a minimal payload so the UI can show the paywall without loading panel data
+    if (me.tenantId) {
+      const t = await this.db.tenant.findUnique({ where: { id: me.tenantId } });
+      if (t) {
+        const access = tenantAccess(t);
+        if (access.locked) {
+          const dids = await this.db.didAssignment.findMany({ where: { tenantId: t.id }, select: { did: true, note: true } });
+          return {
+            me, sections: [], operators: [], config: {}, workflow: {}, calls: [],
+            paywall: true,
+            access,
+            tenant: {
+              id: t.id, name: t.name, slug: t.slug, defaultDest: t.defaultDest,
+              features: cleanFeatures(t.features), dids,
+              planPeriod: t.planPeriod || '1m', planLabel: planLabel(t.planPeriod || '1m'),
+              priceToman: t.priceToman || 0, expiresAt: t.expiresAt, locked: true, expired: access.expired,
+            },
+          };
+        }
+      }
+    }
     const scope = await this.tenantScope(me);
     const userWhere: any = { active: true };
     if (me.tenantId) userWhere.tenantId = me.tenantId;
     const [config, workflow, calls, users, mine] = await Promise.all([
       this.store.forUser(me), this.calls.workflow(), this.calls.list(undefined, scope), this.db.user.findMany({ where: userWhere }),
-      me.tenantId ? this.db.tenant.findUnique({ where: { id: me.tenantId } }).then(async t => t ? { id: t.id, name: t.name, slug: t.slug, defaultDest: t.defaultDest, features: t.features, dids: (await this.db.didAssignment.findMany({ where: { tenantId: t.id }, select: { did: true, note: true } })) } : null) : Promise.resolve(null),
+      me.tenantId ? this.db.tenant.findUnique({ where: { id: me.tenantId } }).then(async t => {
+        if (!t) return null;
+        const access = tenantAccess(t);
+        return {
+          id: t.id, name: t.name, slug: t.slug, defaultDest: t.defaultDest, features: t.features,
+          planPeriod: t.planPeriod || '1m', planLabel: planLabel(t.planPeriod || '1m'),
+          priceToman: t.priceToman || 0, expiresAt: t.expiresAt, locked: access.locked, expired: access.expired,
+          dids: await this.db.didAssignment.findMany({ where: { tenantId: t.id }, select: { did: true, note: true } }),
+        };
+      }) : Promise.resolve(null),
     ]);
     const live = this.ast.live;
     config.exts = config.exts.map((e: any) => ({ ...e, st: live.exts[e.n]?.st || 'offline', dev: live.exts[e.n]?.dev || e.dev }));
     const operators = users.filter(u => u.ext).map(u => ({ id: u.id, name: u.name, ext: u.ext }));
-    return { me, sections: SECTIONS, operators, config, workflow, calls, tenant: mine };
+    return { me, sections: SECTIONS, operators, config, workflow, calls, tenant: mine, paywall: false };
   }
 
   @Get('calls')

@@ -16,11 +16,23 @@ export const DEFAULT_TENANT_FEATURES = {
   ivr: true,
   queues: true,
   exts: true,
+  inbound: true,
   outbound: true,
   recordings: true,
 };
 
 export type TenantFeatures = typeof DEFAULT_TENANT_FEATURES;
+
+/** Human labels for admin create/edit UI (Persian). */
+export const TENANT_FEATURE_LABELS: Record<keyof TenantFeatures, string> = {
+  booking: 'نوبت‌دهی تلفنی',
+  ivr: 'منوی IVR',
+  queues: 'صف‌ها',
+  exts: 'داخلی‌ها',
+  inbound: 'مسیر ورودی',
+  outbound: 'مسیر خروجی',
+  recordings: 'گزارش و ضبط مکالمه',
+};
 
 export const digits = (s: any) => String(s ?? '').replace(/\D/g, '');
 
@@ -106,8 +118,71 @@ export function featureAllows(features: TenantFeatures | null | undefined, key: 
   if (key === 'ivrs' || key === 'vivr') return !!f.ivr;
   if (key === 'vqs' || key === 'vqueue') return !!f.queues;
   if (key === 'exts' || key === 'vext') return !!f.exts;
-  if (key === 'oroutes' || key === 'vout') return !!f.outbound;
+  if (key === 'routes' || key === 'vroute' || key === 'inbound') return !!f.inbound;
+  if (key === 'oroutes' || key === 'vout' || key === 'outbound') return !!f.outbound;
+  if (key === 'recordings') return !!f.recordings;
   return true;
+}
+
+/** Panel section keys gated by a tenant feature flag. */
+export const FEATURE_SECTIONS: Record<keyof TenantFeatures, string[]> = {
+  booking: ['bookings', 'vbook', 'breport', 'bsurvey'],
+  ivr: ['vivr'],
+  queues: ['vqueue'],
+  exts: ['vext'],
+  inbound: ['vroute'],
+  outbound: ['vout'],
+  recordings: [],
+};
+
+/** Build full pool DID from a 3-digit suffix (000–999). */
+export function didFromSuffix(suffix: any): string {
+  const s = String(suffix ?? '').replace(/\D/g, '');
+  if (!/^\d{3}$/.test(s)) throw new BadRequestException('سه رقم آخر شماره را وارد کنید (۰۰۰ تا ۹۹۹)');
+  return normalizePoolDid(DID_POOL_PREFIX + s);
+}
+
+/** Subscription plan periods offered on create/edit. */
+export const PLAN_PERIODS = [
+  { id: '1w', label: '۱ هفته', days: 7 },
+  { id: '1m', label: '۱ ماه', days: 30 },
+  { id: '6m', label: '۶ ماه', days: 182 },
+  { id: '1y', label: '۱ سال', days: 365 },
+  { id: '2y', label: '۲ سال', days: 730 },
+  { id: '3y', label: '۳ سال', days: 1095 },
+] as const;
+export type PlanPeriodId = (typeof PLAN_PERIODS)[number]['id'];
+
+export function cleanPlanPeriod(raw: any): PlanPeriodId {
+  const id = String(raw || '1m');
+  if (PLAN_PERIODS.some(p => p.id === id)) return id as PlanPeriodId;
+  throw new BadRequestException('مدت اشتراک نامعتبر است');
+}
+
+export function planDays(period: PlanPeriodId) {
+  return PLAN_PERIODS.find(p => p.id === period)!.days;
+}
+
+export function planLabel(period: string) {
+  return PLAN_PERIODS.find(p => p.id === period)?.label || period;
+}
+
+/** Extend from max(now, currentExpiry) by the plan length. */
+export function extendExpiry(from: Date | null | undefined, period: PlanPeriodId, now = new Date()) {
+  const base = from && from.getTime() > now.getTime() ? from : now;
+  return new Date(base.getTime() + planDays(period) * 86400e3);
+}
+
+export function tenantAccess(t: { active?: boolean; locked?: boolean; expiresAt?: Date | null }) {
+  const now = Date.now();
+  const expired = !!(t.expiresAt && new Date(t.expiresAt).getTime() < now);
+  const locked = !t.active || !!t.locked || expired;
+  return {
+    locked,
+    expired,
+    active: !!t.active && !t.locked && !expired,
+    reason: !t.active ? 'disabled' : t.locked ? 'locked' : expired ? 'expired' : null as string | null,
+  };
 }
 
 /** Deep-clone a tenant config collection and prefix entity ids (and dest references). */

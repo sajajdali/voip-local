@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import './index.css';
 import App from './App.jsx';
 import Login from './Login.jsx';
+import Paywall from './Paywall.jsx';
 import { api, auth } from './api.js';
 
 function Root() {
@@ -11,11 +12,26 @@ function Root() {
   const [err, setErr] = React.useState('');
   const load = React.useCallback(async () => {
     setState('loading');
-    try { setBoot(await api('/bootstrap')); setState('ready'); }
-    catch (e) { setErr(e.message); setState(auth.token() ? 'error' : 'login'); }
+    try {
+      const b = await api('/bootstrap');
+      setBoot(b);
+      setState(b && b.paywall ? 'paywall' : 'ready');
+    } catch (e) {
+      if (e.status === 402 || e.code === 'TENANT_LOCKED') {
+        try {
+          const mine = await api('/tenants/me');
+          setBoot({ paywall: true, access: mine.access, tenant: mine.tenant, me: null });
+          setState('paywall');
+          return;
+        } catch (_) { /* fall through */ }
+      }
+      setErr(e.message);
+      setState(auth.token() ? 'error' : 'login');
+    }
   }, []);
   React.useEffect(() => { if (state === 'loading') load(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
   if (state === 'login') return <Login onDone={load} />;
+  if (state === 'paywall') return <Paywall boot={boot} onUnlocked={load} />;
   if (state === 'ready') return <App boot={boot} />;
   return (
     <div dir="rtl" style={{ minHeight: '100vh', display: 'grid', placeItems: 'center', color: '#6b6e72', fontSize: 14 }}>
