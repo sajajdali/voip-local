@@ -20,6 +20,7 @@ import { PatientsService, daysSince } from './patients';
 import { PrismaService } from './prisma.service';
 import { WebhookService, publicSurvey } from './webhook';
 import { referralsByCall } from './referrals';
+import { normalizeInboundDid } from './tenant-scope';
 
 const run = promisify(execFile);
 const digits = (s: any) => String(s ?? '').replace(/\D/g, '');
@@ -91,7 +92,7 @@ export class CallsService {
     setInterval(() => { const t = Date.now(); for (const [id, o] of this.origs) if (t - o.at > 3 * 3600e3) this.origs.delete(id); }, 600e3);
   }
 
-  async list(from = jAddDays(-120), scope?: { tenantId?: string | null; dids?: string[] }) {
+  async list(from = jAddDays(-120), scope?: any) {
     let where: any = { date: { gte: from } };
     if (scope && scope.tenantId) {
       const or: any[] = [{ tenantId: scope.tenantId }];
@@ -105,6 +106,10 @@ export class CallsService {
     ]);
     const REP = new Map(reps.map(r => [r.callId, r._count._all]));
     const REF = await referralsByCall(this.db, rows.map(c => c.id));
+    // calls that reached the phone booking line: what happened there (one row per call; the last one wins)
+    const BOOK = new Map<string, { id: number; kind: string; result: string; code: string | null; slot: string }>();
+    for (const b of await this.db.bookingLog.findMany({ where: { callId: { in: rows.map(c => c.id) } }, orderBy: { id: 'asc' }, select: { id: true, callId: true, kind: true, result: true, code: true, slotAt: true } }))
+      BOOK.set(b.callId!, { id: b.id, kind: b.kind, result: b.result, code: b.code, slot: b.slotAt ? jalaliDate(b.slotAt) + ' ' + hhmm(b.slotAt) : '' });
     const SMS = new Map<string, { t: string; title: string; at: Date; by: string; dry: boolean }[]>();
     for (const m of await this.db.smsLog.findMany({ where: { ok: true, callKey: { in: rows.map(c => c.id.replace(/^C/, '')) } }, orderBy: { at: 'asc' } }))
       (SMS.get(m.callKey) || SMS.set(m.callKey, []).get(m.callKey)!).push({ t: m.templateId, title: m.title, at: m.at, by: m.userName, dry: m.dryRun });
@@ -122,7 +127,7 @@ export class CallsService {
         id: c.id, date: c.date, time: c.time, name: p ? p.name : 'شماره ناشناس', phone: fmtPhone(c.phone), phoneRaw: c.phone,
         nid: p && p.nid ? p.nid : '—', surgery: surgeryText(p?.surgery), known: !!p, dir: c.dir, st: short ? 'missed' : c.st, short, op, queue: c.queue,
         dur: c.dur, wait: c.wait, hasRec: !!c.recPath, ai: listAi(c.ai), survey: publicSurvey(c.survey), aiConv: convBrief(c.aiConv), aiState: c.aiState, follow: c.st === 'voicemail' ? F.get(c.id) || 'new' : null,
-        wave: c.wave, callback: c.callback, summary: c.summary || '', rep: REP.get(c.id) || 0, ref: REF.get(c.id) || null, sms: SMS.get(c.id.replace(/^C/, '')) || [],
+        wave: c.wave, callback: c.callback, summary: c.summary || '', rep: REP.get(c.id) || 0, ref: REF.get(c.id) || null, book: BOOK.get(c.id) || null, sms: SMS.get(c.id.replace(/^C/, '')) || [],
       };
     });
   }
@@ -157,11 +162,16 @@ export class CallsService {
     const orig = q.orig ? this.origs.get(q.orig) : undefined;
     const at = new Date(start * 1000);
     const opExt = dir === 'in' ? digits(q.ansext) || null : digits(q.opext || q.ansext) || null;
-    const did = digits(q.did) || null;
-    let tenantId: string | null = q.tenant ? String(q.tenant).replace(/[^A-Za-z0-9_-]/g, '') || null : null;
+    const did = normalizeInboundDid(q.did) || digits(q.did) || null;
+    let tenantId = q.tenant ? String(q.tenant).replace(/[^A-Za-z0-9_-]/g, '') || null : null;
     if (!tenantId && did) {
       const asg = await this.db.didAssignment.findUnique({ where: { did }, select: { tenantId: true } }).catch(() => null);
       if (asg) tenantId = asg.tenantId;
+      else if (did.length > 8) {
+        const last8 = did.slice(-8);
+        const asg2 = await this.db.didAssignment.findUnique({ where: { did: last8 }, select: { tenantId: true } }).catch(() => null);
+        if (asg2) tenantId = asg2.tenantId;
+      }
     }
     const data = {
       startedAt: at, date: jalaliDate(at), time: hhmm(at), phone, dir, st, queue: q.queue || (dir === 'out' ? 'تماس خروجی' : '—'), opExt,
@@ -174,14 +184,14 @@ export class CallsService {
       if (orig) orig.callId = id;
       await this.endOrig(q.orig, st === 'answered', true);
     }
-    this.bus.emit('calls', { id });
+    this.bus.emit('calls', { id, tenantId });
     if (q.aiuuid) this.aiAgent.importConversation(id, q.aiuuid);
     else if (recPath) this.ai.enqueue(id);
     if (svRec) {
       this.bus.emit('notify', { role: 'admin', text: 'نظرسنجی با امتیاز پایین و پیام صوتی از ' + phone });
       this.ai.transcribeSurvey(id);
     }
-    this.hooks.enqueue(id);
+    this.hooks.finished(id);
   }
 
   /** Finish a click-to-call: move a "new" voicemail to "follow" on success and notify the operator's browser. */
@@ -193,7 +203,7 @@ export class CallsService {
       const id = 'CB' + o.at;
       await this.db.call.upsert({ where: { id }, create: { id, startedAt: at, date: jalaliDate(at), time: hhmm(at), phone: o.number, dir: 'out', st: 'missed', queue: 'پیگیری پیام صوتی', opExt: o.opExt, callback: true, summary: o.note || null }, update: {} });
       this.bus.emit('calls', { id });
-      this.hooks.enqueue(id);
+      this.hooks.finished(id);
     }
     if (answered && o.vmId) {
       const f = await this.db.follow.findUnique({ where: { callId: o.vmId } });
@@ -211,35 +221,47 @@ export class CallsService {
 export class CallsController {
   constructor(private calls: CallsService, private db: PrismaService, private store: ConfigStore, private ast: AsteriskService, private bus: Bus) {}
 
+  private async tenantScope(me?: Me | null) {
+    if (!me?.tenantId) return undefined;
+    const dids = (await this.db.didAssignment.findMany({ where: { tenantId: me.tenantId }, select: { did: true } })).map(d => d.did);
+    return { tenantId: me.tenantId, dids };
+  }
+
+  /** Tenant users may only touch calls tagged with their tenantId or one of their DIDs. */
+  private async assertCallAccess(me: Me, call: { tenantId?: string | null; did?: string | null } | null) {
+    if (!me.tenantId) return;
+    if (!call) throw new NotFoundException('تماس پیدا نشد');
+    if (call.tenantId && call.tenantId === me.tenantId) return;
+    const did = normalizeInboundDid(call.did) || digits(call.did);
+    if (did) {
+      const asg = await this.db.didAssignment.findUnique({ where: { did }, select: { tenantId: true } });
+      if (asg?.tenantId === me.tenantId) return;
+    }
+    throw new ForbiddenException('دسترسی به این تماس مجاز نیست');
+  }
+
   @Get('health')
   @Public()
   health() { return { ok: true, ami: this.ast.ami.connected, time: new Date().toISOString() }; }
 
   @Get('bootstrap')
   async bootstrap(@CurrentUser() me: Me) {
-    const dids = me.tenantId
-      ? (await this.db.didAssignment.findMany({ where: { tenantId: me.tenantId }, select: { did: true } })).map(d => d.did)
-      : undefined;
-    const scope = me.tenantId ? { tenantId: me.tenantId, dids } : undefined;
+    const scope = await this.tenantScope(me);
     const userWhere: any = { active: true };
     if (me.tenantId) userWhere.tenantId = me.tenantId;
-    const [config, workflow, calls, users] = await Promise.all([
-      this.store.forUser(me), this.calls.workflow(), this.calls.list(undefined, scope),
-      this.db.user.findMany({ where: userWhere }),
+    const [config, workflow, calls, users, mine] = await Promise.all([
+      this.store.forUser(me), this.calls.workflow(), this.calls.list(undefined, scope), this.db.user.findMany({ where: userWhere }),
+      me.tenantId ? this.db.tenant.findUnique({ where: { id: me.tenantId } }).then(async t => t ? { id: t.id, name: t.name, slug: t.slug, defaultDest: t.defaultDest, features: t.features, dids: (await this.db.didAssignment.findMany({ where: { tenantId: t.id }, select: { did: true, note: true } })) } : null) : Promise.resolve(null),
     ]);
     const live = this.ast.live;
     config.exts = config.exts.map((e: any) => ({ ...e, st: live.exts[e.n]?.st || 'offline', dev: live.exts[e.n]?.dev || e.dev }));
     const operators = users.filter(u => u.ext).map(u => ({ id: u.id, name: u.name, ext: u.ext }));
-    return { me, sections: SECTIONS, operators, config, workflow, calls, tenantDids: dids || [] };
+    return { me, sections: SECTIONS, operators, config, workflow, calls, tenant: mine };
   }
 
   @Get('calls')
   async list(@Query('from') from?: string, @CurrentUser() me?: Me) {
-    let scope: { tenantId?: string | null; dids?: string[] } | undefined;
-    if (me?.tenantId) {
-      const dids = (await this.db.didAssignment.findMany({ where: { tenantId: me.tenantId }, select: { did: true } })).map(d => d.did);
-      scope = { tenantId: me.tenantId, dids };
-    }
+    const scope = await this.tenantScope(me);
     return { calls: await this.calls.list(from && /^\d{4}\/\d{2}\/\d{2}$/.test(from) ? from : undefined, scope) };
   }
 
@@ -247,12 +269,12 @@ export class CallsController {
   @Perm('calls', 'edit')
   @Get('calls/dial-exts')
   async dialExts(@CurrentUser() me: Me) {
-    const cfg = await this.store.all();
+    const cfg = await this.store.forUser(me);
     const live = this.ast.live.exts;
     return {
       mine: me.ext || null,
-      exts: cfg.exts.map(e => ({ n: e.n, name: e.name || '', st: live[e.n]?.st || 'offline', dev: live[e.n]?.dev || '' }))
-        .sort((a, z) => String(a.n).localeCompare(String(z.n), undefined, { numeric: true })),
+      exts: (cfg.exts || []).map((e: any) => ({ n: e.n, name: e.name || '', st: live[e.n]?.st || 'offline', dev: live[e.n]?.dev || '' }))
+        .sort((a: any, z: any) => String(a.n).localeCompare(String(z.n), undefined, { numeric: true })),
     };
   }
 
@@ -263,14 +285,15 @@ export class CallsController {
     // the extension to ring first: the one picked in the panel, otherwise the user's own
     const ext = b.ext ? String(b.ext) : me.ext;
     if (!ext) throw new BadRequestException('یک داخلی برای برقراری تماس انتخاب کنید');
-    if (!(await this.store.all()).exts.some(e => e.n === ext)) throw new BadRequestException('داخلی ' + ext + ' تعریف نشده است');
+    const cfg = await this.store.forUser(me);
+    if (!(cfg.exts || []).some((e: any) => e.n === ext)) throw new BadRequestException('داخلی ' + ext + ' تعریف نشده است');
     if (this.ast.live.exts[ext]?.st === 'offline') throw new BadRequestException('گوشی داخلی ' + ext + ' خاموش یا ثبت‌نشده است');
     if (number.length < 3) throw new BadRequestException('شماره نامعتبر است');
     if (!this.ast.ami.connected) throw new BadRequestException('اتصال به مرکز تلفن برقرار نیست');
     const origId = 'O' + Date.now() + Math.floor(Math.random() * 1000);
     this.calls.origs.set(origId, { opExt: ext, number, name: String(b.name || number), vmId: b.vmId || null, userId: me.id, at: Date.now() });
     await this.ast.originate(ext, number, origId, String(b.name || number), b.vmId || null);
-    await this.db.auditLog.create({ data: { userId: me.id, userName: me.name, action: 'call.originate', target: number, detail: { vmId: b.vmId || null, ext } } });
+    await this.db.auditLog.create({ data: { userId: me.id, userName: me.name, action: 'call.originate', target: number, detail: { vmId: b.vmId || null, ext, tenantId: me.tenantId || null } } });
     return { origId };
   }
 
@@ -349,12 +372,12 @@ export class CallsController {
   async export(@Body() b: { ids: string[]; title?: string; from?: string; to?: string; kind?: string }, @CurrentUser() me: Me, @Res() res: Response) {
     const ids = new Set((b.ids || []).map(String));
     if (!ids.size) throw new BadRequestException('تماسی انتخاب نشده است');
-    const all = await this.calls.list('1300/01/01');
+    const all = await this.calls.list('1300/01/01', await this.tenantScope(me));
     const rows = all.filter(c => ids.has(c.id)).sort((a, z) => `${a.date} ${a.time}`.localeCompare(`${z.date} ${z.time}`));
     const missed = b.kind === 'missed';
     const unreached = b.kind === 'unreached';
-    const cfg = await this.store.all();
-    const names = new Map<string, string>(cfg.exts.map((e: any) => [e.name, e.n]));
+    const cfg = await this.store.forUser(me);
+    const names = new Map<string, string>((cfg.exts || []).map((e: any) => [e.name, e.n]));
     const rings = this.ringsByCall(names);
     const WD = ['یکشنبه', 'دوشنبه', 'سه‌شنبه', 'چهارشنبه', 'پنجشنبه', 'جمعه', 'شنبه'];
     const weekday = (j: string) => WD[jalaliToDate(j).getUTCDay()];
@@ -452,17 +475,17 @@ export class CallsController {
     }
     const title = String(b.title || 'تماس‌ها').slice(0, 60);
     const wb = new ExcelJS.Workbook();
-    wb.creator = 'مرکز تماس دکتر افلاکی';
+    wb.creator = 'مرکز تماس نورون (Neuron)';
     wb.created = new Date();
     const ws = wb.addWorksheet(title.slice(0, 31), { views: [{ rightToLeft: true, state: 'frozen', ySplit: 3 }], pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1, fitToHeight: 0 } });
     ws.columns = cols.map(c => ({ width: c.w }));
     const rtl = (center?: boolean) => ({ horizontal: center ? 'center' : 'right', vertical: 'middle', readingOrder: 'rtl', wrapText: true }) as any;
     ws.mergeCells(1, 1, 1, cols.length);
-    Object.assign(ws.getCell(1, 1), { value: faDigits(`${title} — مرکز تماس دکتر افلاکی`), font: { bold: true, size: 14, color: { argb: 'FF2E2F31' } }, alignment: rtl() });
+    Object.assign(ws.getCell(1, 1), { value: faDigits(`${title} — مرکز تماس نورون (Neuron)`), font: { bold: true, size: 14, color: { argb: 'FF0B2545' } }, alignment: rtl() });
     ws.mergeCells(2, 1, 2, cols.length);
-    Object.assign(ws.getCell(2, 1), { value: faDigits(`بازه: ${b.from || '—'} تا ${b.to || '—'} · تعداد: ${unreached ? data.length + ' شماره (' + data.reduce((n: number, g: any) => n + g.l.length, 0) + ' تلاش بدون ارتباط)' : rows.length + ' تماس'} · تهیه: ${me.name} · ${jalaliDate(new Date())} ساعت ${hhmm(new Date())}`), font: { size: 11, color: { argb: 'FF6B6E72' } }, alignment: rtl() });
+    Object.assign(ws.getCell(2, 1), { value: faDigits(`بازه: ${b.from || '—'} تا ${b.to || '—'} · تعداد: ${unreached ? data.length + ' شماره (' + data.reduce((n: number, g: any) => n + g.l.length, 0) + ' تلاش بدون ارتباط)' : rows.length + ' تماس'} · تهیه: ${me.name} · ${jalaliDate(new Date())} ساعت ${hhmm(new Date())}`), font: { size: 11, color: { argb: 'FF5B6B82' } }, alignment: rtl() });
     const head = ws.getRow(3);
-    cols.forEach((c, k) => Object.assign(head.getCell(k + 1), { value: c.h, font: { bold: true, color: { argb: 'FFFFFFFF' } }, fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2E2F31' } }, alignment: rtl(true) }));
+    cols.forEach((c, k) => Object.assign(head.getCell(k + 1), { value: c.h, font: { bold: true, color: { argb: 'FFFFFFFF' } }, fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0B2545' } }, alignment: rtl(true) }));
     head.height = 32;
     data.forEach((c, i) => {
       const r = ws.getRow(i + 4);
@@ -473,10 +496,10 @@ export class CallsController {
         cell.value = typeof v === 'string' && !col.h.startsWith('شماره') ? faDigits(v) : v;
         cell.alignment = rtl(col.center);
         if (col.h.startsWith('شماره')) cell.numFmt = '@';
-        if (col.h === 'وضعیت پیگیری' || col.h === 'وضعیت') cell.font = { bold: true, color: { argb: String(cell.value).startsWith('ارتباط') ? 'FF3D6A0C' : 'FFB42318' } };
-        cell.border = { bottom: { style: 'thin', color: { argb: 'FFEEEFEB' } } };
+        if (col.h === 'وضعیت پیگیری' || col.h === 'وضعیت') cell.font = { bold: true, color: { argb: String(cell.value).startsWith('ارتباط') ? 'FF0A5C5B' : 'FFB42318' } };
+        cell.border = { bottom: { style: 'thin', color: { argb: 'FFEEF1F5' } } };
       });
-      if (i % 2) r.eachCell(cell => { cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF7F8F5' } }; });
+      if (i % 2) r.eachCell(cell => { cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF7F9FC' } }; });
     });
     ws.autoFilter = { from: { row: 3, column: 1 }, to: { row: 3, column: cols.length } };
     await this.db.auditLog.create({ data: { userId: me.id, userName: me.name, action: 'calls.export', target: title, detail: { count: rows.length, from: b.from, to: b.to, kind: b.kind || 'all' } } });
@@ -498,8 +521,9 @@ export class CallsController {
     if (+b.count !== ids.length) throw new BadRequestException('تعداد واردشده با تعداد تماس‌های انتخاب‌شده یکی نیست');
     const u = await this.db.user.findUnique({ where: { id: me.id } });
     if (ids.length > 1 && (!u || !(await bcrypt.compare(String(b.password || ''), u.password)))) throw new BadRequestException('رمز عبور اشتباه است');
-    const rows = await this.db.call.findMany({ where: { id: { in: ids } }, select: { id: true, date: true, recPath: true, survey: true } });
+    const rows = await this.db.call.findMany({ where: { id: { in: ids } }, select: { id: true, date: true, recPath: true, survey: true, tenantId: true, did: true } });
     if (!rows.length) throw new BadRequestException('این تماس‌ها قبلاً حذف شده‌اند');
+    for (const r of rows) await this.assertCallAccess(me, r);
     const found = rows.map(r => r.id);
     await this.db.$transaction([
       this.db.note.deleteMany({ where: { callId: { in: found } } }),
@@ -528,8 +552,9 @@ export class CallsController {
 
   @Get('calls/:id/insight')
   async insight(@Param('id') id: string, @CurrentUser() me: Me) {
-    const c = await this.db.call.findUnique({ where: { id }, select: { ai: true, aiState: true, aiError: true, recPath: true, st: true } });
+    const c = await this.db.call.findUnique({ where: { id }, select: { ai: true, aiState: true, aiError: true, recPath: true, st: true, tenantId: true, did: true } });
     if (!c) throw new NotFoundException('تماس پیدا نشد');
+    await this.assertCallAccess(me, c);
     // the operator assessment is for managers only
     const ai: any = c.ai && !can(me, 'coach') ? { ...(c.ai as any), coach: undefined } : c.ai;
     return { ai, aiState: c.aiState, aiError: c.aiError, hasRec: !!c.recPath };
@@ -538,15 +563,17 @@ export class CallsController {
   /** Full AI receptionist conversation (transcript and actions) for the review page. */
   @Perm('aiconv')
   @Get('calls/:id/conversation')
-  async conversation(@Param('id') id: string) {
-    const c = await this.db.call.findUnique({ where: { id }, select: { aiConv: true, ai: true, aiState: true, aiError: true } });
+  async conversation(@Param('id') id: string, @CurrentUser() me: Me) {
+    const c = await this.db.call.findUnique({ where: { id }, select: { aiConv: true, ai: true, aiState: true, aiError: true, tenantId: true, did: true } });
     if (!c || !c.aiConv) throw new NotFoundException('گفتگویی برای این تماس ثبت نشده است');
+    await this.assertCallAccess(me, c);
     return c;
   }
 
   @Get('recordings/:id/survey')
-  async surveyComment(@Param('id') id: string, @Res() res: Response) {
+  async surveyComment(@Param('id') id: string, @CurrentUser() me: Me, @Res() res: Response) {
     const c = await this.db.call.findUnique({ where: { id } });
+    await this.assertCallAccess(me, c);
     const file = (c?.survey as any)?.rec;
     if (!file || !path.resolve(file).startsWith(path.resolve(env.monitorDir)) || !fs.existsSync(file)) throw new NotFoundException('پیام صوتی نظرسنجی پیدا نشد');
     res.setHeader('Cache-Control', 'private, max-age=3600');
@@ -554,9 +581,10 @@ export class CallsController {
   }
 
   @Get('recordings/:id')
-  async recording(@Param('id') id: string, @Query('download') dl: string, @Res() res: Response) {
+  async recording(@Param('id') id: string, @Query('download') dl: string, @CurrentUser() me: Me, @Res() res: Response) {
     const c = await this.db.call.findUnique({ where: { id } });
     if (!c || !c.recPath) throw new NotFoundException('ضبطی برای این تماس وجود ندارد');
+    await this.assertCallAccess(me, c);
     const file = c.recPath === 'demo' ? env.demoAudio : c.recPath;
     if (!path.resolve(file).startsWith(path.resolve(env.monitorDir)) && file !== env.demoAudio) throw new ForbiddenException();
     if (!fs.existsSync(file)) throw new NotFoundException('فایل ضبط پیدا نشد');

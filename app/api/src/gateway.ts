@@ -2,7 +2,7 @@
 import { ConnectedSocket, MessageBody, OnGatewayConnection, OnGatewayDisconnect, SubscribeMessage, WebSocketGateway, WebSocketServer } from '@nestjs/websockets';
 import type { Server, Socket } from 'socket.io';
 import { AsteriskService } from './asterisk/asterisk.service';
-import { currentUser, verifyToken } from './auth';
+import { currentUser, isSuperAdmin, verifyToken } from './auth';
 import { CONFIG_SECTION, can } from './perms';
 import { PrismaService } from './prisma.service';
 import { Bus } from './bus';
@@ -14,13 +14,24 @@ export class LiveGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   constructor(private ast: AsteriskService, private bus: Bus, private live: LiveCallsService, private db: PrismaService) {
     ast.on('live', l => this.server && this.server.emit('live', l));
-    bus.on('calls', x => this.server.emit('calls', x));
+    bus.on('calls', x => {
+      if (!this.server) return;
+      if (x?.tenantId) this.server.to('tenant:' + x.tenantId).emit('calls', x);
+      this.server.to('tenant:platform').emit('calls', x);
+    });
     bus.on('workflow', x => this.server.emit('workflow', x));
-    bus.on('config', x => this.server.to('cfg').emit('config', x));
+    bus.on('config', x => {
+      if (!this.server) return;
+      if (x?.tenantId) this.server.to('tenant:' + x.tenantId).to('cfg').emit('config', x);
+      else this.server.to('tenant:platform').to('cfg').emit('config', x);
+    });
     bus.on('cb', x => this.server.to('user:' + x.userId).emit('cb', x));
-    // live calls carry patients' numbers: managers only
     bus.on('livecalls', x => this.server && this.server.to('perm:live').emit('livecalls', x));
-    bus.on('callpop', x => this.server && this.server.to('perm:calls').emit('callpop', x));
+    bus.on('callpop', x => {
+      if (!this.server) return;
+      if (x?.tenantId) this.server.to('tenant:' + x.tenantId).to('perm:calls').emit('callpop', x);
+      else this.server.to('perm:calls').emit('callpop', x);
+    });
     bus.on('patient', x => this.server && this.server.to('perm:calls').emit('patient', x));
     bus.on('sms', x => this.server && this.server.to('perm:calls').emit('sms', x));
     bus.on('notify', x => (x.userId ? this.server.to('user:' + x.userId).emit('notify', x) : x.ext ? this.server.to('ext:' + x.ext).emit('notify', x) : x.role === '*' ? this.server.emit('notify', x) : this.server.to('role:' + x.role).emit('notify', x)));
@@ -34,8 +45,10 @@ export class LiveGateway implements OnGatewayConnection, OnGatewayDisconnect {
     s.join('user:' + me.id);
     s.join('role:' + me.role);
     if (me.ext) s.join('ext:' + me.ext);
+    if (me.tenantId) s.join('tenant:' + me.tenantId);
+    else if (isSuperAdmin(me)) s.join('tenant:platform');
+    else s.join('tenant:platform');
     if (can(me, 'refer')) s.join('perm:refer');
-    // live calls and VoIP setting changes only reach users allowed to see them
     if (Object.values(CONFIG_SECTION).some(sec => can(me, sec))) s.join('cfg');
     s.data.me = me;
     s.emit('live', this.ast.live);
@@ -45,7 +58,6 @@ export class LiveGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   handleDisconnect(s: Socket) { this.live.stopFor(s); }
 
-  /** Manager starts listening to a live call (listen only; the parties cannot hear the manager). */
   @SubscribeMessage('listen')
   async listen(@ConnectedSocket() s: Socket, @MessageBody() b: { id?: string }) {
     const me = s.data.me && (await currentUser(this.db, s.data.me.id));

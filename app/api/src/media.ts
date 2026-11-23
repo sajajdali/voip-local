@@ -36,8 +36,8 @@ export class MediaController {
     const { stdout } = await run('ffprobe', ['-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', out]);
     const name = Buffer.from(file.originalname, 'latin1').toString('utf8').replace(/\.[^.]+$/, '');
     const sound = { id, name, cat: ['greet', 'moh', 'queue', 'after', 'ivr'].includes(b.cat || '') ? b.cat : 'greet', dur: Math.round(+stdout || 0), date: todayJ(), file: name + '.wav' };
-    const cfg = await this.store.all();
-    const r = await this.store.save('snds', [sound, ...cfg.snds], me);
+    const cfg = await this.store.forUser(me);
+    const r = await this.store.save('snds', [sound, ...(cfg.snds || [])], me);
     return { sound, snds: r.data };
   }
 

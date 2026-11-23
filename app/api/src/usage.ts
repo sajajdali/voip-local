@@ -11,7 +11,7 @@ export const usageCtx = new AsyncLocalStorage<{ feature: string; callId?: string
 
 export const FEATURES: Record<string, string> = {
   call: 'تحلیل مکالمه اپراتور', voicemail: 'پیام صوتی', agent_voice: 'دستیار هوشمند · مکالمه زنده',
-  agent_summary: 'دستیار هوشمند · خلاصه گفتگو', survey: 'نظرسنجی · پیام صوتی', test: 'تست تنظیمات', other: 'سایر',
+  agent_summary: 'دستیار هوشمند · خلاصه گفتگو', survey: 'نظرسنجی · پیام صوتی', booking_survey: 'نوبت‌دهی · نظرسنجی صوتی', test: 'تست تنظیمات', other: 'سایر',
 };
 export const KINDS: Record<string, string> = { stt: 'تبدیل گفتار به متن', llm: 'تحلیل متن', realtime: 'مکالمه صوتی زنده' };
 

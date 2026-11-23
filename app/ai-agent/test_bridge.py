@@ -426,7 +426,7 @@ class EventTests(unittest.TestCase):
             self.assertEqual(name, "علی")
             self.assertEqual(
                 bridge.greeting_for_name(name),
-                "سلام علی، من دستیار دکتر افلاکی هستم، چه کمکی از من برمیاد؟",
+                "سلام علی، من دستیار دکتر نورون هستم، چه کمکی از من برمیاد؟",
             )
             self.assertFalse(os.path.exists(path))
 
@@ -478,7 +478,7 @@ class EventTests(unittest.TestCase):
             self.assertEqual(metadata.name, "نازنین")
             self.assertFalse(metadata.has_surgery_record)
             instructions = bridge.instructions_for_caller(metadata)
-            self.assertIn("آیا عمل جراحی‌تون رو دکتر افلاکی انجام داده؟", instructions)
+            self.assertIn("آیا عمل جراحی‌تون رو دکتر نورون انجام داده؟", instructions)
             self.assertIn("کد ملی‌تون رو با استفاده از گوشی و قسمت شماره‌گیریش", instructions)
             self.assertIn("کنید تا بتونم بررسی کنم", instructions)
             self.assertIn("verify_surgery_by_national_code", instructions)
@@ -513,7 +513,7 @@ class EventTests(unittest.TestCase):
     def test_appointment_flow_is_not_offered(self):
         instructions = bridge.instructions_for_caller(bridge.CallerMetadata())
         self.assertNotIn("send_application_link", instructions)
-        self.assertNotIn("مایلید برای ویزیت دکتر افلاکی نوبت بگیرید؟", instructions)
+        self.assertNotIn("مایلید برای ویزیت دکتر نورون نوبت بگیرید؟", instructions)
         self.assertNotIn("لینکش براتون پیامک شد", instructions)
         self.assertIn("Never offer appointment booking or an application link", instructions)
 

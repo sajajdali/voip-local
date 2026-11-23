@@ -289,7 +289,7 @@ def surgery_record_status(payload: dict) -> bool | None:
 
 
 def completed_surgery_status(payload: dict) -> bool | None:
-    """Whether CRM explicitly confirms a completed surgery with Dr. Aflaki."""
+    """Whether CRM explicitly confirms a completed surgery with Dr. Neuron."""
     value = payload.get("has_completed_surgery")
     return value if isinstance(value, bool) else None
 

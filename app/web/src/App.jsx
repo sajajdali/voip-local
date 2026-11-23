@@ -48,6 +48,7 @@ class LiveApp extends React.Component {
     ME = { ...b.me };
     SECTIONS = b.sections || [];
     OPS = b.operators;
+    this.tenantInfo = b.tenant || null;
     this.applyBoot(b);
     this.audio = new Audio();
     this.audio.preload = 'auto';
@@ -2654,11 +2655,17 @@ class LiveApp extends React.Component {
   renderTenantsPage() {
     const s = this.state;
     const d = s.tenantsData;
+    const FEAT = { booking: 'نوبت‌دهی', ivr: 'IVR', queues: 'صف‌ها', exts: 'داخلی‌ها', outbound: 'خروجی', recordings: 'ضبط' };
     const f = s.tnForm || { name: '', slug: '', defaultDest: '', username: '', password: '', userName: '' };
     const setF = (p) => this.setState({ tnForm: { ...f, ...p } });
     const queues = (s.vqs || []).map(q => ({ id: 'q:' + q.id, label: 'صف · ' + (q.name || q.id) }));
-    const destOpts = [{ id: '', label: '— انتخاب مقصد —' }, ...queues, ...(s.ivrs || []).map(i => ({ id: 'ivr:' + i.id, label: 'IVR · ' + (i.name || i.id) })), ...(s.exts || []).map(e => ({ id: 'e:' + e.n, label: 'داخلی · ' + e.n }))];
+    const destOpts = [{ id: '', label: '— انتخاب مقصد —' }, { id: 'book', label: 'نوبت‌دهی تلفنی' }, ...queues, ...(s.ivrs || []).map(i => ({ id: 'ivr:' + i.id, label: 'IVR · ' + (i.name || i.id) })), ...(s.exts || []).map(e => ({ id: 'e:' + e.n, label: 'داخلی · ' + e.n }))];
     const back = () => this.setState({ page: 'settings' });
+    const toggleFeat = async (t, key) => {
+      const features = { ...(t.features || d.featureDefaults || {}), [key]: !(t.features && t.features[key]) };
+      try { await api('/tenants/' + t.id + '/features', { features }, 'PUT'); this.toast('قابلیت‌ها ذخیره شد'); this.loadTenants(); }
+      catch (e) { this.toast(e.message); }
+    };
     if (!d) return <div style={{ padding: 40, fontFamily: 'IRANSansX, Tahoma, sans-serif', direction: 'rtl' }}>در حال بارگذاری…</div>;
     return (
       <div style={{ minHeight: '100vh', background: 'linear-gradient(160deg,#F7F9FC 0%,#EEF8F7 45%,#E2ECFA 100%)', padding: '24px 20px 48px', fontFamily: 'IRANSansX, Tahoma, sans-serif', direction: 'rtl', color: '#0B2545' }}>
@@ -2666,7 +2673,7 @@ class LiveApp extends React.Component {
           <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', alignItems: 'flex-end' }}>
             <div>
               <button type="button" onClick={back} style={{ border: '1px solid #E3E8EF', background: '#fff', borderRadius: 10, padding: '6px 12px', cursor: 'pointer', marginBottom: 10, fontFamily: 'inherit' }}>← بازگشت به تنظیمات</button>
-              <h1 style={{ margin: 0, fontSize: 22, fontFamily: "'Noto Kufi Arabic',sans-serif" }}>مستأجرها و DID ترانک ۳۱۹۸۵</h1>
+              <h1 style={{ margin: 0, fontSize: 22, fontFamily: "'Noto Kufi Arabic',sans-serif" }}>مستأجرها · ماتریس دسترسی · DID ۳۱۹۸۵</h1>
               <div style={{ color: '#5B6B82', fontSize: 13, marginTop: 4 }}>بازه {d.pool.min}…{d.pool.max} · آزاد: {(d.pool.free || 0).toLocaleString('fa-IR')} از {d.pool.total.toLocaleString('fa-IR')}</div>
             </div>
             <button type="button" onClick={() => this.setState({ tnForm: { name: '', slug: '', defaultDest: (queues[0] && queues[0].id) || '', username: '', password: '', userName: '' } })} style={{ border: 'none', background: 'linear-gradient(135deg,#0B2545,#1D4E89)', color: '#fff', padding: '10px 16px', borderRadius: 12, cursor: 'pointer', fontFamily: 'inherit', fontWeight: 600 }}>مستأجر جدید</button>
@@ -2696,15 +2703,26 @@ class LiveApp extends React.Component {
             <div key={t.id} style={{ background: '#fff', border: '1px solid #E3E8EF', borderRadius: 16, padding: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
                 <div>
-                  <div style={{ fontWeight: 800, fontSize: 16 }}>{t.name} <span style={{ fontWeight: 500, color: '#5B6B82', fontSize: 12 }}>({t.slug})</span></div>
+                  <div style={{ fontWeight: 800, fontSize: 16 }}>{t.name} <span style={{ fontWeight: 500, color: '#5B6B82', fontSize: 12 }}>({t.slug})</span>{!t.active && <span style={{ marginRight: 8, color: '#b42318', fontSize: 12 }}>غیرفعال</span>}</div>
                   <div style={{ fontSize: 12, color: '#5B6B82' }}>مقصد: {t.defaultDest || '—'} · کاربران: {(t.users || []).length.toLocaleString('fa-IR')} · DID: {(t.dids || []).length.toLocaleString('fa-IR')}</div>
                 </div>
-                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
                   <select value={t.defaultDest || ''} onChange={async e => { try { await api('/tenants/' + t.id, { defaultDest: e.target.value }, 'PUT'); this.toast('مقصد ذخیره شد'); this.loadTenants(); } catch (err) { this.toast(err.message); } }} style={{ padding: 8, borderRadius: 10, border: '1px solid #E3E8EF', fontFamily: 'inherit' }}>
                     {destOpts.map(o => <option key={o.id || 'x'} value={o.id}>{o.label}</option>)}
                   </select>
+                  <button type="button" onClick={async () => { try { await api('/tenants/' + t.id, { active: !t.active }, 'PUT'); this.loadTenants(); } catch (e) { this.toast(e.message); } }} style={{ border: '1px solid #E3E8EF', background: t.active ? '#fff' : '#fdeceb', padding: '8px 12px', borderRadius: 10, cursor: 'pointer', fontFamily: 'inherit' }}>{t.active ? 'غیرفعال' : 'فعال'}</button>
                   <button type="button" onClick={async () => { if (!confirm('حذف مستأجر «' + t.name + '»؟')) return; try { await api('/tenants/' + t.id, null, 'DELETE'); this.toast('حذف شد'); this.loadTenants(); } catch (e) { this.toast(e.message); } }} style={{ border: '1px solid #f5c2c0', background: '#fdeceb', color: '#b42318', padding: '8px 12px', borderRadius: 10, cursor: 'pointer', fontFamily: 'inherit' }}>حذف</button>
                 </div>
+              </div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                {Object.keys(FEAT).map(k => {
+                  const on = t.features ? t.features[k] !== false : true;
+                  return (
+                    <button key={k} type="button" onClick={() => toggleFeat(t, k)} title="کلیک برای روشن/خاموش" style={{ border: '1px solid ' + (on ? '#9FCFCC' : '#E3E8EF'), background: on ? '#E3F2F1' : '#F7F9FC', color: on ? '#0A5C5B' : '#7A889C', borderRadius: 999, padding: '4px 10px', fontSize: 11, cursor: 'pointer', fontFamily: 'inherit' }}>
+                      {FEAT[k]} {on ? '✓' : '✗'}
+                    </button>
+                  );
+                })}
               </div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                 {(t.dids || []).map(x => (
@@ -2725,6 +2743,17 @@ class LiveApp extends React.Component {
               {(t.users || []).length > 0 && (
                 <div style={{ fontSize: 12, color: '#3A4A63' }}>دسترسی ورود: {(t.users || []).map(u => u.username + (u.active ? '' : ' (غیرفعال)')).join('، ')}</div>
               )}
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', borderTop: '1px dashed #E3E8EF', paddingTop: 10 }}>
+                <input value={(s.tnUser && s.tnUser[t.id] && s.tnUser[t.id].username) || ''} onChange={e => this.setState({ tnUser: { ...(s.tnUser || {}), [t.id]: { ...(s.tnUser && s.tnUser[t.id] || {}), username: e.target.value } } })} placeholder="کاربر جدید" dir="ltr" style={{ padding: 8, borderRadius: 10, width: 120, textAlign: 'left', border: '1px solid #E3E8EF', fontFamily: 'inherit' }} />
+                <input type="password" value={(s.tnUser && s.tnUser[t.id] && s.tnUser[t.id].password) || ''} onChange={e => this.setState({ tnUser: { ...(s.tnUser || {}), [t.id]: { ...(s.tnUser && s.tnUser[t.id] || {}), password: e.target.value } } })} placeholder="رمز" style={{ padding: 8, borderRadius: 10, width: 120, border: '1px solid #E3E8EF', fontFamily: 'inherit' }} />
+                <button type="button" onClick={async () => {
+                  const u = (s.tnUser && s.tnUser[t.id]) || {};
+                  try {
+                    await api('/tenants/' + t.id + '/users', { username: u.username, password: u.password, name: t.name, role: 'admin' });
+                    this.toast('کاربر مستأجر ساخته شد'); this.setState({ tnUser: { ...(s.tnUser || {}), [t.id]: {} } }); this.loadTenants();
+                  } catch (e) { this.toast(e.message); }
+                }} style={{ border: 'none', background: '#1D4E89', color: '#fff', padding: '8px 12px', borderRadius: 10, cursor: 'pointer', fontFamily: 'inherit' }}>افزودن کاربر</button>
+              </div>
             </div>
           ))}
           {!d.tenants.length && <div style={{ color: '#5B6B82', padding: 20, background: '#fff', borderRadius: 16, border: '1px dashed #E3E8EF' }}>هنوز مستأجری ساخته نشده. یک مستأجر بسازید و DID مثل ۳۱۹۸۵۰۰۷ را به او بدهید.</div>}

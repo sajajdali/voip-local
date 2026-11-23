@@ -4,6 +4,9 @@ import { generate } from '../asterisk/generator';
 import { can, permsOf, PLATFORM_SECTIONS } from '../perms';
 import { isPoolDid, normalizePoolDid, DID_POOL_MIN, DID_POOL_MAX } from '../tenants';
 import { isSuperAdmin } from '../auth';
+import {
+  cleanFeatures, featureAllows, normalizeInboundDid, prefixDest, prefixDestIfOwned, prefixEntityId, prefixTenantCollection, tenantPrefix,
+} from '../tenant-scope';
 
 describe('DID pool 31985', () => {
   it('accepts 31985000…31985999', () => {
@@ -22,6 +25,12 @@ describe('DID pool 31985', () => {
   it('pool size is 1000', () => {
     assert.equal(DID_POOL_MAX - DID_POOL_MIN + 1, 1000);
   });
+  it('normalizes provider DID variants to pool form', () => {
+    assert.equal(normalizeInboundDid('031985007'), '31985007');
+    assert.equal(normalizeInboundDid('9831985007'), '31985007');
+    assert.equal(normalizeInboundDid('009831985007'), '31985007');
+    assert.equal(normalizeInboundDid('31985007'), '31985007');
+  });
 });
 
 describe('super-admin vs tenant scoping', () => {
@@ -38,6 +47,35 @@ describe('super-admin vs tenant scoping', () => {
   });
 });
 
+describe('feature flags + id prefix', () => {
+  it('defaults all features on', () => {
+    const f = cleanFeatures(null);
+    assert.equal(f.booking, true);
+    assert.equal(featureAllows(f, 'booking'), true);
+    assert.equal(featureAllows({ ...f, booking: false }, 'booking'), false);
+    assert.equal(featureAllows({ ...f, queues: false }, 'vqs'), false);
+  });
+  it('prefixes entity ids per tenant without collision', () => {
+    const a = prefixEntityId('tenantAAA', 'q1');
+    const b = prefixEntityId('tenantBBB', 'q1');
+    assert.notEqual(a, b);
+    assert.equal(prefixDest('tenantAAA', 'q:q1'), 'q:' + a);
+    assert.equal(prefixDest('tenantAAA', 'book'), 'book');
+    assert.equal(prefixDest('tenantAAA', 'e:101'), 'e:101');
+    assert.ok(tenantPrefix('cuid12345678').startsWith('tn'));
+  });
+  it('does not rewrite sound or extension ids', () => {
+    const snds = prefixTenantCollection('ten1', 'snds', [{ id: 's99', name: 'hi' }]);
+    assert.equal(snds[0].id, 's99');
+    const exts = prefixTenantCollection('ten1', 'exts', [{ n: '401', name: 'a' }]);
+    assert.equal(exts[0].n, '401');
+  });
+  it('keeps platform defaultDest unprefixed when tenant does not own the queue', () => {
+    assert.equal(prefixDestIfOwned('ten1', 'q:q400', { vqs: [] }), 'q:q400');
+    assert.equal(prefixDestIfOwned('ten1', 'q:q1', { vqs: [{ id: 'q1' }] }), 'q:' + prefixEntityId('ten1', 'q1'));
+  });
+});
+
 describe('dialplan DID → tenant', () => {
   it('emits tenant context and destination ahead of generic routes', () => {
     const cfg: any = {
@@ -51,11 +89,35 @@ describe('dialplan DID → tenant', () => {
     };
     const g = generate(cfg, { hookUrl: 'http://127.0.0.1/h', hookSecret: 's', mohDir: '/tmp' });
     const ext = g.files['extensions.conf'];
-    assert.match(ext, /GotoIf\(\$\["\$\{CC_DID\}"="31985007"\]\?cc-tenant-tenX-31985007/);
+    assert.match(ext, /GotoIf\(\$\["\$\{CC_DID\}"="31985007"/);
     assert.match(ext, /\[cc-tenant-tenX-31985007\]/);
     assert.match(ext, /Set\(__CC_TENANT=tenX\)/);
     assert.match(ext, /Goto\(cc-queue-qX,s,1\)/);
-    // hangup hook carries tenant for Call.tenantId
     assert.match(ext, /tenant=\$\{CC_TENANT\}/);
+    // DID normalize strips 98/0 and last-8
+    assert.match(ext, /strip98/);
+    assert.match(ext, /last8/);
+  });
+
+  it('prefixed tenant queue ids do not collide across tenants', () => {
+    const cfg: any = {
+      exts: [{ n: '201', name: 'a' }, { n: '301', name: 'b' }],
+      trunks: [],
+      vqs: [
+        { id: 'tnA_q1', name: 'A', members: ['201'] },
+        { id: 'tnB_q1', name: 'B', members: ['301'] },
+      ],
+      ivrs: [], snds: [], routes: [], tgroups: [], tconds: [], holidays: [], rgroups: [], fmes: {}, blist: [], bset: {},
+      didRoutes: [
+        { did: '31985001', tenantId: 'tenA', dest: 'q:tnA_q1', name: 'A' },
+        { did: '31985002', tenantId: 'tenB', dest: 'q:tnB_q1', name: 'B' },
+      ],
+    };
+    const g = generate(cfg, { hookUrl: 'http://127.0.0.1/h', hookSecret: 's', mohDir: '/tmp' });
+    const ext = g.files['extensions.conf'];
+    assert.match(ext, /\[cc-queue-tnA_q1\]/);
+    assert.match(ext, /\[cc-queue-tnB_q1\]/);
+    assert.match(ext, /Goto\(cc-queue-tnA_q1,s,1\)/);
+    assert.match(ext, /Goto\(cc-queue-tnB_q1,s,1\)/);
   });
 });

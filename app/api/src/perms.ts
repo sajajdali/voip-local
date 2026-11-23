@@ -15,11 +15,13 @@ export const SECTIONS: Section[] = [
   { key: 'unreached', label: 'پیگیری‌نشده‌ها', group: 'مرکز تماس', actions: ['view'] },
   { key: 'refer', label: 'ارجاع تماس', group: 'مرکز تماس', actions: ['view', 'add', 'edit'], hint: { add: 'ارجاع دادن تماس', edit: 'رسیدگی به ارجاع‌های داخلی خود' } },
   { key: 'referall', label: 'همه ارجاع‌ها و گزارش ارجاع', group: 'مرکز تماس', actions: ['view'] },
+  { key: 'bookings', label: 'تماس‌های نوبت‌دهی', group: 'مرکز تماس', actions: ['view', 'edit'], hint: { edit: 'ثبت پیگیری بیمارانی که نوبت نگرفتند' } },
   { key: 'reports', label: 'گزارش‌ها', group: 'مرکز تماس', actions: ['view'] },
   { key: 'survey', label: 'نظرسنجی', group: 'مرکز تماس', actions: ['view'] },
   { key: 'ai', label: 'تحلیل هوش مصنوعی', group: 'هوش مصنوعی', actions: ['view', 'edit'], hint: { edit: 'تحلیل دستی یک تماس' } },
   { key: 'coach', label: 'ارزیابی عملکرد اپراتورها', group: 'هوش مصنوعی', actions: ['view'] },
   { key: 'aiconv', label: 'گفتگوهای دستیار', group: 'هوش مصنوعی', actions: ['view'] },
+  { key: 'bsurvey', label: 'نظرسنجی نوبت‌دهی', group: 'هوش مصنوعی', actions: ['view', 'edit'], hint: { edit: 'تحلیل دوباره با هوش مصنوعی' } },
   { key: 'vext', label: 'داخلی‌ها', group: 'تنظیمات VoIP', actions: ALL },
   { key: 'vtrunk', label: 'ترانک‌ها', group: 'تنظیمات VoIP', actions: ALL },
   { key: 'vqueue', label: 'صف‌ها', group: 'تنظیمات VoIP', actions: ALL },
@@ -35,19 +37,20 @@ export const SECTIONS: Section[] = [
   { key: 'vvm', label: 'صندوق پیام صوتی', group: 'تنظیمات VoIP', actions: ['view', 'edit'] },
   { key: 'vai', label: 'هوش مصنوعی (مدل و کلید)', group: 'تنظیمات سامانه', actions: ['view', 'edit'] },
   { key: 'vagent', label: 'دستیار هوشمند تلفنی', group: 'تنظیمات سامانه', actions: ['view', 'edit'] },
+  { key: 'vbook', label: 'نوبت‌دهی تلفنی', group: 'تنظیمات سامانه', actions: ['view', 'edit'] },
   { key: 'vcrm', label: 'سامانه بیماران', group: 'تنظیمات سامانه', actions: ['view', 'edit'] },
-  { key: 'vapi', label: 'ارسال تماس‌ها (API)', group: 'تنظیمات سامانه', actions: ['view', 'edit'] },
+  { key: 'vapi', label: 'ارسال رویدادهای تماس (API)', group: 'تنظیمات سامانه', actions: ['view', 'edit'] },
   { key: 'vsms', label: 'پیامک (پنل و قالب‌ها)', group: 'تنظیمات سامانه', actions: ['view', 'edit'] },
+  { key: 'billing', label: 'شارژ دلاری (موجودی و شارژ)', group: 'تنظیمات سامانه', actions: ['view', 'add', 'edit'], hint: { add: 'شارژ حساب و رفتن به درگاه', edit: 'اتصال به سرور شارژ (آدرس و کلید)' } },
   { key: 'usage', label: 'مصرف توکن', group: 'تنظیمات سامانه', actions: ['view', 'edit'], hint: { edit: 'ویرایش جدول قیمت' } },
   { key: 'vbackup', label: 'بکاپ و بازیابی', group: 'تنظیمات سامانه', actions: ALL, hint: { add: 'گرفتن بکاپ', edit: 'بازیابی و زمان‌بندی' } },
   { key: 'sys', label: 'وضعیت سرور', group: 'تنظیمات سامانه', actions: ['view'] },
   { key: 'users', label: 'کاربران و دسترسی‌ها', group: 'تنظیمات سامانه', actions: ALL },
-  { key: 'tenants', label: 'مستأجرها و تخصیص DID', group: 'تنظیمات سامانه', actions: ALL, hint: { add: 'ساخت مستأجر و تخصیص شماره', edit: 'ویرایش مستأجر و مقصد ورودی', delete: 'حذف مستأجر یا آزاد کردن DID' } },
+  { key: 'tenants', label: 'مستأجرها و تخصیص DID', group: 'تنظیمات سامانه', actions: ALL },
 ];
 const KEYS = new Set(SECTIONS.map(s => s.key));
 
-/** Platform-only sections: never granted to tenant-scoped users. */
-export const PLATFORM_SECTIONS = new Set(['vtrunk', 'tenants', 'vbackup', 'usage', 'sys', 'vai', 'vagent', 'vapi']);
+export const PLATFORM_SECTIONS = new Set(['vtrunk', 'tenants', 'vbackup', 'billing', 'usage', 'sys', 'vai', 'vagent', 'vapi']);
 
 /** Starting points for the «قالب» buttons and for users created before permissions existed. */
 export function rolePerms(role: string): Perms {
@@ -71,7 +74,6 @@ export function cleanPerms(p: any): Perms {
 }
 
 export function permsOf(u: { role: string; perms?: any; tenantId?: string | null }): Perms {
-  // tenant-scoped accounts never inherit platform-wide «admin = everything» (no trunk / DID pool)
   if (u.role === 'admin' && !u.tenantId) return rolePerms('admin');
   const base = u.perms ? cleanPerms(u.perms) : rolePerms(u.role === 'admin' && u.tenantId ? 'supervisor' : u.role);
   if (!u.tenantId) return base;
@@ -85,8 +87,8 @@ export function can(u: { role: string; perms?: Perms; tenantId?: string | null }
   if (u.tenantId && PLATFORM_SECTIONS.has(section)) return false;
   if (u.role === 'admin' && !u.tenantId) return true;
   if (!KEYS.has(section)) return false;
-  const p = u.perms || permsOf(u);
-  return !!(p[section] && p[section].includes(action));
+  const pp = u.perms || permsOf(u);
+  return !!(pp[section] && pp[section].includes(action));
 }
 
 /** VoIP collections → the section that owns them. */

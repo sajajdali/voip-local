@@ -17,7 +17,6 @@ model User {
   title     String? // shown under the name after login, instead of «role · extension»
   active    Boolean  @default(true)
   perms     Json? // {section: [view|add|edit|delete]}; empty = the role's defaults
-  /// null = platform / super-admin scope; set = this user belongs to one tenant only
   tenantId  String?
   tenant    Tenant?  @relation(fields: [tenantId], references: [id], onDelete: SetNull)
   createdAt DateTime @default(now())
@@ -25,22 +24,22 @@ model User {
   @@index([tenantId])
 }
 
-/// Multi-tenant customer on trunk 31985 (DIDs 31985000…31985999).
 model Tenant {
   id          String          @id @default(cuid())
   name        String
   slug        String          @unique
   active      Boolean         @default(true)
-  /// Inbound destination for assigned DIDs, same syntax as routes.dest (q:… / ivr:… / e:…).
   defaultDest String          @default("")
   note        String?
+  /// Feature flags: { booking, ivr, queues, exts, outbound, recordings }
+  features    Json?
   createdAt   DateTime        @default(now())
   updatedAt   DateTime        @updatedAt
   dids        DidAssignment[]
   users       User[]
+  configs     TenantConfig[]
 }
 
-/// One DID from the 31985 pool assigned to exactly one tenant.
 model DidAssignment {
   id        String   @id @default(cuid())
   did       String   @unique
@@ -50,6 +49,19 @@ model DidAssignment {
   createdAt DateTime @default(now())
 
   @@index([tenantId])
+}
+
+/// Per-tenant VoIP collections (same keys as ConfigEntry except trunks — trunks stay platform-only).
+model TenantConfig {
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  key       String
+  data      Json
+  updatedAt DateTime @updatedAt
+  updatedBy String?
+
+  @@id([tenantId, key])
+  @@index([key])
 }
 
 /// One row per VoIP collection (exts, trunks, vqs, ivrs, snds, routes, tgroups, tconds, holidays, rgroups, fmes, blist, bset).
@@ -95,7 +107,6 @@ model Call {
   dur       Int      @default(0)
   wait      Int      @default(0)
   did       String?
-  /// Resolved from DidAssignment at ingest when the inbound DID is assigned.
   tenantId  String?
   recPath   String?
   ai        Json?
@@ -170,8 +181,31 @@ model WebhookLog {
   httpCode Int?
   error    String?
   ms       Int
+  eventRef Int?     // CallEvent.id this attempt delivered (null for tests)
 
   @@index([at])
+}
+
+/// Every call event to send to the customer's web service (outbox): saved first, then delivered in order per call.
+model CallEvent {
+  id         Int       @id @default(autoincrement())
+  eventId    String    @unique
+  callId     String
+  seq        Int
+  event      String
+  occurredAt DateTime
+  payload    Json
+  state      String    @default("pending") // pending | sent | failed | cancelled
+  attempts   Int       @default(0)
+  nextAt     DateTime  @default(now())
+  httpCode   Int?
+  error      String?
+  sentAt     DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([state, nextAt])
+  @@index([callId])
+  @@index([createdAt])
 }
 
 /// «بکاپ و بازیابی»: one row per backup archive in BACKUP_DIR.
@@ -294,4 +328,41 @@ model ReferralEvent {
   at         DateTime @default(now())
 
   @@index([referralId])
+}
+
+/// One call on the phone booking line («نوبت‌دهی تلفنی»): booking, follow-up, reminder or cancellation call.
+model BookingLog {
+  id        Int       @id @default(autoincrement())
+  at        DateTime  @default(now())
+  uniqueId  String?
+  callId    String? // Call.id of the same channel (inbound calls)
+  tenantId  String?
+  caller    String?
+  kind      String // book | mata | follow | remind | cancelnotice | none
+  result    String // booked | duplicate | not_booked | link_sent | found | inactive | not_found | cancelled | confirmed | notified | no_slots | invalid | back | hangup | error
+  doctor    String?
+  slotAt    DateTime?
+  offered   Int       @default(0)
+  mobile    String?
+  natMasked String? // national code, last four digits (for lists)
+  nationalCode String? // the national code the caller keyed (shown in the call's detail)
+  code      String? // tracking code
+  apptId    String?
+  survey    Int? // 1..5 after a booking
+  surveyRec String? // voice comment, relative to the monitor spool
+  surveyText String? // the comment as text (speech-to-text)
+  surveyAi  Json? // {category, sentiment, summary, topics, action, needsCall}
+  surveyAiState String @default("none") // none | queued | done | empty | failed
+  surveyAiError String?
+  error     String?
+  steps     Json? // [{s: step, k: keys pressed, v: value, t: ms from the start}]
+  secs      Int       @default(0)
+  follow    String    @default("") // follow-up of a caller who did not book: '' | todo | called | done
+  followNote String?
+  followBy  String?
+  followAt  DateTime?
+
+  @@index([at])
+  @@index([callId])
+  @@index([tenantId])
 }

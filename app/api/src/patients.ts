@@ -1,6 +1,8 @@
 // Patient directory: names come from the clinic CRM, looked up once per inbound call and cached locally.
 // The CRM logs every lookup as a call, so it is asked exactly once per inbound call and never in bulk.
 import { BadRequestException, Body, Controller, Get, Injectable, Logger, Param, Post, Put } from '@nestjs/common';
+import * as http from 'http';
+import * as https from 'https';
 import { CurrentUser, Me, Roles, Perm } from './auth';
 import { Bus } from './bus';
 import { PrismaService } from './prisma.service';
@@ -9,11 +11,32 @@ export interface CrmSettings {
   enabled: boolean; url: string; param: string; user: string; pass: string;
   phoneFormat: '0' | '98' | '+98' | '9'; nameField: string; timeoutMs: number;
   phoneName: 'fa' | 'latin' | 'off'; showSurgery: boolean;
+  // «دستغیب» clinic app: its own address and token, kept apart so switching back keeps the CRM's settings
+  provider: 'crm' | 'dastgheib'; dgUrl: string; dgToken: string; dgHost: string;
 }
 const DEFAULTS: CrmSettings = {
   enabled: false, url: 'https://crm.drpouriaaflaki.com/api/v1/voip/surgery-status', param: 'mobile', user: '', pass: '',
   phoneFormat: '0', nameField: 'name', timeoutMs: 4000, phoneName: 'fa', showSurgery: true,
+  provider: 'crm', dgUrl: '', dgToken: '', dgHost: '',
 };
+
+const DG_PATH = '/external-api/voip/v1/patients/by-phone/';
+
+/** GET with a chosen Host header (fetch() ignores it): the clinic app picks the clinic by its domain. */
+function httpGet(url: URL, headers: Record<string, string>, host: string, timeoutMs: number) {
+  return new Promise<{ status: number; type: string; body: Buffer }>((resolve, reject) => {
+    const lib = url.protocol === 'https:' ? https : http;
+    const req = lib.get(url, { headers: { ...headers, Host: host }, timeout: timeoutMs, ...(url.protocol === 'https:' ? { servername: host.replace(/:\d+$/, '') } : {}) }, res => {
+      const chunks: Buffer[] = [];
+      let size = 0;
+      res.on('data', (c: Buffer) => { size += c.length; if (size > 5e6) { req.destroy(new Error('پاسخ سامانه بیماران بیش از حد بزرگ است')); return; } chunks.push(c); });
+      res.on('end', () => resolve({ status: res.statusCode || 0, type: String(res.headers['content-type'] || ''), body: Buffer.concat(chunks) }));
+      res.on('error', reject);
+    });
+    req.on('timeout', () => { const e = new Error('timeout'); e.name = 'TimeoutError'; req.destroy(e); });
+    req.on('error', reject);
+  });
+}
 
 /** 0912… in the panel; the CRM may want 98912…, +98912… or 912…. */
 function formatPhone(p: string, f: CrmSettings['phoneFormat']) {
@@ -87,14 +110,15 @@ export class PatientsService {
   }
 
   publicView(s: CrmSettings) {
-    const { pass, ...rest } = s;
-    return { ...rest, hasPass: !!pass };
+    const { pass, dgToken, ...rest } = s;
+    return { ...rest, hasPass: !!pass, hasDgToken: !!dgToken };
   }
 
   async save(b: any, me: Me) {
     const cur = await this.settings();
     const url = String(b.url ?? cur.url).trim();
-    if (url && !/^https?:\/\/\S+$/i.test(url)) throw new BadRequestException('آدرس باید با http:// یا https:// شروع شود');
+    const dgUrl = String(b.dgUrl ?? cur.dgUrl).trim().replace(/\/+$/, '');
+    for (const u of [url, dgUrl]) if (u && !/^https?:\/\/\S+$/i.test(u)) throw new BadRequestException('آدرس باید با http:// یا https:// شروع شود');
     const next: CrmSettings = {
       enabled: !!(b.enabled ?? cur.enabled), url,
       param: String(b.param ?? cur.param).trim() || 'mobile',
@@ -105,20 +129,28 @@ export class PatientsService {
       timeoutMs: Math.min(15000, Math.max(1000, +(b.timeoutMs ?? cur.timeoutMs) || 4000)),
       phoneName: ['fa', 'latin', 'off'].includes(b.phoneName) ? b.phoneName : cur.phoneName,
       showSurgery: !!(b.showSurgery ?? cur.showSurgery),
+      provider: b.provider === 'dastgheib' || b.provider === 'crm' ? b.provider : cur.provider,
+      dgUrl, dgToken: typeof b.dgToken === 'string' && b.dgToken.trim() ? b.dgToken.trim() : cur.dgToken,
+      dgHost: String(b.dgHost ?? cur.dgHost).trim().replace(/^https?:\/\//i, '').replace(/\/.*$/, ''),
     };
     if (b.clearPass) next.pass = '';
-    if (next.enabled && !next.url) throw new BadRequestException('آدرس API را وارد کنید');
+    if (next.enabled && next.provider === 'crm' && !next.url) throw new BadRequestException('آدرس API را وارد کنید');
+    if (next.enabled && next.provider === 'dastgheib' && (!next.dgUrl || !next.dgToken)) throw new BadRequestException('آدرس و توکن API دستغیب را وارد کنید');
     await this.db.configEntry.upsert({ where: { key: 'crm' }, create: { key: 'crm', data: next as any, updatedBy: me.id }, update: { data: next as any, updatedBy: me.id } });
     this.cache = next;
     this.fails = 0; this.pausedUntil = 0; this.lastError = '';
     this.bus.emit('crm-saved');
-    const { pass, ...safe } = next;
-    await this.db.auditLog.create({ data: { userId: me.id, userName: me.name, action: 'crm.save', target: 'crm', detail: { ...safe, passChanged: !!b.pass } as any } });
+    const { pass, dgToken, ...safe } = next;
+    await this.db.auditLog.create({ data: { userId: me.id, userName: me.name, action: 'crm.save', target: 'crm', detail: { ...safe, passChanged: !!b.pass, dgTokenChanged: !!b.dgToken } as any } });
     return this.publicView(next);
   }
 
+  /** True when the settings point at a usable patient system. */
+  ready(s: CrmSettings) { return s.enabled && (s.provider === 'dastgheib' ? !!(s.dgUrl && s.dgToken) : !!s.url); }
+
   /** One request to the CRM; returns the raw answer and the extracted name. */
   async fetchCrm(phone: string, s: CrmSettings) {
+    if (s.provider === 'dastgheib') return this.fetchDastgheib(phone, s);
     const u = new URL(s.url);
     u.searchParams.set(s.param, formatPhone(phone, s.phoneFormat));
     const headers: Record<string, string> = { Accept: 'application/json' };
@@ -134,11 +166,41 @@ export class PatientsService {
     return { name, surgery: surgeryDate(d), raw: d, ms: Date.now() - t0 };
   }
 
+  /** «دستغیب»: the whole patient card (profile, services, satisfaction) in one read-only request. */
+  async fetchDastgheib(phone: string, s: CrmSettings) {
+    const base = new URL(s.dgUrl);
+    const u = s.dgUrl.includes('{phone}') ? new URL(s.dgUrl.replace('{phone}', phone))
+      : new URL(s.dgUrl.includes('/external-api/') ? s.dgUrl + '/' + phone : base.origin + base.pathname.replace(/\/+$/, '') + DG_PATH + phone);
+    const host = s.dgHost || u.host;
+    const t0 = Date.now();
+    const r = await httpGet(u, { Accept: 'application/json', Authorization: 'Bearer ' + s.dgToken }, host, s.timeoutMs);
+    if (r.status !== 200) throw new Error(`پاسخ ${r.status} از دستغیب${r.status === 401 ? ' (توکن اشتباه است)' : r.status === 403 ? ' (ارتباط با VoIP در تنظیمات دستغیب غیرفعال است)' : r.status === 404 ? ' (آدرس درست نیست)' : ''}`);
+    let d: any;
+    try { d = JSON.parse(r.body.toString('utf8')); } catch { throw new Error('پاسخ دستغیب JSON نیست'); }
+    if (!d || typeof d !== 'object' || typeof d.found !== 'boolean') throw new Error('پاسخ دستغیب قالب مورد انتظار را ندارد');
+    if (d.found && d.patient) {
+      if (Array.isArray(d.services)) d.services = d.services.slice(0, 300);
+      // the photo lives on the clinic's own domain, which the browser cannot reach: keep a small copy with the card
+      const pic = typeof d.patient.avatar_path === 'string' && d.patient.avatar_path.startsWith('/') ? d.patient.avatar_path : '';
+      delete d.patient.avatar_path;
+      // dastgheib sends a ready 256px photo; the stored thumbnail (50px) is only the fallback
+      if (typeof d.patient.avatar !== 'string' || !/^data:image\/(webp|png|jpeg);base64,[A-Za-z0-9+/=]+$/.test(d.patient.avatar) || d.patient.avatar.length > 200e3) delete d.patient.avatar;
+      if (pic && !d.patient.avatar) {
+        try {
+          const a = await httpGet(new URL(pic, u.origin), {}, host, 3000);
+          if (a.status === 200 && /^image\//.test(a.type) && a.body.length < 150e3) d.patient.avatar = `data:${a.type.split(';')[0]};base64,${a.body.toString('base64')}`;
+        } catch { /* no photo: the initial is shown */ }
+      }
+    }
+    const name = d.found && d.patient ? String(d.patient.name || '').replace(/\s+/g, ' ').trim() : '';
+    return { name, surgery: null as string | null, raw: d, ms: Date.now() - t0 };
+  }
+
   /** Inbound call started: ask the CRM in the background (never delays the call). */
   lookup(phone: string) {
     const job = (async () => {
       const s = await this.settings();
-      if (!s.enabled || !s.url || !/^09\d{9}$/.test(phone)) return;
+      if (!this.ready(s) || !/^09\d{9}$/.test(phone)) return;
       const now = Date.now();
       // the same caller again within a minute (redial, retry) is not a new CRM lookup
       if ((this.recent.get(phone) || 0) > now - 60e3 || now < this.pausedUntil) return;
@@ -166,7 +228,7 @@ export class PatientsService {
     if (!cur && !name) return;
     // a name typed in the panel wins; the surgery date always follows the CRM
     const nextName = cur && (cur.source === 'manual' || !name) ? cur.name : name;
-    const crm = raw && typeof raw === 'object' && JSON.stringify(raw).length < 20000 ? raw : null;
+    const crm = raw && typeof raw === 'object' && JSON.stringify(raw).length < (raw.found !== undefined && raw.patient ? 600000 : isApptCrm(raw) ? 800000 : 20000) ? raw : null;
     await this.db.patient.upsert({
       where: { phone },
       create: { phone, name: nextName, surgery, source: 'crm', crm, crmAt: new Date() },
@@ -238,9 +300,14 @@ export class CrmController {
     const phone = String(b.phone || '').replace(/\D/g, '').replace(/^98/, '0').replace(/^9/, '09');
     if (!/^09\d{9}$/.test(phone)) throw new BadRequestException('یک شماره موبایل معتبر وارد کنید (مثل ۰۹۱۲…)');
     const s = await this.patients.settings();
-    if (!s.url) throw new BadRequestException('آدرس API وارد نشده است');
+    if (s.provider === 'dastgheib' ? !s.dgUrl || !s.dgToken : !s.url) throw new BadRequestException(s.provider === 'dastgheib' ? 'آدرس و توکن API دستغیب وارد نشده است' : 'آدرس API وارد نشده است');
     try {
       const r = await this.patients.fetchCrm(phone, s);
+      if (s.provider === 'dastgheib') {
+        const p = r.raw.patient || {};
+        const raw = { ...r.raw, patient: r.raw.patient ? { ...p, avatar: p.avatar ? '(عکس پروفایل دریافت شد)' : undefined } : undefined };
+        return { ok: true, name: r.name, surgery: r.raw.found ? `${(r.raw.services || []).length} سابقه خدمت · ${(r.raw.details || []).length} فیلد تکمیلی` : 'این شماره در دستغیب پرونده ندارد', phone: await this.preview(r.name, null, s), ms: r.ms, raw: JSON.stringify(raw, null, 2).slice(0, 3000), latin: r.name ? toLatin(r.name) : '' };
+      }
       const note = surgeryNote(daysSince(r.surgery), false);
       return { ok: true, name: r.name, surgery: r.surgery ? note : 'در این سامانه جراحی تکمیل‌شده‌ای ثبت نشده', phone: await this.preview(r.name, r.surgery, s), ms: r.ms, raw: JSON.stringify(r.raw, null, 2).slice(0, 3000), latin: r.name ? toLatin(r.name) : '' };
     } catch (e) {
@@ -256,7 +323,42 @@ const CRM_LABELS: Record<string, string> = {
   surgery_type: 'نوع جراحی', next_appointment: 'نوبت بعدی', last_visit: 'آخرین ویزیت', doctor: 'پزشک', status: 'وضعیت', file_number: 'شماره پرونده', patient_id: 'شناسه بیمار', notes: 'یادداشت',
   call_count: 'تعداد تماس در سامانه بیماران', has_surgery_appointment: 'نوبت جراحی دارد', has_past_surgery_appointment: 'نوبت جراحی گذشته', has_future_surgery_appointment: 'نوبت جراحی آینده',
 };
+Object.assign(CRM_LABELS, {
+  id: 'شناسه بیمار', file_no: 'شماره پرونده', found: 'پرونده دارد', appointments_total: 'کل نوبت‌ها', appointments_in_person: 'نوبت‌های حضوری', appointments_online: 'نوبت‌های آنلاین',
+  calls_total: 'تماس‌های ثبت‌شده', calls_today: 'تماس‌های امروز', date: 'تاریخ', jalali: 'تاریخ', service: 'خدمت', place: 'محل', status_label: 'وضعیت', amount_paid: 'مبلغ پرداختی',
+  online_status_label: 'وضعیت گفتگو', messages_count: 'تعداد پیام', last_online_chat: 'آخرین گفتگوی آنلاین', is_open: 'گفتگو باز است',
+});
 const SKIP = /^(success|ok|message|code|status_code|call_id)$/i;
+
+/** The clinic's appointment CRM (in-person / online appointments, online chats): recognised by its own fields. */
+export function isApptCrm(raw: any) {
+  return !!raw && typeof raw === 'object' && typeof raw.found === 'boolean' && ('appointments_total' in raw || Array.isArray(raw.in_person_appointments) || Array.isArray(raw.online_appointments) || (raw.found === false && !raw.patient));
+}
+
+/** That answer in a fixed, size-bounded shape for the caller card and the patient file. */
+export function apptCard(raw: any) {
+  if (!isApptCrm(raw)) return null;
+  const str = (v: any) => (v === null || v === undefined ? '' : String(v).trim());
+  const num = (v: any) => (v === null || v === undefined || v === '' || !Number.isFinite(Number(v)) ? null : Number(v));
+  const appt = (x: any) => (x && typeof x === 'object' ? {
+    id: x.id ?? null, date: str(x.date), jalali: str(x.jalali), service: str(x.service), place: str(x.place),
+    status: num(x.status), statusLabel: str(x.status_label), paid: num(x.amount_paid),
+    onlineStatus: num(x.online_status), onlineLabel: str(x.online_status_label), messages: num(x.messages_count),
+  } : null);
+  const list = (v: any) => (Array.isArray(v) ? v : []).slice(0, 400).map(appt).filter(Boolean);
+  const msg = (m: any) => (m && typeof m === 'object' ? { sender: m.sender === 'staff' || +m.type === 2 ? 'staff' : 'patient', body: str(m.body).slice(0, 1500), file: !!m.has_file || (!str(m.body) && m.has_file !== false), at: str(m.sent_at), jalali: str(m.jalali) } : null);
+  const ch = raw.last_online_chat && typeof raw.last_online_chat === 'object' ? raw.last_online_chat : null;
+  return {
+    found: raw.found === true, id: raw.id ?? null, name: str(raw.name), first: str(raw.first_name), last: str(raw.last_name), phone: str(raw.phone),
+    nid: str(raw.national_code).replace(/\D/g, ''), fileNo: str(raw.file_no),
+    total: num(raw.appointments_total), inPerson: num(raw.appointments_in_person), online: num(raw.appointments_online), calls: num(raw.calls_total), callsToday: num(raw.calls_today),
+    next: appt(raw.next_appointment), inPersonList: list(raw.in_person_appointments), onlineList: list(raw.online_appointments),
+    chat: ch ? {
+      apptId: ch.appointment_id ?? null, service: str(ch.service), status: num(ch.online_status), statusLabel: str(ch.online_status_label), open: ch.is_open === true,
+      messages: num(ch.messages_count), last: msg(ch.last_message), recent: (Array.isArray(ch.recent_messages) ? ch.recent_messages : []).slice(0, 10).map(msg).filter(Boolean),
+    } : null,
+  };
+}
 
 /** The CRM answer as label / value rows (nested objects flattened one level, national codes masked). */
 export function crmFields(raw: any) {
@@ -311,6 +413,11 @@ export function clinicalOf(raw: any) {
   };
 }
 
+/** The stored «دستغیب» answer, when the stored answer is one (an older CRM answer is not shown as a clinic file). */
+function dgCard(raw: any) {
+  return raw && typeof raw === 'object' && raw.found === true && raw.patient && typeof raw.patient === 'object' ? raw : null;
+}
+
 /** Caller card / patient file: what the CRM said, plus our own history of this number. */
 @Controller('patients')
 export class PatientCardController {
@@ -327,12 +434,17 @@ export class PatientCardController {
     ]);
     const days = daysSince(pt?.surgery);
     // crm: on (connection off) · mobile (only mobiles are looked up) · found / none / never / error
+    const dgOn = s.provider === 'dastgheib';
+    // the clinic app is not charged per lookup: an open file older than two minutes is asked again in the background
+    if (dgOn && this.patients.ready(s) && /^09\d{9}$/.test(p) && !this.patients.isLooking(p) && (!chk || chk.at.getTime() < Date.now() - 120e3)) this.patients.lookup(p);
     const crmState = !s.enabled ? 'off' : !/^09\d{9}$/.test(p) ? 'nomobile' : this.patients.isLooking(p) ? 'looking'
       // the newest answer wins: a later «no file» or failure is shown over an older stored file
       : chk && (!pt?.crmAt || chk.at >= pt.crmAt) ? (chk.found ? 'found' : chk.error ? (pt?.crm ? 'found' : 'error') : 'none') : pt?.crm ? 'found' : 'never';
     return {
       phone: p, known: !!pt, name: pt?.name || '', source: pt?.source || '', surgery: pt?.surgery || null, days, surgeryNote: surgeryNote(days, false),
-      crmOn: s.enabled, crmState, checkedAt: chk?.at || pt?.crmAt || null, checkError: chk?.error || '', looking: this.patients.isLooking(p), crmAt: pt?.crmAt || null, fields: crmFields(pt?.crm).filter(f => !CLIN_KEYS.has(f.key.split('.').pop()!)), clinical: clinicalOf(pt?.crm),
+      crmOn: s.enabled, crmState, checkedAt: chk?.at || pt?.crmAt || null, checkError: chk?.error || '', looking: this.patients.isLooking(p), crmAt: pt?.crmAt || null,
+      provider: s.provider, dg: dgOn ? dgCard(pt?.crm) : null, appt: dgOn ? null : apptCard(pt?.crm),
+      fields: dgOn || isApptCrm(pt?.crm) ? [] : crmFields(pt?.crm).filter(f => !CLIN_KEYS.has(f.key.split('.').pop()!)), clinical: clinicalOf(dgOn || isApptCrm(pt?.crm) ? null : pt?.crm),
       reports: reports.map(r => ({ id: r.id, callId: r.callId, cat: r.cat, outcome: r.outcome, text: r.text, followUp: r.followUp || '', by: r.userName, userId: r.userId, at: r.createdAt })),
     };
   }
@@ -345,7 +457,7 @@ export class PatientCardController {
     const p = String(phone).replace(/\D/g, '');
     if (!/^09\d{9}$/.test(p)) throw new BadRequestException('فقط شماره موبایل در سامانه بیماران جستجو می‌شود');
     const s = await this.patients.settings();
-    if (!s.enabled || !s.url) throw new BadRequestException('اتصال به سامانه بیماران در تنظیمات فعال نیست');
+    if (!this.patients.ready(s)) throw new BadRequestException('اتصال به سامانه بیماران در تنظیمات فعال نیست');
     if ((this.last.get(p) || 0) > Date.now() - 60e3) throw new BadRequestException('همین الان به‌روزرسانی شد؛ یک دقیقه دیگر دوباره امتحان کنید');
     this.last.set(p, Date.now());
     try {

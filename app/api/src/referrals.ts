@@ -219,7 +219,10 @@ export class ReferralsController {
 
 /** Referral state of each call, for the «ارجاع» column of the call list. */
 export async function referralsByCall(db: PrismaService, callIds: string[]) {
-  const rows = await db.referral.findMany({ where: { callId: { in: callIds } }, orderBy: { createdAt: 'desc' }, select: { callId: true, id: true, status: true, toExt: true, toName: true, topic: true } });
+  const rows: { callId: string; id: string | number; status: string; toExt: string | null; toName: string | null; topic: string }[] = [];
+  for (let i = 0; i < callIds.length; i += 10000)
+    rows.push(...await db.referral.findMany({ where: { callId: { in: callIds.slice(i, i + 10000) } }, select: { callId: true, id: true, status: true, toExt: true, toName: true, topic: true, createdAt: true } }) as any[]);
+  rows.sort((a: any, b: any) => +b.createdAt - +a.createdAt);
   const m = new Map<string, any>();
   for (const r of rows) if (!m.has(r.callId)) m.set(r.callId, { id: r.id, status: r.status, ext: r.toExt, name: r.toName, topic: REF_TOPICS[r.topic] || r.topic });
   return m;

@@ -39,7 +39,7 @@ NET
   netplan generate
   # panel certificate valid for the new address
   openssl req -x509 -nodes -newkey rsa:2048 -days 3650 -keyout /etc/callcenter/tls/key.pem -out /etc/callcenter/tls/cert.pem \
-    -subj "/CN=192.168.0.254/O=Aflaki Call Center" -addext "subjectAltName=IP:192.168.0.254,IP:192.168.100.38,DNS:localhost" 2>/dev/null
+    -subj "/CN=192.168.0.254/O=Neuron Call Center" -addext "subjectAltName=IP:192.168.0.254,IP:192.168.100.38,DNS:localhost" 2>/dev/null
   echo "Network config written. The machine will now power off. Move it to the old server's cable and power it on."
   sleep 3
   systemctl poweroff

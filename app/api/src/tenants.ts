@@ -1,30 +1,16 @@
-// Multi-tenant admin: tenants + DID pool 31985000…31985999 on trunk 31985.
+// Multi-tenant admin: tenants + DID pool 31985000…31985999 + feature flags + access matrix.
 import { BadRequestException, Body, Controller, Delete, ForbiddenException, Get, Injectable, Param, Post, Put } from '@nestjs/common';
 import * as bcrypt from 'bcryptjs';
 import { CurrentUser, Me, Roles, forgetUser, isSuperAdmin } from './auth';
 import { ConfigStore } from './config';
 import { cleanPerms, rolePerms } from './perms';
 import { PrismaService } from './prisma.service';
+import {
+  DEFAULT_TENANT_FEATURES, DID_POOL_MAX, DID_POOL_MIN, DID_POOL_PREFIX,
+  cleanFeatures, isPoolDid, normalizePoolDid,
+} from './tenant-scope';
 
-export const DID_POOL_MIN = 31985000;
-export const DID_POOL_MAX = 31985999;
-export const DID_POOL_PREFIX = '31985';
-
-export const digits = (s: any) => String(s ?? '').replace(/\D/g, '');
-
-/** True when the number is in the product DID pool (31985000…31985999). */
-export function isPoolDid(raw: any): boolean {
-  const d = digits(raw);
-  if (d.length !== 8 || !d.startsWith(DID_POOL_PREFIX)) return false;
-  const n = Number(d);
-  return n >= DID_POOL_MIN && n <= DID_POOL_MAX;
-}
-
-export function normalizePoolDid(raw: any): string {
-  const d = digits(raw);
-  if (!isPoolDid(d)) throw new BadRequestException('شماره باید بین ۳۱۹۸۵۰۰۰ و ۳۱۹۸۵۹۹۹ باشد');
-  return d;
-}
+export { DID_POOL_MIN, DID_POOL_MAX, DID_POOL_PREFIX, isPoolDid, normalizePoolDid };
 
 export function slugify(name: string) {
   const base = String(name || '')
@@ -38,6 +24,20 @@ export function slugify(name: string) {
 
 export { isSuperAdmin };
 
+/** Default perms for a tenant-admin account (no trunks / platform sections). */
+export function tenantAdminPerms() {
+  return cleanPerms({
+    ...rolePerms('supervisor'),
+    vext: ['view', 'add', 'edit', 'delete'],
+    vqueue: ['view', 'add', 'edit', 'delete'],
+    vivr: ['view', 'add', 'edit', 'delete'],
+    vsound: ['view', 'add', 'edit', 'delete'],
+    vroute: ['view', 'add', 'edit', 'delete'],
+    vout: ['view'],
+    users: ['view', 'add', 'edit', 'delete'],
+  });
+}
+
 @Injectable()
 export class TenantsService {
   constructor(private db: PrismaService, private store: ConfigStore) {}
@@ -47,7 +47,6 @@ export class TenantsService {
     return rows.map(r => r.did);
   }
 
-  /** Dialplan DID → tenant dest rows (active tenants with a destination). */
   async didRoutes() {
     const rows = await this.db.didAssignment.findMany({
       include: { tenant: { select: { id: true, name: true, active: true, defaultDest: true } } },
@@ -89,12 +88,34 @@ export class TenantsService {
     }
     return {
       pool: { prefix: DID_POOL_PREFIX, min: String(DID_POOL_MIN), max: String(DID_POOL_MAX), total: DID_POOL_MAX - DID_POOL_MIN + 1, free: free.length },
-      // first 40 free numbers for the assign UI (full free list is huge)
       freeSample: free.slice(0, 40),
+      featureDefaults: DEFAULT_TENANT_FEATURES,
       tenants: tenants.map(t => ({
         ...t,
+        features: cleanFeatures(t.features),
         dids: (byTenant.get(t.id) || []).map(d => ({ id: d.id, did: d.did, note: d.note || '' })),
         users: (usersBy.get(t.id) || []).map(u => ({ id: u.id, username: u.username, name: u.name, role: u.role, active: u.active })),
+      })),
+    };
+  }
+
+  /** Admin access matrix: one row per tenant with DIDs, users, features. */
+  async matrix() {
+    const data = await this.list();
+    return {
+      pool: data.pool,
+      featureDefaults: data.featureDefaults,
+      rows: data.tenants.map(t => ({
+        id: t.id,
+        name: t.name,
+        slug: t.slug,
+        active: t.active,
+        defaultDest: t.defaultDest,
+        features: t.features,
+        didCount: t.dids.length,
+        dids: t.dids.map((d: any) => d.did),
+        userCount: t.users.length,
+        users: t.users,
       })),
     };
   }
@@ -116,6 +137,43 @@ export class TenantsController {
   }
 
   @Roles('admin')
+  @Get('matrix')
+  async matrix(@CurrentUser() me: Me) {
+    this.assertSuper(me);
+    return this.tenants.matrix();
+  }
+
+  /** What the signed-in tenant user may see about their own access. */
+  @Get('me')
+  async mine(@CurrentUser() me: Me) {
+    if (!me.tenantId) {
+      if (!isSuperAdmin(me)) return { tenant: null, dids: [], superAdmin: false, features: null };
+      return { tenant: null, dids: [], superAdmin: true, features: null, ...(await this.tenants.list()) };
+    }
+    const t = await this.db.tenant.findUnique({ where: { id: me.tenantId } });
+    if (!t) return { tenant: null, dids: [], superAdmin: false, features: null };
+    const dids = await this.db.didAssignment.findMany({ where: { tenantId: t.id }, orderBy: { did: 'asc' } });
+    const features = cleanFeatures(t.features);
+    return {
+      superAdmin: false,
+      tenant: { id: t.id, name: t.name, slug: t.slug, active: t.active, defaultDest: t.defaultDest, note: t.note },
+      features,
+      dids: dids.map(d => ({ did: d.did, note: d.note || '' })),
+    };
+  }
+
+  /** Tenant admin updates own inbound default destination. */
+  @Put('me/inbound')
+  async myInbound(@Body() b: { defaultDest?: string }, @CurrentUser() me: Me) {
+    if (!me.tenantId) throw new ForbiddenException('فقط کاربران مستأجر');
+    const dest = String(b.defaultDest || '').trim().slice(0, 80);
+    await this.db.tenant.update({ where: { id: me.tenantId }, data: { defaultDest: dest } });
+    await this.db.auditLog.create({ data: { userId: me.id, userName: me.name, action: 'tenant.inbound', target: me.tenantId, detail: { defaultDest: dest } as any } });
+    await this.tenants.reapply().catch(() => null);
+    return { ok: true, defaultDest: dest };
+  }
+
+  @Roles('admin')
   @Post()
   async create(@Body() b: any, @CurrentUser() me: Me) {
     this.assertSuper(me);
@@ -127,11 +185,16 @@ export class TenantsController {
       slug = slug.slice(0, 32) + '-' + Date.now().toString(36).slice(-6);
     }
     const defaultDest = String(b.defaultDest || '').trim().slice(0, 80);
+    const features = cleanFeatures(b.features);
     const t = await this.db.tenant.create({
-      data: { name, slug, defaultDest, note: String(b.note || '').trim().slice(0, 200) || null, active: b.active !== false },
+      data: {
+        name, slug, defaultDest,
+        note: String(b.note || '').trim().slice(0, 200) || null,
+        active: b.active !== false,
+        features: features as any,
+      },
     });
-    await this.db.auditLog.create({ data: { userId: me.id, userName: me.name, action: 'tenant.create', target: t.slug, detail: { id: t.id, name } as any } });
-    // optional first user for the tenant
+    await this.db.auditLog.create({ data: { userId: me.id, userName: me.name, action: 'tenant.create', target: t.slug, detail: { id: t.id, name, features } as any } });
     if (b.username && b.password) {
       const username = String(b.username).trim().toLowerCase();
       if (!/^[a-z0-9._-]{3,30}$/.test(username)) throw new BadRequestException('نام کاربری مستأجر نامعتبر است');
@@ -144,22 +207,12 @@ export class TenantsController {
           role: 'admin',
           tenantId: t.id,
           password: await bcrypt.hash(String(b.password), 10),
-          // tenant «admin» is scoped: no trunk / no platform tenants section
-          perms: cleanPerms({
-            ...rolePerms('supervisor'),
-            vext: ['view', 'add', 'edit', 'delete'],
-            vqueue: ['view', 'add', 'edit', 'delete'],
-            vivr: ['view', 'add', 'edit', 'delete'],
-            vsound: ['view', 'add', 'edit', 'delete'],
-            vroute: ['view', 'add', 'edit', 'delete'],
-            vout: ['view'],
-            users: ['view', 'add', 'edit', 'delete'],
-          }) as any,
+          perms: tenantAdminPerms() as any,
         },
       });
     }
     if (defaultDest) await this.tenants.reapply().catch(() => null);
-    return { id: t.id, slug: t.slug };
+    return { id: t.id, slug: t.slug, features };
   }
 
   @Roles('admin')
@@ -177,11 +230,26 @@ export class TenantsController {
     if (b.defaultDest !== undefined) data.defaultDest = String(b.defaultDest || '').trim().slice(0, 80);
     if (b.note !== undefined) data.note = String(b.note || '').trim().slice(0, 200) || null;
     if (b.active !== undefined) data.active = !!b.active;
+    if (b.features !== undefined) data.features = cleanFeatures(b.features) as any;
     const t = await this.db.tenant.update({ where: { id }, data });
     await this.db.auditLog.create({ data: { userId: me.id, userName: me.name, action: 'tenant.update', target: t.slug, detail: data } });
-    forgetUser(); // tenant users may need fresh context
+    forgetUser();
     await this.tenants.reapply().catch(() => null);
-    return { ok: true };
+    return { ok: true, features: cleanFeatures(t.features) };
+  }
+
+  @Roles('admin')
+  @Put(':id/features')
+  async setFeatures(@Param('id') id: string, @Body() b: any, @CurrentUser() me: Me) {
+    this.assertSuper(me);
+    const cur = await this.db.tenant.findUnique({ where: { id } });
+    if (!cur) throw new BadRequestException('مستأجر پیدا نشد');
+    const features = cleanFeatures({ ...cleanFeatures(cur.features), ...(b.features || b) });
+    await this.db.tenant.update({ where: { id }, data: { features: features as any } });
+    await this.db.auditLog.create({ data: { userId: me.id, userName: me.name, action: 'tenant.features', target: cur.slug, detail: features as any } });
+    forgetUser();
+    await this.tenants.reapply().catch(() => null);
+    return { ok: true, features };
   }
 
   @Roles('admin')
@@ -226,20 +294,28 @@ export class TenantsController {
     return { ok: true };
   }
 
-  /** What the signed-in tenant user may see about their own access. */
-  @Get('me')
-  async mine(@CurrentUser() me: Me) {
-    if (!me.tenantId) {
-      if (!isSuperAdmin(me)) return { tenant: null, dids: [], superAdmin: false };
-      return { tenant: null, dids: [], superAdmin: true, ...(await this.tenants.list()) };
-    }
-    const t = await this.db.tenant.findUnique({ where: { id: me.tenantId } });
-    if (!t) return { tenant: null, dids: [], superAdmin: false };
-    const dids = await this.db.didAssignment.findMany({ where: { tenantId: t.id }, orderBy: { did: 'asc' } });
-    return {
-      superAdmin: false,
-      tenant: { id: t.id, name: t.name, slug: t.slug, active: t.active, defaultDest: t.defaultDest, note: t.note },
-      dids: dids.map(d => ({ did: d.did, note: d.note || '' })),
-    };
+  /** Create a user bound to a tenant (super-admin only). */
+  @Roles('admin')
+  @Post(':id/users')
+  async createUser(@Param('id') id: string, @Body() b: any, @CurrentUser() me: Me) {
+    this.assertSuper(me);
+    const t = await this.db.tenant.findUnique({ where: { id } });
+    if (!t) throw new BadRequestException('مستأجر پیدا نشد');
+    const username = String(b.username || '').trim().toLowerCase();
+    if (!/^[a-z0-9._-]{3,30}$/.test(username)) throw new BadRequestException('نام کاربری نامعتبر است');
+    if (await this.db.user.findUnique({ where: { username } })) throw new BadRequestException('این نام کاربری قبلاً استفاده شده است');
+    if (!b.password || String(b.password).length < 6) throw new BadRequestException('رمز عبور حداقل ۶ کاراکتر باشد');
+    const name = String(b.name || username).trim().slice(0, 60);
+    const role = ['admin', 'supervisor', 'operator'].includes(b.role) ? b.role : 'admin';
+    const u = await this.db.user.create({
+      data: {
+        username, name, role, tenantId: id,
+        password: await bcrypt.hash(String(b.password), 10),
+        perms: (role === 'admin' ? tenantAdminPerms() : cleanPerms(b.perms || rolePerms(role))) as any,
+      },
+    });
+    await this.db.auditLog.create({ data: { userId: me.id, userName: me.name, action: 'tenant.user.create', target: username, detail: { tenantId: id, role } as any } });
+    return { id: u.id, username };
   }
+
 }

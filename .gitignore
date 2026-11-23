@@ -16,3 +16,5 @@ api.env
 *.xlsx
 *.tsv
 initial-passwords.json
+# server access notes (local only)
+دسترسی به سرور ها.md

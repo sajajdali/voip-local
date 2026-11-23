@@ -8,14 +8,14 @@ import { CallsService, faDigits } from './calls';
 import { hhmm, jalaliDate, jalaliToDate } from './jalali';
 import { PrismaService } from './prisma.service';
 
-const C = { ink: 'FF2E2F31', ink2: 'FF3A3B3D', green: 'FF8DC63F', greenDark: 'FF3D6A0C', greenSoft: 'FFEEF5E3', zebra: 'FFF7F8F5', line: 'FFE7E8E3', grey: 'FF6B6E72', white: 'FFFFFFFF', red: 'FFB42318', blue: 'FF1D5A85', amber: 'FF8A5A00' };
+export const C = { ink: 'FF0B2545', ink2: 'FF3A4A63', green: 'FF0E7C7B', greenDark: 'FF0A5C5B', greenSoft: 'FFE3F2F1', zebra: 'FFF7F9FC', line: 'FFE3E8EF', grey: 'FF5B6B82', white: 'FFFFFFFF', red: 'FFB42318', blue: 'FF1D4E89', amber: 'FF8A5A00' };
 const FONT = 'Tahoma';
 const WD = ['یکشنبه', 'دوشنبه', 'سه‌شنبه', 'چهارشنبه', 'پنجشنبه', 'جمعه', 'شنبه'];
 const ST: Record<string, [string, string]> = { answered: ['پاسخ‌داده', C.greenDark], missed: ['بی‌پاسخ', C.red], voicemail: ['پیام صوتی', C.blue], transferred: ['انتقال‌یافته', C.amber] };
 
-const al = (h: 'right' | 'center' = 'right') => ({ horizontal: h, vertical: 'middle', readingOrder: 'rtl', wrapText: true }) as any;
-const fill = (argb: string) => ({ type: 'pattern', pattern: 'solid', fgColor: { argb } }) as any;
-const font = (o: any = {}) => ({ name: FONT, size: 10, color: { argb: C.ink }, ...o });
+export const al = (h: 'right' | 'center' = 'right') => ({ horizontal: h, vertical: 'middle', readingOrder: 'rtl', wrapText: true }) as any;
+export const fill = (argb: string) => ({ type: 'pattern', pattern: 'solid', fgColor: { argb } }) as any;
+export const font = (o: any = {}) => ({ name: FONT, size: 10, color: { argb: C.ink }, ...o });
 const num = (v: any) => (typeof v === 'number' ? v : /^-?\d+(\.\d+)?$/.test(String(v ?? '').trim()) ? +v : typeof v === 'string' ? faDigits(v) : v);
 const mmss = (s: number) => `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
 
@@ -25,28 +25,28 @@ interface ReportBody {
   rows: { key: string; cells: any[]; count: number }[]; totals: any[]; total: number; ids: string[];
 }
 
-function sheetBase(wb: ExcelJS.Workbook, name: string, cols: number, tab: string) {
+export function sheetBase(wb: ExcelJS.Workbook, name: string, cols: number, tab: string) {
   const ws = wb.addWorksheet(name, {
     views: [{ rightToLeft: true, showGridLines: false }], properties: { tabColor: { argb: tab }, defaultRowHeight: 22 },
     pageSetup: { orientation: 'landscape', paperSize: 9, fitToPage: true, fitToWidth: 1, fitToHeight: 0, margins: { left: 0.4, right: 0.4, top: 0.5, bottom: 0.5, header: 0.2, footer: 0.2 } },
   });
-  ws.headerFooter.oddFooter = '&L&8مرکز تماس دکتر افلاکی&R&8صفحه &P از &N';
+  ws.headerFooter.oddFooter = '&L&8مرکز تماس نورون (Neuron)&R&8صفحه &P از &N';
   return ws;
 }
 
-function titleBlock(ws: ExcelJS.Worksheet, cols: number, title: string, sub: string, extra?: string) {
+export function titleBlock(ws: ExcelJS.Worksheet, cols: number, title: string, sub: string, extra?: string) {
   ws.mergeCells(1, 1, 1, cols);
   Object.assign(ws.getCell(1, 1), { value: faDigits(title), font: font({ size: 16, bold: true, color: { argb: C.white } }), fill: fill(C.ink), alignment: al() });
   ws.getRow(1).height = 38;
   ws.mergeCells(2, 1, 2, cols);
-  Object.assign(ws.getCell(2, 1), { value: faDigits(sub), font: font({ size: 10, color: { argb: 'FFD9DAD6' } }), fill: fill(C.ink2), alignment: al() });
+  Object.assign(ws.getCell(2, 1), { value: faDigits(sub), font: font({ size: 10, color: { argb: 'FFC9D3E3' } }), fill: fill(C.ink2), alignment: al() });
   ws.getRow(2).height = 24;
   ws.mergeCells(3, 1, 3, cols);
   Object.assign(ws.getCell(3, 1), { value: faDigits(extra || ''), font: font({ size: 9, color: { argb: C.grey } }), fill: fill(C.green), alignment: al() });
   ws.getRow(3).height = extra ? 20 : 4;
 }
 
-function headerRow(ws: ExcelJS.Worksheet, r: number, labels: string[]) {
+export function headerRow(ws: ExcelJS.Worksheet, r: number, labels: string[]) {
   const row = ws.getRow(r);
   labels.forEach((h, i) => Object.assign(row.getCell(i + 1), {
     value: h, font: font({ bold: true, color: { argb: C.white } }), fill: fill(C.ink), alignment: al('center'),
@@ -63,10 +63,10 @@ export class ReportsController {
   async export(@Body() b: ReportBody, @CurrentUser() me: Me, @Res() res: Response) {
     if (!b || !Array.isArray(b.headers) || !Array.isArray(b.rows)) throw new BadRequestException('داده گزارش نامعتبر است');
     const wb = new ExcelJS.Workbook();
-    wb.creator = 'مرکز تماس دکتر افلاکی';
+    wb.creator = 'مرکز تماس نورون (Neuron)';
     wb.created = new Date();
     const made = `تهیه: ${me.name} · ${jalaliDate(new Date())} ساعت ${hhmm(new Date())}`;
-    const sub = `مرکز تماس دکتر افلاکی  ·  بازه ${b.from} تا ${b.to}  ·  ${made}`;
+    const sub = `مرکز تماس نورون (Neuron)  ·  بازه ${b.from} تا ${b.to}  ·  ${made}`;
     const filters = (b.filters || []).filter(Boolean);
 
     // ---------------- sheet 1: report
@@ -124,9 +124,14 @@ export class ReportsController {
       Object.assign(ws.getCell(r + 2, 1), { value: 'در این بازه و با این فیلترها تماسی پیدا نشد.', font: font({ color: { argb: C.grey } }), alignment: al('center') });
     }
 
-    // ---------------- sheet 2: calls in the report
+    // ---------------- sheet 2: calls in the report (tenant-scoped)
     const ids = new Set((b.ids || []).map(String));
-    const list = (await this.calls.list('1300/01/01')).filter(c => ids.has(c.id)).sort((a, z) => `${a.date} ${a.time}`.localeCompare(`${z.date} ${z.time}`));
+    let scope: { tenantId: string; dids: string[] } | undefined;
+    if (me.tenantId) {
+      const dids = (await this.db.didAssignment.findMany({ where: { tenantId: me.tenantId }, select: { did: true } })).map(d => d.did);
+      scope = { tenantId: me.tenantId, dids };
+    }
+    const list = (await this.calls.list('1300/01/01', scope)).filter(c => ids.has(c.id)).sort((a, z) => `${a.date} ${a.time}`.localeCompare(`${z.date} ${z.time}`));
     const dh = ['ردیف', 'تاریخ', 'روز', 'ساعت', 'شماره', 'جهت', 'وضعیت', 'صف / مسیر', 'پاسخ‌دهنده', 'انتظار (ثانیه)', 'مدت مکالمه', 'ضبط', 'تاریخ جراحی (سامانه بیماران)'];
     const ws2 = sheetBase(wb, 'جزئیات تماس‌ها', dh.length, C.ink);
     ws2.columns = [7, 12, 11, 8, 15, 9, 13, 30, 18, 12, 12, 9, 24].map(width => ({ width }));
@@ -160,9 +165,9 @@ export class ReportsController {
   async days(@Body() b: { title: string; from: string; to: string; filters: string[]; kpis: { label: string; value: any }[]; sheets: { name: string; headers: string[]; rows: any[][] }[] }, @CurrentUser() me: Me, @Res() res: Response) {
     if (!b || !Array.isArray(b.sheets) || !b.sheets.length) throw new BadRequestException('داده گزارش نامعتبر است');
     const wb = new ExcelJS.Workbook();
-    wb.creator = 'مرکز تماس دکتر افلاکی';
+    wb.creator = 'مرکز تماس نورون (Neuron)';
     wb.created = new Date();
-    const sub = `مرکز تماس دکتر افلاکی  ·  بازه ${b.from} تا ${b.to}  ·  تهیه: ${me.name} · ${jalaliDate(new Date())} ساعت ${hhmm(new Date())}`;
+    const sub = `مرکز تماس نورون (Neuron)  ·  بازه ${b.from} تا ${b.to}  ·  تهیه: ${me.name} · ${jalaliDate(new Date())} ساعت ${hhmm(new Date())}`;
     const filters = 'فیلترها: ' + (b.filters || []).filter(Boolean).join('  ·  ');
     const tabs = [C.green, C.blue, C.ink, C.greenDark, C.amber, C.ink2];
 

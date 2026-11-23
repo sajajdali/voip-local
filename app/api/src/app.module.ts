@@ -19,12 +19,16 @@ import { SmsController, SmsService } from './sms';
 import { ReferralsController } from './referrals';
 import { PrismaService } from './prisma.service';
 import { ReportsController } from './reports';
+import { OpsReportController } from './opsreport';
 import { WebhookController, WebhookService } from './webhook';
 import { BackupController, BackupService } from './backups';
 import { TenantsController, TenantsService } from './tenants';
+import { BillingController, BillingService } from './billing';
+import { CallEventsService } from './callevents';
+import { BookingCallsController, BookingController, BookingReportController, BookingService, BookingSurveysController } from './booking';
 
 @Module({
-  controllers: [AuthController, CallsController, HooksController, ConfigController, MediaController, ReportsController, WebhookController, BackupController, AiController, CrmController, AiAgentController, SystemController, UsageController, UsersController, CallReportsController, PatientCardController, SmsController, ReferralsController, TenantsController],
-  providers: [PrismaService, Bus, SmsService, AsteriskService, ConfigStore, CallsService, PatientsService, AiService, AiAgentService, LiveCallsService, SystemService, UsageService, WebhookService, BackupService, TenantsService, LiveGateway, { provide: APP_GUARD, useClass: AuthGuard }],
+  controllers: [AuthController, CallsController, HooksController, ConfigController, MediaController, ReportsController, OpsReportController, WebhookController, BackupController, AiController, CrmController, AiAgentController, SystemController, UsageController, UsersController, CallReportsController, PatientCardController, SmsController, ReferralsController, BookingController, BookingCallsController, BookingReportController, BookingSurveysController, BillingController, TenantsController],
+  providers: [PrismaService, Bus, SmsService, AsteriskService, ConfigStore, CallsService, PatientsService, AiService, AiAgentService, LiveCallsService, SystemService, UsageService, WebhookService, BackupService, BookingService, BillingService, TenantsService, CallEventsService, LiveGateway, { provide: APP_GUARD, useClass: AuthGuard }],
 })
 export class AppModule {}

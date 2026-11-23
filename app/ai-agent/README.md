@@ -46,12 +46,12 @@ Before answering an external call, `caller_lookup.py` normalizes the Asterisk
 caller ID and performs an HTTPS GET request using Basic Authentication. It
 extracts the JSON `name` and surgery-status fields, sets the Asterisk
 `CALLER_NAME` variable, and writes short-lived UUID-keyed metadata for the AI bridge. A non-empty name
-produces a greeting such as `سلام علی، من دستیار دکتر افلاکی هستم، چه کمکی از من
+produces a greeting such as `سلام علی، من دستیار دکتر نورون هستم، چه کمکی از من
 برمیاد؟`; otherwise the normal clinic greeting is used.
 
 Postoperative guidance is allowed only when CRM explicitly reports
 `has_completed_surgery=true`. Otherwise, when the caller asks a postoperative
-question, the assistant verifies whether the surgery was performed by Dr. Aflaki.
+question, the assistant verifies whether the surgery was performed by Dr. Neuron.
 If so, it collects a 10-digit national code beginning with zero and sends it in
 the JSON body of an authenticated POST request to
 `CRM_NATIONAL_CODE_API_URL` immediately after all 10 digits arrive. It never repeats the
@@ -75,7 +75,7 @@ successful response is described as an SMS being sent.
 ## Verified postoperative emergencies
 
 Postoperative emergency escalation is available only after CRM has explicitly
-confirmed completed surgery by Dr. Aflaki and, for national-code fallback, the
+confirmed completed surgery by Dr. Neuron and, for national-code fallback, the
 caller has confirmed the returned patient name. Emergency items include severe
 or uncontrolled nasal bleeding, severe breathing difficulty, significant signs
 of infection, loss of consciousness, confusion, blue lips, and similarly
@@ -166,5 +166,5 @@ and trunk placeholders before enabling this route.
 The prompt limits the receptionist to rhinoplasty information. It does not
 diagnose, prescribe, interpret test results, or claim that an application-link
 SMS was sent before the CRM call succeeds. Postoperative answers require verified
-completed surgery by Dr. Aflaki; emergency symptoms are always directed to
+completed surgery by Dr. Neuron; emergency symptoms are always directed to
 immediate medical care.

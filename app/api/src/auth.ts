@@ -10,7 +10,6 @@ import { PrismaService } from './prisma.service';
 
 export interface Me { id: string; name: string; role: string; ext: string | null; username: string; title?: string | null; perms?: Perms; tenantId?: string | null }
 
-/** Platform admin: role admin and not bound to a tenant. */
 export function isSuperAdmin(me: Me | null | undefined) {
   return !!me && me.role === 'admin' && !me.tenantId;
 }
@@ -89,16 +88,17 @@ function captchaSvg(code: string) {
   const rnd = (a: number, b: number) => a + Math.random() * (b - a);
   const W = 170, H = 56;
   let g = '';
-  for (let i = 0; i < 6; i++) g += `<line x1="${rnd(0, W).toFixed(0)}" y1="${rnd(0, H).toFixed(0)}" x2="${rnd(0, W).toFixed(0)}" y2="${rnd(0, H).toFixed(0)}" stroke="#${['8DC63F', 'b9bbb6', '5b9bd0', 'e0a83a'][i % 4]}" stroke-width="${rnd(1, 2).toFixed(1)}" opacity=".7"/>`;
-  for (let i = 0; i < 40; i++) g += `<circle cx="${rnd(0, W).toFixed(0)}" cy="${rnd(0, H).toFixed(0)}" r="${rnd(0.6, 1.6).toFixed(1)}" fill="#9a9d97" opacity=".6"/>`;
+  for (let i = 0; i < 6; i++) g += `<line x1="${rnd(0, W).toFixed(0)}" y1="${rnd(0, H).toFixed(0)}" x2="${rnd(0, W).toFixed(0)}" y2="${rnd(0, H).toFixed(0)}" stroke="#${['2BB3A3', 'A9B4C4', '3B82C4', 'F2B134'][i % 4]}" stroke-width="${rnd(1, 2).toFixed(1)}" opacity=".7"/>`;
+  for (let i = 0; i < 40; i++) g += `<circle cx="${rnd(0, W).toFixed(0)}" cy="${rnd(0, H).toFixed(0)}" r="${rnd(0.6, 1.6).toFixed(1)}" fill="#8A97AB" opacity=".55"/>`;
   // digits are drawn as strokes, never as text, so the answer is not sitting in the markup
   [...code].forEach((d, i) => {
     const x = 14 + i * 30 + rnd(-3, 3), y = 10 + rnd(-4, 4), k = rnd(1.9, 2.3);
     const path = DIGIT[d].replace(/-?\d+(\.\d+)?/g, n => (+n + rnd(-0.35, 0.35)).toFixed(2));
-    g += `<path d="${path}" transform="translate(${x.toFixed(1)} ${y.toFixed(1)}) rotate(${rnd(-18, 18).toFixed(0)} 5 8) scale(${k.toFixed(2)} ${(k * rnd(0.9, 1.1)).toFixed(2)})" fill="none" stroke="#2E2F31" stroke-width="${rnd(1, 1.35).toFixed(2)}" stroke-linecap="round" stroke-linejoin="round"/>`;
+    g += `<path d="${path}" transform="translate(${x.toFixed(1)} ${y.toFixed(1)}) rotate(${rnd(-18, 18).toFixed(0)} 5 8) scale(${k.toFixed(2)} ${(k * rnd(0.9, 1.1)).toFixed(2)})" fill="none" stroke="#0B2545" stroke-width="${rnd(1, 1.35).toFixed(2)}" stroke-linecap="round" stroke-linejoin="round"/>`;
   });
-  g += `<path d="M0 ${rnd(15, 40).toFixed(0)} C ${W / 3} ${rnd(0, H).toFixed(0)}, ${(2 * W) / 3} ${rnd(0, H).toFixed(0)}, ${W} ${rnd(15, 40).toFixed(0)}" stroke="#2E2F31" stroke-width="1.6" fill="none" opacity=".55"/>`;
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}"><rect width="100%" height="100%" rx="10" fill="#f4f5f1"/>${g}</svg>`;
+  g += `<path d="M0 ${rnd(15, 40).toFixed(0)} C ${W / 3} ${rnd(0, H).toFixed(0)}, ${(2 * W) / 3} ${rnd(0, H).toFixed(0)}, ${W} ${rnd(15, 40).toFixed(0)}" stroke="#0B2545" stroke-width="1.6" fill="none" opacity=".45"/>`;
+  // scales to whatever box the login page gives it
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet" style="display:block"><rect width="100%" height="100%" fill="#F7F9FC"/>${g}</svg>`;
 }
 
 @Controller('auth')
@@ -141,10 +141,14 @@ export class AuthController {
       await this.db.auditLog.create({ data: { userId: u ? u.id : 'unknown', userName: u ? u.name : String(b.username || '').slice(0, 40), action: 'login.failed', target: 'auth', detail: { ip } as any } }).catch(() => {});
       throw new UnauthorizedException('نام کاربری یا رمز عبور اشتباه است');
     }
+    if (u.tenantId) {
+      const t = await this.db.tenant.findUnique({ where: { id: u.tenantId } });
+      if (!t || !t.active) throw new UnauthorizedException('حساب مستأجر شما غیرفعال است؛ با مدیر سامانه تماس بگیرید');
+    }
     failures.delete(ip);
-    const me: Me = { id: u.id, name: u.name, role: u.role, ext: u.ext, username: u.username };
+    const me: Me = { id: u.id, name: u.name, role: u.role, ext: u.ext, username: u.username, tenantId: u.tenantId || null };
     forgetUser(u.id);
-    await this.db.auditLog.create({ data: { userId: u.id, userName: u.name, action: 'login', target: 'auth' } });
+    await this.db.auditLog.create({ data: { userId: u.id, userName: u.name, action: 'login', target: 'auth', detail: { tenantId: me.tenantId } as any } });
     return { token: jwt.sign(me, env.jwtSecret, { expiresIn: '12h' }), me: { ...me, title: u.title, perms: permsOf(u) } };
   }
 

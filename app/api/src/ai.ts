@@ -4,9 +4,11 @@
 //   analysis:       Claude (Anthropic SDK, structured JSON output), an OpenAI-compatible chat API, or built-in keywords
 import Anthropic from '@anthropic-ai/sdk';
 import { BadRequestException, Body, Controller, Get, Injectable, Logger, Post, Put, Param, OnModuleInit } from '@nestjs/common';
+import { randomUUID } from 'crypto';
 import * as fs from 'fs';
 import { CurrentUser, Me, Roles, Perm } from './auth';
 import { Bus } from './bus';
+import { BillingService } from './billing';
 import { UsageService, usageCtx, wavSeconds } from './usage';
 import { PrismaService } from './prisma.service';
 
@@ -19,11 +21,56 @@ export const CATEGORIES = [
   { id: 'cancel', name: 'تغییر یا لغو نوبت', hint: 'جابه‌جایی، لغو یا تأخیر نوبت' },
 ];
 
+/** Groups for the booking line's survey comments («نظرسنجی نوبت‌دهی» in the AI menu). */
+export const BOOKING_SURVEY_CATS = [
+  { id: 'praise', name: 'رضایت و تشکر', hint: 'راضی بودن از نوبت‌دهی تلفنی، تشکر، تعریف' },
+  { id: 'ivr', name: 'مشکل منوی تلفنی', hint: 'گیج‌کننده بودن منو، طولانی بودن، صدای نامفهوم، کلید کار نکرد، تکرار زیاد' },
+  { id: 'time', name: 'زمان نوبت', hint: 'زمان خالی دیر یا نامناسب، نوبت نزدیک‌تر خواستن، روز یا ساعت مناسب نبود' },
+  { id: 'operator', name: 'درخواست اپراتور', hint: 'می‌خواست با یک نفر صحبت کند، کسی جواب نداد' },
+  { id: 'staff', name: 'رفتار و پاسخگویی کلینیک', hint: 'برخورد پرسنل، جواب ندادن تلفن، پیگیری نشدن' },
+  { id: 'cost', name: 'هزینه و پرداخت', hint: 'قیمت ویزیت، پرداخت، بیمه' },
+  { id: 'suggestion', name: 'پیشنهاد', hint: 'پیشنهاد برای بهتر شدن خدمات یا منو' },
+  { id: 'complaint', name: 'شکایت', hint: 'نارضایتی جدی که در گروه‌های بالا نیست' },
+  { id: 'other', name: 'سایر / بی‌محتوا', hint: 'سکوت، نامفهوم، ربطی به نظرسنجی ندارد' },
+];
+const BOOKING_SURVEY_SYSTEM = `شما پیام‌های صوتی نظرسنجی بیماران کلینیک را بعد از گرفتن نوبت از منوی تلفنی (نوبت‌دهی خودکار) دسته‌بندی می‌کنید.
+متن پیاده‌شده ممکن است غلط تایپی یا محاوره‌ای داشته باشد. فقط JSON طبق اسکیما برگردانید و همه متن‌ها فارسی باشند.
+گروه‌ها:
+${BOOKING_SURVEY_CATS.map(c => `- ${c.id}: ${c.name} (${c.hint})`).join('\n')}
+summary: یک جمله کوتاه از حرف بیمار. action: کاری که کلینیک باید بکند، یا «نیاز به اقدام ندارد». needsCall: اگر باید با بیمار تماس گرفته شود true.`;
+const BOOKING_SURVEY_SCHEMA = {
+  type: 'object', additionalProperties: false, required: ['category', 'sentiment', 'summary', 'topics', 'action', 'needsCall'],
+  properties: {
+    category: { type: 'string', enum: BOOKING_SURVEY_CATS.map(c => c.id) },
+    sentiment: { type: 'string', enum: ['positive', 'neutral', 'negative'] },
+    summary: { type: 'string' }, topics: { type: 'array', items: { type: 'string' } }, action: { type: 'string' }, needsCall: { type: 'boolean' },
+  },
+};
+
 export interface AiSettings {
   enabled: boolean;
   sttProvider: 'openai' | 'custom' | 'none'; sttUrl: string; sttKey: string; sttModel: string; sttLanguage: string;
   llmProvider: 'claude' | 'openai' | 'keywords'; llmUrl: string; llmKey: string; llmModel: string;
   analyzeVoicemail: boolean; analyzeCalls: boolean; minSeconds: number;
+  /** also transcribe the operator's own track (better speaker labels, twice the speech-to-text cost); default on */
+  sttOpTrack?: boolean;
+  /** set (never saved) while requests go through the central top-up server */
+  billed?: boolean;
+}
+
+/** A failed AI HTTP answer as one Persian line: the service's own message when it sends one (OpenAI style). */
+async function upstreamError(prefix: string, r: Response) {
+  const text = await r.text().catch(() => '');
+  let msg = '';
+  try { msg = String(JSON.parse(text)?.error?.message || ''); } catch { /* not JSON */ }
+  return new Error(`${prefix}: ${msg || `خطای ${r.status} ${text.slice(0, 160)}`}`);
+}
+
+/** Headers the top-up server uses to file each request under a panel feature (and charge a retry only once). */
+function meteringHeaders(s: AiSettings): Record<string, string> {
+  if (!s.billed) return {};
+  const ctx = usageCtx.getStore();
+  return { 'X-Feature': ctx?.feature || 'other', 'X-Request-Id': randomUUID(), ...(ctx?.callId ? { 'X-Call-Id': String(ctx.callId) } : {}) };
 }
 const DEFAULTS: AiSettings = {
   enabled: false,
@@ -34,7 +81,7 @@ const DEFAULTS: AiSettings = {
 // Claude models that support the server-side refusal fallback
 const FALLBACK_MODELS = ['claude-fable-5-1', 'claude-opus-5-5', 'claude-opus-5', 'claude-sonnet-5-5'];
 
-const SYSTEM = `شما تحلیل‌گر تماس‌های مرکز تماس کلینیک جراحی زیبایی بینی دکتر پوریا افلاکی هستید.
+const SYSTEM = `شما تحلیل‌گر تماس‌های مرکز تماس کلینیک جراحی زیبایی بینی دکتر نورون هستید.
 متن پیاده‌شده یک پیام صوتی یا مکالمه تلفنی فارسی به شما داده می‌شود (ممکن است غلط تایپی یا محاوره‌ای باشد).
 خروجی را فقط به شکل JSON طبق اسکیمای داده‌شده برگردانید و همه متن‌ها فارسی باشند.
 
@@ -88,7 +135,7 @@ const VM_SCHEMA = {
   additionalProperties: false,
 };
 
-const CHAT_SYSTEM = `تو متن پیاده‌شده یک تماس تلفنی بین اپراتور مطب دکتر افلاکی (جراح بینی) و یک بیمار را به نوبت‌های گفتگو تقسیم می‌کنی.
+const CHAT_SYSTEM = `تو متن پیاده‌شده یک تماس تلفنی بین اپراتور مطب دکتر نورون (جراح بینی) و یک بیمار را به نوبت‌های گفتگو تقسیم می‌کنی.
 - ترتیب را از «متن کامل تماس» بگیر و هر نوبت را با گوینده‌اش (operator یا patient) برگردان.
 - اگر صحبت‌های جداگانه هر طرف داده شده، گوینده را از روی آن‌ها تشخیص بده؛ وگرنه از محتوا (اپراتور معمولاً سلام و معرفی مطب، نوبت و راهنمایی را می‌گوید).
 - متن را بازنویسی، خلاصه یا اصلاح نکن و چیزی اضافه نکن؛ فقط تقسیم و برچسب بزن. کلمات نامفهوم را همان‌طور که هست بگذار.`;
@@ -100,7 +147,7 @@ const CHAT_SCHEMA = {
   additionalProperties: false,
 };
 
-const COACH_SYSTEM = `تو سرپرست باتجربه مرکز تماس مطب دکتر افلاکی (جراح بینی) هستی و مکالمه یک اپراتور با بیمار را برای مدیر ارزیابی می‌کنی.
+const COACH_SYSTEM = `تو سرپرست باتجربه مرکز تماس مطب دکتر نورون (جراح بینی) هستی و مکالمه یک اپراتور با بیمار را برای مدیر ارزیابی می‌کنی.
 منصف و دقیق باش؛ فقط بر اساس همین مکالمه نظر بده و چیزی از خودت نساز.
 - score: نمره کلی ۱ تا ۱۰.
 - verdict: یک جمله کوتاه درباره عملکرد کلی.
@@ -177,7 +224,7 @@ export class AiService implements OnModuleInit {
   private cache: AiSettings | null = null;
   private q: string[] = [];
   private busy = false;
-  constructor(private db: PrismaService, private bus: Bus, private usage: UsageService) {}
+  constructor(private db: PrismaService, private bus: Bus, private usage: UsageService, private billing: BillingService) {}
 
   /** The queue lives in memory: after a restart, put back what was waiting and clear what never will be analysed. */
   onModuleInit() {
@@ -225,6 +272,7 @@ export class AiService implements OnModuleInit {
       llmKey: typeof b.llmKey === 'string' && b.llmKey.trim() ? b.llmKey.trim() : cur.llmKey,
       analyzeVoicemail: !!(b.analyzeVoicemail ?? cur.analyzeVoicemail), analyzeCalls: !!(b.analyzeCalls ?? cur.analyzeCalls),
       minSeconds: Math.min(120, Math.max(0, +(b.minSeconds ?? cur.minSeconds) || 0)),
+      sttOpTrack: (b.sttOpTrack ?? cur.sttOpTrack) !== false,
     };
     if (b.clearSttKey) next.sttKey = '';
     if (b.clearLlmKey) next.llmKey = '';
@@ -244,7 +292,7 @@ export class AiService implements OnModuleInit {
     const fd = new FormData();
     const audio = fs.readFileSync(file);
     fd.append('file', new Blob([audio], { type: 'audio/wav' }), 'audio.wav');
-    const headers: Record<string, string> = {};
+    const headers: Record<string, string> = meteringHeaders(s);
     let url = s.sttUrl;
     if (s.sttProvider === 'openai') {
       url = s.sttUrl + '/audio/transcriptions';
@@ -262,7 +310,7 @@ export class AiService implements OnModuleInit {
       if (s.sttKey) headers.Authorization = s.sttKey.includes(' ') ? s.sttKey : 'Bearer ' + s.sttKey;
     }
     const r = await fetch(url, { method: 'POST', headers, body: fd, signal: AbortSignal.timeout(300e3) });
-    if (!r.ok) throw new Error(`سرویس تبدیل گفتار: خطای ${r.status} ${(await r.text().catch(() => '')).slice(0, 160)}`);
+    if (!r.ok) throw await upstreamError('سرویس تبدیل گفتار', r);
     const d: any = await r.json();
     // billed per minute of audio (token counts kept when the service reports them)
     this.usage.record({ kind: 'stt', model: s.sttProvider === 'openai' ? s.sttModel : 'custom-stt', seconds: wavSeconds(audio), inTok: d.usage?.input_tokens, outTok: d.usage?.output_tokens });
@@ -313,7 +361,7 @@ export class AiService implements OnModuleInit {
     const reasoning = /^(gpt-5|gpt-6|o\d)/.test(s.llmModel);
     const r = await fetch(s.llmUrl + '/chat/completions', {
       method: 'POST', signal: AbortSignal.timeout(180e3),
-      headers: { 'Content-Type': 'application/json', ...(s.llmKey ? { Authorization: 'Bearer ' + s.llmKey } : {}) },
+      headers: { 'Content-Type': 'application/json', ...(s.llmKey ? { Authorization: 'Bearer ' + s.llmKey } : {}), ...meteringHeaders(s) },
       body: JSON.stringify({
         model: s.llmModel,
         messages: [{ role: 'system', content: system + '\nاسکیمای JSON:\n' + JSON.stringify(schema) }, { role: 'user', content: user }],
@@ -321,15 +369,31 @@ export class AiService implements OnModuleInit {
         ...(reasoning ? { reasoning_effort: 'low' } : {}),
       }),
     });
-    if (!r.ok) throw new Error(`سرویس تحلیل: خطای ${r.status} ${(await r.text().catch(() => '')).slice(0, 160)}`);
+    if (!r.ok) throw await upstreamError('سرویس تحلیل', r);
     const d: any = await r.json();
     this.usage.record({ kind: 'llm', model: s.llmModel, inTok: d.usage?.prompt_tokens, cached: d.usage?.prompt_tokens_details?.cached_tokens, outTok: d.usage?.completion_tokens });
     return JSON.parse(String(d.choices?.[0]?.message?.content || '{}'));
   }
 
+  /**
+   * While this panel is connected to the top-up server («شارژ دلاری»), speech-to-text and analysis go through it:
+   * OpenAI-compatible, with the customer key; the server picks the OpenAI key and deducts the cost.
+   */
+  private async billed(s: AiSettings): Promise<AiSettings | null> {
+    const r = await this.billing.route();
+    if (!r) return null;
+    return {
+      ...s, billed: true,
+      sttProvider: s.sttProvider === 'none' ? 'none' : 'openai', sttUrl: r.base, sttKey: r.key, sttModel: s.sttProvider === 'openai' && s.sttModel ? s.sttModel : 'gpt-transcribe',
+      llmProvider: s.llmProvider === 'keywords' ? 'keywords' : 'openai', llmUrl: r.base, llmKey: r.key, llmModel: s.llmProvider === 'openai' && s.llmModel ? s.llmModel : 'gpt-6-luna',
+    };
+  }
+
   /** Speech-to-text settings; falls back to the AI receptionist's OpenAI key when none is set here. */
   private async effectiveStt(): Promise<AiSettings> {
     const s = await this.settings();
+    const b = await this.billed(s);
+    if (b) return b;
     if (s.sttProvider === 'none' || s.sttKey || s.sttProvider === 'custom') return s;
     const r = await this.db.configEntry.findUnique({ where: { key: 'aiagent' } });
     const key = String((r?.data as any)?.openaiKey || '');
@@ -341,7 +405,7 @@ export class AiService implements OnModuleInit {
     const opFile = c.recPath.replace(/\.wav$/, '') + '-op.wav';
     const [mixed, op] = await Promise.all([
       this.transcribe(c.recPath, st),
-      fs.existsSync(opFile) && fs.statSync(opFile).size > 4000 ? this.transcribe(opFile, st).then(r => r.text) : Promise.resolve(''),
+      st.sttOpTrack !== false && fs.existsSync(opFile) && fs.statSync(opFile).size > 4000 ? this.transcribe(opFile, st).then(r => r.text) : Promise.resolve(''),
     ]);
     return { mixed: mixed.text, conf: mixed.conf, op };
   }
@@ -386,6 +450,8 @@ export class AiService implements OnModuleInit {
   /** The analysis model to use; falls back to the AI receptionist's OpenAI key when analysis has no key of its own. */
   private async effectiveLlm(): Promise<AiSettings> {
     const s = await this.settings();
+    const b = await this.billed(s);
+    if (b) return b;
     const hasOwn = s.llmProvider === 'keywords' || !!s.llmKey || (s.llmProvider === 'claude' && !!s.llmUrl);
     if (hasOwn) return s;
     const r = await this.db.configEntry.findUnique({ where: { key: 'aiagent' } });
@@ -435,6 +501,27 @@ export class AiService implements OnModuleInit {
       await this.db.call.update({ where: { id }, data: { survey: { ...sv, comment: text } } });
       this.bus.emit('calls', { id });
     }).catch(e => this.log.warn(`survey ${id}: ${e.message}`));
+  }
+
+  /** Booking-line survey voice comment: transcript, then group / sentiment / summary / follow-up action. */
+  bookingSurvey(file: string, score: number) {
+    return usageCtx.run({ feature: 'booking_survey' }, async () => {
+      const st = await this.effectiveStt();
+      if (!st.enabled || st.sttProvider === 'none' || (!st.sttKey && st.sttProvider === 'openai')) throw new Error('سرویس تبدیل گفتار به متن (تنظیمات هوش مصنوعی) روشن یا تنظیم نشده است');
+      const { text, conf } = await this.transcribe(file, st);
+      if (!text.trim()) return { text: '', conf, ai: null };
+      const llm = await this.effectiveLlm();
+      if (llm.llmProvider === 'keywords') return { text, conf, ai: null };
+      const r = await this.llmJson(BOOKING_SURVEY_SYSTEM, `امتیاز بیمار به نوبت‌دهی تلفنی: ${score} از ۵\nپیام صوتی بیمار (پیاده‌شده):\n${text}`, BOOKING_SURVEY_SCHEMA, llm);
+      const ids = BOOKING_SURVEY_CATS.map(c => c.id);
+      const str = (v: any, n = 400) => String(v || '').trim().slice(0, n);
+      return { text, conf, ai: {
+        category: ids.includes(r.category) ? r.category : 'other',
+        sentiment: ['positive', 'neutral', 'negative'].includes(r.sentiment) ? r.sentiment : 'neutral',
+        summary: str(r.summary), action: str(r.action), needsCall: !!r.needsCall,
+        topics: (Array.isArray(r.topics) ? r.topics : []).map((t: any) => str(t, 40)).filter(Boolean).slice(0, 5),
+      } };
+    });
   }
 
   // ---------------- queue
@@ -535,7 +622,8 @@ export class AiService implements OnModuleInit {
   }
 
   private async testNow(text: string, withStt: boolean) {
-    const s = await this.settings();
+    const own = await this.settings();
+    const s = (await this.billed(own)) || own;
     const out: any = {};
     const t0 = Date.now();
     try {
