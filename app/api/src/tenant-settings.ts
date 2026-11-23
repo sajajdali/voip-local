@@ -4,10 +4,21 @@ import type { Me } from './auth';
 
 export type SettingsScope = string | null | undefined;
 
-export async function readSetting(db: PrismaService, key: string, tenantId?: SettingsScope): Promise<any | null> {
+export async function readSetting(
+  db: PrismaService,
+  key: string,
+  tenantId?: SettingsScope,
+  opts?: { fallbackPlatform?: boolean },
+): Promise<any | null> {
   if (tenantId) {
     const row = await db.tenantConfig.findUnique({ where: { tenantId_key: { tenantId, key } } });
-    return row?.data ?? null;
+    if (row?.data != null) return row.data;
+    // First visit: show platform defaults so the form is not empty until the tenant saves their own copy
+    if (opts?.fallbackPlatform) {
+      const plat = await db.configEntry.findUnique({ where: { key } });
+      return plat?.data ?? null;
+    }
+    return null;
   }
   const row = await db.configEntry.findUnique({ where: { key } });
   return row?.data ?? null;

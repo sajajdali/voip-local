@@ -105,7 +105,7 @@ export class PatientsService {
   async settings(tenantId?: string | null): Promise<CrmSettings> {
     const k = scopeKey(tenantId);
     if (!this.caches.has(k)) {
-      const r = await readSetting(this.db, 'crm', tenantId);
+      const r = await readSetting(this.db, 'crm', tenantId, { fallbackPlatform: !!tenantId });
       this.caches.set(k, { ...DEFAULTS, ...((r as any) || {}) });
     }
     return this.caches.get(k)!;

@@ -628,18 +628,26 @@ class LiveApp extends React.Component {
   async loadCrm() {
     try {
       const d = await api('/crm');
-      this.setState(st => ({ crmData: d, crmForm: st.crmForm && st.page === 'vcrm' && st.crmLoaded ? st.crmForm : { ...d.settings, pass: '' }, crmLoaded: true }));
+      // Always refresh the form from the server when opening; keep in-progress edits only while already on the page
+      this.setState(st => ({
+        crmData: d,
+        crmForm: st.crmForm && st.page === 'vcrm' && st.crmLoaded
+          ? st.crmForm
+          : { ...d.settings, pass: '', dgToken: '' },
+        crmLoaded: true,
+      }));
     } catch (e) { this.toast('بارگذاری تنظیمات سامانه بیماران ناموفق بود: ' + e.message); }
   }
 
   crmVals(s) {
     const d = s.crmData;
-    const f = s.crmForm || { enabled: false, url: '', param: 'mobile', user: '', pass: '', phoneFormat: '0', nameField: 'name', timeoutMs: 4000, phoneName: 'fa', showSurgery: true };
+    const f = s.crmForm || { enabled: false, url: '', param: 'mobile', user: '', pass: '', phoneFormat: '0', nameField: 'name', timeoutMs: 4000, phoneName: 'fa', showSurgery: true, provider: 'crm', dgUrl: '', dgToken: '', dgHost: '' };
     const setF = o => this.setState({ crmForm: { ...f, ...o } });
     const tg = on => ({ bg: on ? '#8DC63F' : '#d9dad6', j: on ? 'flex-end' : 'flex-start' });
+    const isDg = f.provider === 'dastgheib';
     const persist = async () => {
       const r = await api('/crm', f, 'PUT');
-      this.setState(x => ({ crmData: { ...(x.crmData || { status: {} }), settings: r }, crmForm: { ...f, pass: '' } }));
+      this.setState(x => ({ crmData: { ...(x.crmData || { status: {} }), settings: r }, crmForm: { ...f, pass: '', dgToken: '' } }));
       return r;
     };
     const t = s.crmTest;
@@ -649,11 +657,19 @@ class LiveApp extends React.Component {
       else result.push({ k: 'خطا', v: t.error, c: '#b42318' });
     }
     const st = d ? d.status : null;
+    const pickBd = on => (on ? '#0E7C7B' : '#E3E8EF');
+    const pickBg = on => (on ? '#E3F2F1' : '#fff');
     return { crm2: {
       f, onT: tg(f.enabled), onLabel: f.enabled ? 'فعال' : 'غیرفعال', tog: () => setF({ enabled: !f.enabled }),
-      set: Object.fromEntries(['url', 'param', 'user', 'pass', 'phoneFormat', 'nameField', 'timeoutMs', 'phoneName', 'showSurgery'].map(k => [k, e => setF({ [k]: k === 'timeoutMs' ? (parseInt(e.target.value, 10) || 0) : k === 'showSurgery' ? e.target.value === '1' : e.target.value })])),
+      isDg, isCrm: !isDg,
+      providers: [
+        { title: 'API عمومی (CRM)', sub: 'آدرس JSON و Basic Auth — سامانه نوبت/جراحی کلینیک', pick: () => setF({ provider: 'crm' }), bg: pickBg(!isDg), bd: pickBd(!isDg) },
+        { title: 'دستغیب', sub: 'اپلیکیشن مطب دستغیب؛ آدرس سرور و توکن VoIP', pick: () => setF({ provider: 'dastgheib' }), bg: pickBg(isDg), bd: pickBd(isDg) },
+      ],
+      set: Object.fromEntries(['url', 'param', 'user', 'pass', 'phoneFormat', 'nameField', 'timeoutMs', 'phoneName', 'showSurgery', 'dgUrl', 'dgToken', 'dgHost'].map(k => [k, e => setF({ [k]: k === 'timeoutMs' ? (parseInt(e.target.value, 10) || 0) : k === 'showSurgery' ? e.target.value === '1' : e.target.value })])),
       surgSel: f.showSurgery === false ? '0' : '1',
       passPh: d && d.settings.hasPass ? '•••••••• (ذخیره‌شده؛ برای تغییر، رمز جدید را وارد کنید)' : 'رمز عبور',
+      dgTokenPh: d && d.settings.hasDgToken ? '•••••••• (ذخیره‌شده؛ برای تغییر، توکن جدید را وارد کنید)' : 'توکن API',
       kpis: [
         { label: 'نام‌های دریافت‌شده از سامانه', value: st ? (st.named || 0).toLocaleString('fa-IR') : '…', color: '#3d6a0c' },
         { label: 'کل بیماران شناخته‌شده', value: st ? (st.total || 0).toLocaleString('fa-IR') : '…', color: '#232425' },
