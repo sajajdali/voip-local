@@ -13,6 +13,11 @@ import { DEFAULT_STORAGE_MB, storageSnapshot, tenantUsedBytes } from './tenant-s
 
 export { DID_POOL_MIN, DID_POOL_MAX, DID_POOL_PREFIX, isPoolDid, normalizePoolDid };
 
+/** Digits → Persian numerals for admin-facing messages. */
+export function faDid(s: any) {
+  return String(s ?? '').replace(/\d/g, d => '۰۱۲۳۴۵۶۷۸۹'[Number(d)]);
+}
+
 export function slugify(name: string) {
   const base = String(name || '')
     .trim()
@@ -88,7 +93,10 @@ export class TenantsService {
   async list() {
     const [tenants, dids, users] = await Promise.all([
       this.db.tenant.findMany({ orderBy: { createdAt: 'asc' } }),
-      this.db.didAssignment.findMany({ orderBy: { did: 'asc' } }),
+      this.db.didAssignment.findMany({
+        orderBy: { did: 'asc' },
+        include: { user: { select: { id: true, username: true, name: true } } },
+      }),
       this.db.user.findMany({ where: { tenantId: { not: null } }, select: { id: true, username: true, name: true, role: true, active: true, tenantId: true } }),
     ]);
     const byTenant = new Map<string, typeof dids>();
@@ -104,6 +112,13 @@ export class TenantsService {
       list.push(u);
       usersBy.set(u.tenantId, list);
     }
+    const didsByUser = new Map<string, string[]>();
+    for (const d of dids) {
+      if (!d.userId) continue;
+      const list = didsByUser.get(d.userId) || [];
+      list.push(d.did);
+      didsByUser.set(d.userId, list);
+    }
     const assigned = new Set(dids.map(d => d.did));
     const free: string[] = [];
     for (let n = DID_POOL_MIN; n <= DID_POOL_MAX; n++) {
@@ -111,7 +126,7 @@ export class TenantsService {
       if (!assigned.has(s)) free.push(s);
     }
     return {
-      pool: { prefix: DID_POOL_PREFIX, min: String(DID_POOL_MIN), max: String(DID_POOL_MAX), total: DID_POOL_MAX - DID_POOL_MIN + 1, free: free.length },
+      pool: { prefix: DID_POOL_PREFIX, min: String(DID_POOL_MIN), max: String(DID_POOL_MAX), total: DID_POOL_MAX - DID_POOL_MIN + 1, free: free.length, assigned: assigned.size },
       freeSample: free.slice(0, 40),
       featureDefaults: DEFAULT_TENANT_FEATURES,
       featureLabels: TENANT_FEATURE_LABELS,
@@ -120,6 +135,14 @@ export class TenantsService {
       tenants: tenants.map(t => {
         const access = tenantAccess(t);
         const quotaMb = (t as any).storageQuotaMb ?? DEFAULT_STORAGE_MB;
+        const tDids = (byTenant.get(t.id) || []).map(d => ({
+          id: d.id,
+          did: d.did,
+          note: d.note || '',
+          userId: d.userId || null,
+          username: d.user?.username || null,
+          userName: d.user?.name || null,
+        }));
         return {
           ...t,
           features: cleanFeatures(t.features),
@@ -132,10 +155,54 @@ export class TenantsService {
           accessReason: access.reason,
           accessOk: access.active,
           storageQuotaMb: quotaMb,
-          dids: (byTenant.get(t.id) || []).map(d => ({ id: d.id, did: d.did, note: d.note || '' })),
-          users: (usersBy.get(t.id) || []).map(u => ({ id: u.id, username: u.username, name: u.name, role: u.role, active: u.active })),
+          dids: tDids,
+          users: (usersBy.get(t.id) || []).map(u => ({
+            id: u.id, username: u.username, name: u.name, role: u.role, active: u.active,
+            dids: didsByUser.get(u.id) || [],
+          })),
         };
       }),
+    };
+  }
+
+  /** Ordered inventory of the whole 31985000…31985999 pool (paginated + filterable). */
+  async inventory(opts: { q?: string; status?: string; page?: number; pageSize?: number } = {}) {
+    const q = String(opts.q || '').replace(/\D/g, '');
+    const status = String(opts.status || 'all'); // all | free | assigned | unassigned-user
+    const pageSize = Math.min(200, Math.max(20, Number(opts.pageSize) || 100));
+    const page = Math.max(1, Number(opts.page) || 1);
+    const rows = await this.db.didAssignment.findMany({
+      include: {
+        tenant: { select: { id: true, name: true, slug: true } },
+        user: { select: { id: true, username: true, name: true } },
+      },
+    });
+    const byDid = new Map(rows.map(r => [r.did, r]));
+    const items: any[] = [];
+    for (let n = DID_POOL_MIN; n <= DID_POOL_MAX; n++) {
+      const did = String(n);
+      if (q && !did.includes(q)) continue;
+      const row = byDid.get(did);
+      const free = !row;
+      if (status === 'free' && !free) continue;
+      if (status === 'assigned' && free) continue;
+      if (status === 'unassigned-user' && (free || row?.userId)) continue;
+      items.push(free
+        ? { did, free: true, tenantId: null, tenantName: null, tenantSlug: null, userId: null, username: null, userName: null }
+        : {
+          did, free: false,
+          tenantId: row!.tenantId, tenantName: row!.tenant.name, tenantSlug: row!.tenant.slug,
+          userId: row!.userId || null, username: row!.user?.username || null, userName: row!.user?.name || null,
+        });
+    }
+    const total = items.length;
+    const start = (page - 1) * pageSize;
+    const slice = items.slice(start, start + pageSize);
+    return {
+      pool: { prefix: DID_POOL_PREFIX, min: String(DID_POOL_MIN), max: String(DID_POOL_MAX), total: DID_POOL_MAX - DID_POOL_MIN + 1, assigned: rows.length, free: DID_POOL_MAX - DID_POOL_MIN + 1 - rows.length },
+      filter: { q, status, page, pageSize },
+      total, pages: Math.max(1, Math.ceil(total / pageSize)),
+      items: slice,
     };
   }
 
@@ -251,14 +318,34 @@ export class TenantsController {
     this.assertSuper(me);
     try {
       const did = didFromSuffix(suffix);
-      const other = await this.db.didAssignment.findUnique({ where: { did }, include: { tenant: { select: { name: true, slug: true } } } });
+      const other = await this.db.didAssignment.findUnique({
+        where: { did },
+        include: { tenant: { select: { name: true, slug: true } }, user: { select: { username: true, name: true } } },
+      });
       if (other) {
-        return { ok: false, did, free: false, message: `شماره ${did} قبلاً به «${other.tenant.name}» تخصیص داده شده` };
+        const who = other.user?.username
+          ? `کاربر ${other.user.username}`
+          : `مستأجر «${other.tenant.name}»`;
+        return { ok: false, did, free: false, message: `شماره ${faDid(did)} قبلاً به ${who} اختصاص یافته` };
       }
-      return { ok: true, did, free: true, message: `شماره ${did} آزاد است` };
+      return { ok: true, did, free: true, message: `شماره ${faDid(did)} آزاد است` };
     } catch (e) {
       return { ok: false, did: null, free: false, message: (e as Error).message };
     }
+  }
+
+  /** Full pool inventory (ordered 31985000…31985999) with search/filter/pagination. */
+  @Roles('admin')
+  @Get('dids/inventory')
+  async inventory(
+    @Query('q') q: string,
+    @Query('status') status: string,
+    @Query('page') page: string,
+    @Query('pageSize') pageSize: string,
+    @CurrentUser() me: Me,
+  ) {
+    this.assertSuper(me);
+    return this.tenants.inventory({ q, status, page: Number(page) || 1, pageSize: Number(pageSize) || 100 });
   }
 
   /** What the signed-in tenant user may see about their own access. */
@@ -353,8 +440,12 @@ export class TenantsController {
     if (!suffixes.length) throw new BadRequestException('سه رقم آخر شماره (۰۰۰ تا ۹۹۹) را وارد کنید');
     const dids = suffixes.map(s => didFromSuffix(s));
     for (const did of dids) {
-      const other = await this.db.didAssignment.findUnique({ where: { did }, include: { tenant: { select: { name: true } } } });
-      if (other) throw new BadRequestException(`شماره ${did} قبلاً به «${other.tenant.name}» تخصیص داده شده`);
+      const other = await this.db.didAssignment.findUnique({
+        where: { did },
+        include: { tenant: { select: { name: true } }, user: { select: { username: true } } },
+      });
+      if (other?.user?.username) throw new BadRequestException(`شماره ${faDid(did)} قبلاً به کاربر ${other.user.username} اختصاص یافته`);
+      if (other) throw new BadRequestException(`شماره ${faDid(did)} قبلاً به مستأجر «${other.tenant.name}» اختصاص یافته`);
     }
 
     let slug = String(b.slug || '').trim().toLowerCase() || slugify(name);
@@ -377,10 +468,7 @@ export class TenantsController {
         storageQuotaMb: Math.max(1, Math.floor(Number(b.storageQuotaMb) || DEFAULT_STORAGE_MB)),
       } as any,
     });
-    for (const did of dids) {
-      await this.db.didAssignment.create({ data: { did, tenantId: t.id } });
-    }
-    await this.db.user.create({
+    const u = await this.db.user.create({
       data: {
         username,
         name: String(b.userName || name).trim().slice(0, 60),
@@ -390,6 +478,9 @@ export class TenantsController {
         perms: tenantAdminPerms(features) as any,
       },
     });
+    for (const did of dids) {
+      await this.db.didAssignment.create({ data: { did, tenantId: t.id, userId: u.id } });
+    }
     await this.db.auditLog.create({
       data: {
         userId: me.id, userName: me.name, action: 'tenant.create', target: t.slug,
@@ -397,10 +488,13 @@ export class TenantsController {
       },
     });
     await this.tenants.reapply().catch(() => null);
+    const didLabel = dids.map(faDid).join('، ');
     return {
       id: t.id, slug: t.slug, features, dids, planPeriod, planLabel: planLabel(planPeriod), priceToman, expiresAt,
       login: { url: 'https://voip.s8n.ir', username, password },
-      message: `مستأجر «${name}» ساخته شد. ورود با «${username}» در https://voip.s8n.ir · اشتراک تا ${expiresAt.toISOString().slice(0, 10)}`,
+      message: `مستأجر «${name}» ساخته شد. شماره ${didLabel} به کاربر ${username} اختصاص یافت · ورود در https://voip.s8n.ir`,
+      userDids: dids,
+      userDidsLabel: `شماره‌های ${username}: ${didLabel}`,
     };
   }
 
@@ -508,19 +602,123 @@ export class TenantsController {
 
   @Roles('admin')
   @Post(':id/dids')
-  async assign(@Param('id') id: string, @Body() b: { did?: string; suffix?: string; didSuffix?: string; note?: string }, @CurrentUser() me: Me) {
+  async assign(
+    @Param('id') id: string,
+    @Body() b: { did?: string; suffix?: string; didSuffix?: string; note?: string; userId?: string; username?: string },
+    @CurrentUser() me: Me,
+  ) {
     this.assertSuper(me);
     const t = await this.db.tenant.findUnique({ where: { id } });
     if (!t) throw new BadRequestException('مستأجر پیدا نشد');
     const did = (b.suffix != null || b.didSuffix != null)
       ? didFromSuffix(b.suffix ?? b.didSuffix)
       : normalizePoolDid(b.did);
-    const other = await this.db.didAssignment.findUnique({ where: { did }, include: { tenant: { select: { name: true } } } });
-    if (other) throw new BadRequestException(other.tenantId === id ? 'این شماره قبلاً به همین مستأجر داده شده' : `شماره ${did} قبلاً به «${other.tenant.name}» تخصیص داده شده`);
-    const row = await this.db.didAssignment.create({ data: { did, tenantId: id, note: String(b.note || '').trim().slice(0, 120) || null } });
-    await this.db.auditLog.create({ data: { userId: me.id, userName: me.name, action: 'did.assign', target: did, detail: { tenantId: id, tenant: t.name } as any } });
+
+    let bindUser: { id: string; username: string; name: string } | null = null;
+    if (b.userId || b.username) {
+      const u = b.userId
+        ? await this.db.user.findUnique({ where: { id: String(b.userId) } })
+        : await this.db.user.findUnique({ where: { username: String(b.username).trim().toLowerCase() } });
+      if (!u || u.tenantId !== id) throw new BadRequestException('کاربر انتخاب‌شده متعلق به این مستأجر نیست');
+      bindUser = { id: u.id, username: u.username, name: u.name };
+    }
+
+    const other = await this.db.didAssignment.findUnique({
+      where: { did },
+      include: { tenant: { select: { name: true } }, user: { select: { username: true, name: true } } },
+    });
+    if (other) {
+      if (other.user?.username) {
+        throw new BadRequestException(`شماره ${faDid(did)} قبلاً به کاربر ${other.user.username} اختصاص یافته`);
+      }
+      if (other.tenantId === id) {
+        throw new BadRequestException(`شماره ${faDid(did)} قبلاً به همین مستأجر تخصیص داده شده`);
+      }
+      throw new BadRequestException(`شماره ${faDid(did)} قبلاً به مستأجر «${other.tenant.name}» اختصاص یافته`);
+    }
+
+    const row = await this.db.didAssignment.create({
+      data: {
+        did, tenantId: id,
+        userId: bindUser?.id || null,
+        note: String(b.note || '').trim().slice(0, 120) || null,
+      },
+    });
+    await this.db.auditLog.create({
+      data: {
+        userId: me.id, userName: me.name, action: 'did.assign', target: did,
+        detail: { tenantId: id, tenant: t.name, userId: bindUser?.id || null, username: bindUser?.username || null } as any,
+      },
+    });
     await this.tenants.reapply().catch(() => null);
-    return { id: row.id, did };
+
+    const userDids = bindUser
+      ? (await this.db.didAssignment.findMany({ where: { userId: bindUser.id }, orderBy: { did: 'asc' }, select: { did: true } })).map(x => x.did)
+      : [];
+    const message = bindUser
+      ? `شماره ${faDid(did)} به کاربر ${bindUser.username} اختصاص یافت`
+      : `شماره ${faDid(did)} به مستأجر «${t.name}» تخصیص داده شد`;
+    return {
+      id: row.id, did, userId: bindUser?.id || null, username: bindUser?.username || null,
+      message,
+      userDids,
+      userDidsLabel: userDids.length ? `شماره‌های ${bindUser!.username}: ${userDids.map(faDid).join('، ')}` : null,
+    };
+  }
+
+  /** Bind (or clear) a user on an existing tenant DID. */
+  @Roles('admin')
+  @Put(':id/dids/:did/user')
+  async setDidUser(
+    @Param('id') id: string,
+    @Param('did') didRaw: string,
+    @Body() b: { userId?: string | null; username?: string | null },
+    @CurrentUser() me: Me,
+  ) {
+    this.assertSuper(me);
+    const did = normalizePoolDid(didRaw);
+    const row = await this.db.didAssignment.findUnique({
+      where: { did },
+      include: { user: { select: { username: true } } },
+    });
+    if (!row || row.tenantId !== id) throw new BadRequestException('این شماره برای این مستأجر ثبت نشده');
+
+    let bindUser: { id: string; username: string; name: string } | null = null;
+    const clear = b.userId === null || b.username === null || (b.userId === '' && !b.username);
+    if (!clear && (b.userId || b.username)) {
+      const u = b.userId
+        ? await this.db.user.findUnique({ where: { id: String(b.userId) } })
+        : await this.db.user.findUnique({ where: { username: String(b.username).trim().toLowerCase() } });
+      if (!u || u.tenantId !== id) throw new BadRequestException('کاربر انتخاب‌شده متعلق به این مستأجر نیست');
+      bindUser = { id: u.id, username: u.username, name: u.name };
+    }
+
+    // Another DID already showing as "this user's"? Fine — users may have multiple DIDs.
+    // Duplicate = this same DID already on another user (impossible since unique did) —
+    // or re-binding when already bound to someone else is an overwrite; report clearly if same.
+    if (bindUser && row.userId === bindUser.id) {
+      throw new BadRequestException(`شماره ${faDid(did)} قبلاً به کاربر ${bindUser.username} اختصاص یافته`);
+    }
+
+    await this.db.didAssignment.update({ where: { did }, data: { userId: bindUser?.id || null } });
+    await this.db.auditLog.create({
+      data: {
+        userId: me.id, userName: me.name, action: 'did.user', target: did,
+        detail: { tenantId: id, userId: bindUser?.id || null, username: bindUser?.username || null, prevUserId: row.userId } as any,
+      },
+    });
+
+    const userDids = bindUser
+      ? (await this.db.didAssignment.findMany({ where: { userId: bindUser.id }, orderBy: { did: 'asc' }, select: { did: true } })).map(x => x.did)
+      : [];
+    const message = bindUser
+      ? `شماره ${faDid(did)} به کاربر ${bindUser.username} اختصاص یافت`
+      : `اختصاص کاربر از شماره ${faDid(did)} برداشته شد`;
+    return {
+      did, userId: bindUser?.id || null, username: bindUser?.username || null,
+      message, userDids,
+      userDidsLabel: userDids.length ? `شماره‌های ${bindUser!.username}: ${userDids.map(faDid).join('، ')}` : null,
+    };
   }
 
   @Roles('admin')
@@ -533,7 +731,7 @@ export class TenantsController {
     await this.db.didAssignment.delete({ where: { did } });
     await this.db.auditLog.create({ data: { userId: me.id, userName: me.name, action: 'did.unassign', target: did, detail: { tenantId: id } as any } });
     await this.tenants.reapply().catch(() => null);
-    return { ok: true };
+    return { ok: true, message: `شماره ${faDid(did)} آزاد شد` };
   }
 
   /** Create a user bound to a tenant (super-admin only). */

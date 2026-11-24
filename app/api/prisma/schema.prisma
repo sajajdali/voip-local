@@ -19,6 +19,7 @@ model User {
   perms     Json? // {section: [view|add|edit|delete]}; empty = the role's defaults
   tenantId  String?
   tenant    Tenant?  @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+  dids      DidAssignment[]
   createdAt DateTime @default(now())
 
   @@index([tenantId])
@@ -73,10 +74,14 @@ model DidAssignment {
   did       String   @unique
   tenantId  String
   tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  /// Optional: which tenant user this DID is assigned to (must belong to same tenant).
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
   note      String?
   createdAt DateTime @default(now())
 
   @@index([tenantId])
+  @@index([userId])
 }
 
 /// Per-tenant VoIP collections (same keys as ConfigEntry except trunks — trunks stay platform-only).
