@@ -1907,6 +1907,101 @@ class LiveApp extends React.Component {
     };
   }
 
+  /** Rich Kamilo / appointment-CRM dossier for «مشاهده پرونده». */
+  apptFileVals(s, d) {
+    const fa = n => String(n ?? '').replace(/\d/g, x => '۰۱۲۳۴۵۶۷۸۹'[x]);
+    const A = d && d.appt;
+    if (!A) return { apMode: false, ap: { has: false }, showClin: false, dgMode: false };
+    if (!A.found) return { apMode: true, ap: { has: false }, showClin: false, dgMode: false };
+    const sum = A.summary || {};
+    const dash = (v, fallback = '—') => (v === null || v === undefined || v === '' ? fallback : fa(v));
+    const ini = (sum.fullName || A.name || '?').trim().split(/\s+/).slice(0, 2).map(w => w[0] || '').join('') || '؟';
+    const idCode = sum.identifier || '';
+    const ST = { 0: ['#f2f3ef', '#55585c'], 1: ['#E3F2F1', '#0A5C5B'], 2: ['#fff4e5', '#b54708'], 3: ['#fdeceb', '#b42318'], 4: ['#eef5e3', '#3d6a0c'] };
+    const stOf = (label, status) => { const c = ST[status] || ST[1]; return { st: label || '—', stBg: c[0], stFg: c[1] }; };
+    const fmtWhen = (x) => (!x || (!x.date && !x.time) ? null : {
+      date: dash(x.date), time: dash(x.time, ''), part: dash(x.part || x.service),
+      ...stOf(x.statusLabel, x.status), tracking: dash(x.tracking, ''), id: x.id != null ? fa(x.id) : '',
+      agent: dash(x.agentName), doctor: dash(x.doctor && x.doctor.name), identifier: x.identifier || '',
+      kind: dash(x.kindLabel), confirmed: x.confirmedLabel || (x.confirmed ? 'confirm شده' : 'confirm نشده'),
+      created: dash(x.createdAt), note: x.note || '',
+    });
+    const nextSrc = A.next || sum.nextAt;
+    const lastSrc = A.lastReceived || sum.lastAt;
+    const next = fmtWhen(nextSrc);
+    const last = fmtWhen(lastSrc);
+    const all = (A.appointments || []).slice();
+    const tab = s.apTab || 'all';
+    const filtered = all.filter(x => {
+      if (tab === 'active') return !(x.status === 3 || /کنسل|لغو/i.test(x.statusLabel || ''));
+      if (tab === 'cancel') return x.status === 3 || /کنسل|لغو/i.test(x.statusLabel || '');
+      return true;
+    });
+    const showN = s.apMore ? filtered.length : Math.min(8, filtered.length);
+    const rows = filtered.slice(0, showN).map((x, i) => {
+      const st = stOf(x.statusLabel, x.status);
+      const cancelled = x.status === 3 || /کنسل|لغو/i.test(x.statusLabel || '');
+      return {
+        key: x.id || i, date: dash(x.date), time: dash(x.time), part: dash(x.part || x.service),
+        agent: dash(x.agentName), doctor: dash(x.doctor && x.doctor.name),
+        kind: dash(x.kindLabel), tracking: dash(x.tracking), id: x.id != null ? fa(x.id) : '—',
+        identifier: x.identifier || '', hasId: !!x.identifier,
+        confirmed: x.confirmedLabel || (x.confirmed ? 'confirm شده' : 'confirm نشده'),
+        confBg: x.confirmed ? '#E3F2F1' : '#f2f3ef', confFg: x.confirmed ? '#0A5C5B' : '#55585c',
+        ...st, op: cancelled ? 0.62 : 1, futBg: i === 0 ? '#F4FBFA' : '#fff',
+      };
+    });
+    const received = A.received ?? sum.received ?? A.total ?? 0;
+    const active = A.active ?? sum.active ?? 0;
+    const cancelled = A.cancelled ?? sum.cancelled ?? 0;
+    const city = sum.city || A.city || '';
+    const province = sum.province || A.province || '';
+    const loc = [city, province].filter(Boolean).join(' · ');
+    const notes = sum.notes || A.notes || '';
+    const kpis = [
+      { label: 'نوبت دریافتی', value: fa(received), bg: '#E3F2F1', fg: '#0A5C5B', hasSub: false },
+      { label: 'نوبت فعال', value: fa(active), bg: '#e5eff7', fg: '#1d5a85', hasSub: false },
+      { label: 'کنسل‌شده', value: fa(cancelled), bg: cancelled ? '#fdeceb' : '#f2f3ef', fg: cancelled ? '#b42318' : '#55585c', hasSub: false },
+      { label: 'نوبت اولی؟', value: sum.firstLabel || (sum.first ? 'بله' : 'خیر'), bg: '#fcf3e0', fg: '#8a5a00', hasSub: false },
+    ];
+    return {
+      apMode: true, showClin: false, dgMode: false,
+      ap: {
+        has: true, dossier: true, name: sum.fullName || A.name || 'بیمار', ini: fa(ini),
+        first: dash(A.first || (sum.fullName || '').split(/\s+/)[0]), last: dash(A.last || (sum.fullName || '').split(/\s+/).slice(1).join(' ')),
+        pid: A.id != null ? fa(A.id) : '—', phone: dash(sum.mobile || A.phone),
+        hasSecond: !!(sum.secondMobile || A.secondMobile), second: dash(sum.secondMobile || A.secondMobile),
+        agent: dash(sum.agentName), part: dash(sum.part), doctor: dash(sum.doctor && sum.doctor.name),
+        status: dash(sum.statusLabel), kind: dash(sum.kindLabel), category: dash(sum.categoryLabel),
+        hasCategory: !!sum.categoryLabel, confirmed: sum.confirmedLabel || (sum.confirmed ? 'confirm شده' : 'confirm نشده'),
+        confOn: !!sum.confirmed, confBg: sum.confirmed ? '#E3F2F1' : '#fff4e5', confFg: sum.confirmed ? '#0A5C5B' : '#b54708',
+        loc: loc || 'ثبت نشده', hasLoc: !!loc, city: dash(city), province: dash(province),
+        tracking: dash(sum.tracking), apptId: sum.appointmentId != null ? fa(sum.appointmentId) : '—',
+        idCode: idCode ? fa(idCode) : '', hasIdCode: !!idCode, noIdCode: !idCode,
+        idCodeText: idCode ? fa(idCode) : 'ثبت نشده',
+        firstVisit: sum.firstLabel || (sum.first ? 'بله' : 'خیر'),
+        lastCreated: dash(A.lastReceivedCreatedAt || sum.lastCreatedAt),
+        notes: notes || 'توضیحی ثبت نشده', hasNotes: !!notes,
+        kpis,
+        hasNext: !!next, noNext: !next, next: next || {},
+        hasLast: !!last, noLast: !last, last: last || {},
+        rows, hasRows: rows.length > 0, noRows: !rows.length, noRowsText: 'نوبتی برای این بیمار ثبت نشده است.',
+        more: filtered.length > 8, moreText: s.apMore ? 'نمایش کمتر' : 'نمایش همه ' + fa(filtered.length) + ' نوبت',
+        togMore: () => this.setState({ apMore: !s.apMore }),
+        omitted: A.appointmentsOmitted ? '· ' + fa(A.appointmentsOmitted) + ' نوبت قدیمی‌تر در پاسخ کامل نیست' : '',
+        hasOmitted: !!A.appointmentsOmitted,
+        tabs: [['all', 'همه'], ['active', 'فعال'], ['cancel', 'کنسل']].map(([k, label]) => {
+          const n = k === 'all' ? all.length : all.filter(x => (k === 'cancel') === (x.status === 3 || /کنسل|لغو/i.test(x.statusLabel || ''))).length;
+          const on = tab === k;
+          return { label: label + ' ' + fa(n), bg: on ? '#0B2545' : '#fff', fg: on ? '#fff' : '#3A4A63', bd: on ? '#0B2545' : '#E3E8EF', pick: () => this.setState({ apTab: k, apMore: false }) };
+        }),
+        // legacy AppView keys kept harmless
+        hasFile: false, file: '', hasNid: false, nid: '—', nidBtn: '', togNid: () => {},
+        hasChat: false, noChat: true, chat: {},
+      },
+    };
+  }
+
   /** Patient file extras: the CRM's answer, a refresh button and this number's call reports. */
   fileExtraVals(s, hasCalls) {
     const fa = n => String(n).replace(/\d/g, x => '۰۱۲۳۴۵۶۷۸۹'[x]);
@@ -1916,12 +2011,17 @@ class LiveApp extends React.Component {
     if (!d && this._cardFor !== phone) { this._cardFor = phone; setTimeout(() => this.loadCard(phone), 0); }
     const ago = t => { if (!t) return ''; const dt = new Date(t); return fa(jStr(dt)) + ' ساعت ' + fa(jpad(dt.getHours()) + ':' + jpad(dt.getMinutes())); };
     const reports = d ? d.reports.map(r => { const dt = new Date(r.at); return this.repCard({ ...r, date: jStr(dt), time: jpad(dt.getHours()) + ':' + jpad(dt.getMinutes()), edited: false }); }) : [];
+    const apptExtra = this.apptFileVals(s, d);
     return { pf2: {
       has: true, loading: !d, newCaller: !hasCalls, phone: phone.replace(/^(\d{4})(\d{3})(\d+)$/, '$1 $2 $3'), name: (d && d.name) || 'شماره ناشناس',
-      crmOn: !!(d && d.crmOn), fields: d ? d.fields : [], hasFields: !!(d && d.fields.length), noFields: !!d && !d.fields.length,
+      crmOn: !!(d && d.crmOn), fields: d ? d.fields : [], hasFields: !!(d && d.fields.length) && !apptExtra.apMode, noFields: !!d && !d.fields.length && !apptExtra.apMode,
       crmAt: d && d.checkedAt ? 'آخرین استعلام: ' + ago(d.checkedAt) : d && d.crmAt ? 'آخرین دریافت: ' + ago(d.crmAt) : '', looking: !!(d && d.looking),
       ...(() => {
         const st = d ? d.crmState || (d.fields && d.fields.length ? 'found' : 'never') : 'loading';
+        // When appointment CRM found a patient, hide the generic CRM status strip (dossier carries the story).
+        if (apptExtra.apMode && apptExtra.ap && apptExtra.ap.has && st === 'found') {
+          return { crmSt: st, crmFound: true, crmMsg: false, crmTitle: '', crmSub: '', crmBg: '', crmFg: '' };
+        }
         const M = {
           none: ['پرونده‌ای در سامانه CRM ندارد', 'این شماره در سامانه بیماران ثبت نشده است. در هر تماس دوباره بررسی می‌شود.', '#f2f3ef', '#55585c'],
           never: ['هنوز از سامانه بیماران استعلام نشده', 'با اولین تماس این شماره، یا با «به‌روزرسانی از سامانه بیماران»، اطلاعات گرفته می‌شود.', '#f2f3ef', '#55585c'],
@@ -1962,6 +2062,7 @@ class LiveApp extends React.Component {
       reports, hasReports: reports.length > 0, repCount: fa(reports.length), clin: this.clinicalVals(s, d && d.clinical, phone),
       call: () => this.startCall({ name: (d && d.name) || phone, phone, phoneRaw: phone, vmId: null }),
       back: () => this.setState({ page: s.prevPage || 'calls' }),
+      ...apptExtra,
     } };
   }
 

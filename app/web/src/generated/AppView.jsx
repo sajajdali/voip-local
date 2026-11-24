@@ -2665,26 +2665,37 @@ export default function AppView({ vm }) {
               </>) : null}
               {(vm.pf2?.apMode) ? (<>
                 <div style={{display: "flex", flexDirection: "column", gap: "16px"}}>
-                  <div style={{background: "#fff", border: "1px solid #E3E8EF", borderRadius: "20px", overflow: "hidden", boxShadow: "0 1px 2px rgba(11,37,69,.04),0 14px 34px -22px rgba(11,37,69,.25)"}}>
-                    <div style={{background: "linear-gradient(120deg,#0B2545 0%,#164e63 100%)", color: "#fff", padding: "18px 22px", display: "flex", alignItems: "center", gap: "14px", flexWrap: "wrap"}}>
+                  <div style={{background: "#fff", border: "1px solid #E3E8EF", borderRadius: "22px", overflow: "hidden", boxShadow: "0 1px 2px rgba(11,37,69,.04),0 18px 40px -26px rgba(11,37,69,.35)"}}>
+                    <div style={{background: "linear-gradient(135deg,#0B2545 0%,#123A66 52%,#0D5C63 100%)", color: "#fff", padding: "22px 24px", display: "flex", alignItems: "center", gap: "16px", flexWrap: "wrap", position: "relative"}}>
+                      <span style={{position: "absolute", left: "-40px", bottom: "-60px", width: "180px", height: "180px", borderRadius: "50%", border: "28px solid rgba(95,208,194,.12)", pointerEvents: "none"}} />
                       {(vm.pf2?.ap?.has) ? (<>
-                        <div style={{width: "52px", height: "52px", borderRadius: "16px", background: "rgba(95,208,194,.16)", color: "#5FD0C2", display: "grid", placeItems: "center", fontSize: "22px", fontWeight: "800", flexShrink: "0"}}>{vm.pf2?.ap?.ini}</div>
+                        <div style={{width: "56px", height: "56px", borderRadius: "18px", background: "rgba(95,208,194,.18)", color: "#5FD0C2", display: "grid", placeItems: "center", fontSize: "22px", fontWeight: "800", flexShrink: "0", fontFamily: "'Noto Kufi Arabic',sans-serif"}}>{vm.pf2?.ap?.ini}</div>
                       </>) : null}
-                      <div style={{flex: "1", minWidth: "170px"}}>
-                        <div style={{fontSize: "11px", color: "#5FD0C2", fontWeight: "700"}}>{"پرونده بیمار · سامانه نوبت‌دهی کلینیک"}</div>
+                      <div style={{flex: "1", minWidth: "180px", position: "relative"}}>
+                        <div style={{fontSize: "11px", color: "#5FD0C2", fontWeight: "700"}}>{"مشاهده پرونده · کامیلو"}</div>
                         {(vm.pf2?.ap?.has) ? (<>
-                          <div style={{fontSize: "20px", fontWeight: "800", marginTop: "2px"}}>{vm.pf2?.ap?.name}</div>
+                          <div style={{fontSize: "22px", fontWeight: "800", marginTop: "3px", fontFamily: "'Noto Kufi Arabic',sans-serif"}}>{vm.pf2?.ap?.name}</div>
                         </>) : null}
-                        <div style={{fontSize: "11px", color: "#C3CBD6", marginTop: "4px"}}>{vm.pf2?.crmAt}</div>
+                        <div style={{fontSize: "12px", color: "#C3CBD6", marginTop: "4px", direction: "ltr", textAlign: "right"}}>{vm.pf2?.phone}</div>
+                        <div style={{fontSize: "11px", color: "#9FB0C8", marginTop: "4px"}}>{vm.pf2?.crmAt}</div>
                       </div>
-                      {(vm.pf2?.ap?.hasFile) ? (<>
-                        <span style={{background: "rgba(255,255,255,.1)", border: "1px solid rgba(255,255,255,.2)", padding: "6px 12px", borderRadius: "999px", fontSize: "12px", fontWeight: "800"}}>{"شماره پرونده "}{vm.pf2?.ap?.file}</span>
+                      {(vm.pf2?.ap?.has && vm.pf2?.ap?.hasIdCode) ? (<>
+                        <div style={{background: "linear-gradient(135deg,#F6C453,#E8A317)", color: "#1A1408", borderRadius: "16px", padding: "12px 18px", minWidth: "160px", boxShadow: "0 10px 24px rgba(232,163,23,.28)"}}>
+                          <div style={{fontSize: "10px", fontWeight: "800", letterSpacing: ".4px", opacity: ".85"}}>{"کد معرف"}</div>
+                          <div style={{fontSize: "20px", fontWeight: "900", marginTop: "2px", fontFamily: "'Noto Kufi Arabic',sans-serif", direction: "ltr", textAlign: "right"}}>{vm.pf2?.ap?.idCodeText}</div>
+                        </div>
+                      </>) : null}
+                      {(vm.pf2?.ap?.has && vm.pf2?.ap?.noIdCode) ? (<>
+                        <div style={{background: "rgba(255,255,255,.08)", border: "1px dashed rgba(255,255,255,.28)", borderRadius: "16px", padding: "12px 18px", minWidth: "140px"}}>
+                          <div style={{fontSize: "10px", fontWeight: "800", color: "#9FB0C8"}}>{"کد معرف"}</div>
+                          <div style={{fontSize: "15px", fontWeight: "800", marginTop: "2px", color: "#C3CBD6"}}>{"ثبت نشده"}</div>
+                        </div>
                       </>) : null}
                       {(vm.pf2?.looking) ? (<>
                         <span style={{fontSize: "11px", color: "#9FCFCC", fontWeight: "700"}}>{"در حال به‌روزرسانی…"}</span>
                       </>) : null}
                       {(vm.pf2?.canRefresh) ? (<>
-                        <button onClick={vm.pf2?.refresh} style={{border: "1px solid rgba(255,255,255,.25)", background: "transparent", color: "#fff", padding: "7px 12px", borderRadius: "10px", fontSize: "12px", fontWeight: "700", cursor: "pointer", fontFamily: "inherit"}}>{vm.pf2?.refreshText}</button>
+                        <button onClick={vm.pf2?.refresh} style={{border: "1px solid rgba(255,255,255,.25)", background: "transparent", color: "#fff", padding: "8px 14px", borderRadius: "12px", fontSize: "12px", fontWeight: "700", cursor: "pointer", fontFamily: "inherit"}}>{vm.pf2?.refreshText}</button>
                       </>) : null}
                     </div>
                     {(vm.pf2?.crmMsg) ? (<>
@@ -2694,131 +2705,109 @@ export default function AppView({ vm }) {
                       </div>
                     </>) : null}
                     {(vm.pf2?.ap?.has) ? (<>
-                      <div style={{padding: "18px 22px", display: "flex", flexDirection: "column", gap: "16px"}}>
-                        <div style={{display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(140px,1fr))", gap: "10px"}}>
-                          <div style={{background: "#F7F9FC", borderRadius: "14px", padding: "11px 14px"}}>
-                            <div style={{fontSize: "11px", color: "#7A889C"}}>{"نام"}</div>
-                            <div style={{fontSize: "15px", fontWeight: "800", marginTop: "4px"}}>{vm.pf2?.ap?.first}</div>
-                          </div>
-                          <div style={{background: "#F7F9FC", borderRadius: "14px", padding: "11px 14px"}}>
-                            <div style={{fontSize: "11px", color: "#7A889C"}}>{"نام خانوادگی"}</div>
-                            <div style={{fontSize: "15px", fontWeight: "800", marginTop: "4px"}}>{vm.pf2?.ap?.last}</div>
-                          </div>
-                          <div style={{background: "#F7F9FC", borderRadius: "14px", padding: "11px 14px"}}>
-                            <div style={{display: "flex", alignItems: "center", justifyContent: "space-between", gap: "6px"}}>
-                              <span style={{fontSize: "11px", color: "#7A889C"}}>{"کد ملی"}</span>
-                              {(vm.pf2?.ap?.hasNid) ? (<>
-                                <button onClick={vm.pf2?.ap?.togNid} style={{border: "none", background: "transparent", color: "#1D4E89", fontSize: "11px", fontWeight: "700", cursor: "pointer", padding: "0", fontFamily: "inherit"}}>{vm.pf2?.ap?.nidBtn}</button>
-                              </>) : null}
-                            </div>
-                            <div style={{fontSize: "15px", fontWeight: "800", marginTop: "4px", letterSpacing: "1px", direction: "ltr", textAlign: "right"}}>{vm.pf2?.ap?.nid}</div>
-                          </div>
-                          <div style={{background: "#F7F9FC", borderRadius: "14px", padding: "11px 14px"}}>
-                            <div style={{fontSize: "11px", color: "#7A889C"}}>{"شناسه بیمار"}</div>
-                            <div style={{fontSize: "15px", fontWeight: "800", marginTop: "4px"}}>{vm.pf2?.ap?.pid}</div>
-                          </div>
-                        </div>
-                        <div style={{display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(130px,1fr))", gap: "10px"}}>
+                      <div style={{padding: "20px 22px", display: "flex", flexDirection: "column", gap: "16px"}}>
+                        <div style={{display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(120px,1fr))", gap: "10px"}}>
                           {(vm.pf2?.ap?.kpis || []).map((k, __i13) => <React.Fragment key={__i13}>
                             <div style={{background: k?.bg, color: k?.fg, borderRadius: "16px", padding: "14px 16px"}}>
-                              <div style={{fontSize: "26px", fontWeight: "800", lineHeight: "1.1"}}>{k?.value}</div>
+                              <div style={{fontSize: "24px", fontWeight: "800", lineHeight: "1.15", fontFamily: "'Noto Kufi Arabic',sans-serif"}}>{k?.value}</div>
                               <div style={{fontSize: "12px", fontWeight: "700", marginTop: "6px"}}>{k?.label}</div>
-                              {(k?.hasSub) ? (<>
-                                <div style={{fontSize: "11px", opacity: ".8", marginTop: "2px"}}>{k?.sub}</div>
-                              </>) : null}
                             </div>
                           </React.Fragment>)}
+                        </div>
+                        <div style={{display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(150px,1fr))", gap: "10px"}}>
+                          <div style={{background: "#F7F9FC", borderRadius: "14px", padding: "12px 14px"}}>
+                            <div style={{fontSize: "11px", color: "#7A889C"}}>{"زیبایار"}</div>
+                            <div style={{fontSize: "14px", fontWeight: "800", marginTop: "4px"}}>{vm.pf2?.ap?.agent}</div>
+                          </div>
+                          <div style={{background: "#F7F9FC", borderRadius: "14px", padding: "12px 14px"}}>
+                            <div style={{fontSize: "11px", color: "#7A889C"}}>{"بخش"}</div>
+                            <div style={{fontSize: "14px", fontWeight: "800", marginTop: "4px"}}>{vm.pf2?.ap?.part}</div>
+                          </div>
+                          <div style={{background: "#F7F9FC", borderRadius: "14px", padding: "12px 14px"}}>
+                            <div style={{fontSize: "11px", color: "#7A889C"}}>{"پزشک"}</div>
+                            <div style={{fontSize: "14px", fontWeight: "800", marginTop: "4px"}}>{vm.pf2?.ap?.doctor}</div>
+                          </div>
+                          <div style={{background: "#F7F9FC", borderRadius: "14px", padding: "12px 14px"}}>
+                            <div style={{fontSize: "11px", color: "#7A889C"}}>{"موبایل"}</div>
+                            <div style={{fontSize: "14px", fontWeight: "800", marginTop: "4px", direction: "ltr", textAlign: "right"}}>{vm.pf2?.ap?.phone}</div>
+                          </div>
+                          {(vm.pf2?.ap?.hasSecond) ? (<>
+                            <div style={{background: "#F7F9FC", borderRadius: "14px", padding: "12px 14px"}}>
+                              <div style={{fontSize: "11px", color: "#7A889C"}}>{"شماره دوم"}</div>
+                              <div style={{fontSize: "14px", fontWeight: "800", marginTop: "4px", direction: "ltr", textAlign: "right"}}>{vm.pf2?.ap?.second}</div>
+                            </div>
+                          </>) : null}
+                          <div style={{background: "#F7F9FC", borderRadius: "14px", padding: "12px 14px"}}>
+                            <div style={{fontSize: "11px", color: "#7A889C"}}>{"وضعیت نوبت"}</div>
+                            <div style={{fontSize: "14px", fontWeight: "800", marginTop: "4px"}}>{vm.pf2?.ap?.status}</div>
+                          </div>
+                          <div style={{background: "#F7F9FC", borderRadius: "14px", padding: "12px 14px"}}>
+                            <div style={{fontSize: "11px", color: "#7A889C"}}>{"نوع نوبت"}</div>
+                            <div style={{fontSize: "14px", fontWeight: "800", marginTop: "4px"}}>{vm.pf2?.ap?.kind}</div>
+                          </div>
+                          {(vm.pf2?.ap?.hasCategory) ? (<>
+                            <div style={{background: "#F7F9FC", borderRadius: "14px", padding: "12px 14px"}}>
+                              <div style={{fontSize: "11px", color: "#7A889C"}}>{"دسته نوبت"}</div>
+                              <div style={{fontSize: "14px", fontWeight: "800", marginTop: "4px"}}>{vm.pf2?.ap?.category}</div>
+                            </div>
+                          </>) : null}
+                          <div style={{background: vm.pf2?.ap?.confBg, borderRadius: "14px", padding: "12px 14px"}}>
+                            <div style={{fontSize: "11px", color: "#7A889C"}}>{"Confirm"}</div>
+                            <div style={{fontSize: "14px", fontWeight: "800", marginTop: "4px", color: vm.pf2?.ap?.confFg}}>{vm.pf2?.ap?.confirmed}</div>
+                          </div>
+                          <div style={{background: "#F7F9FC", borderRadius: "14px", padding: "12px 14px"}}>
+                            <div style={{fontSize: "11px", color: "#7A889C"}}>{"شهر / استان"}</div>
+                            <div style={{fontSize: "14px", fontWeight: "800", marginTop: "4px"}}>{vm.pf2?.ap?.loc}</div>
+                          </div>
+                          <div style={{background: "#F7F9FC", borderRadius: "14px", padding: "12px 14px"}}>
+                            <div style={{fontSize: "11px", color: "#7A889C"}}>{"پیگیری نوبت"}</div>
+                            <div style={{fontSize: "14px", fontWeight: "800", marginTop: "4px", direction: "ltr", textAlign: "right"}}>{vm.pf2?.ap?.tracking}</div>
+                          </div>
+                          <div style={{background: "#F7F9FC", borderRadius: "14px", padding: "12px 14px"}}>
+                            <div style={{fontSize: "11px", color: "#7A889C"}}>{"شناسه نوبت"}</div>
+                            <div style={{fontSize: "14px", fontWeight: "800", marginTop: "4px"}}>{vm.pf2?.ap?.apptId}</div>
+                          </div>
                         </div>
                       </div>
                     </>) : null}
                   </div>
                   {(vm.pf2?.ap?.has) ? (<>
-                    <div style={{display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(300px,1fr))", gap: "16px", alignItems: "start"}}>
+                    <div style={{display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(280px,1fr))", gap: "14px"}}>
                       <div style={{background: "#fff", border: "1px solid #E3E8EF", borderRadius: "20px", padding: "18px 20px", display: "flex", flexDirection: "column", gap: "12px"}}>
-                        <div style={{display: "flex", alignItems: "center", gap: "10px"}}>
-                          <div style={{width: "34px", height: "34px", borderRadius: "10px", background: "#E3F2F1", color: "#0A5C5B", display: "grid", placeItems: "center"}}>
-                            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                              <rect x="3" y="4" width="18" height="18" rx="2" />
-                              <path d="M16 2v4M8 2v4M3 10h18" />
-                            </svg>
-                          </div>
-                          <div style={{fontWeight: "800", fontSize: "14px", flex: "1"}}>{"نوبت بعدی"}</div>
-                          {(vm.pf2?.ap?.hasNext) ? (<>
-                            <span style={{fontSize: "11px", fontWeight: "800", padding: "4px 10px", borderRadius: "999px", background: vm.pf2?.ap?.next?.stBg, color: vm.pf2?.ap?.next?.stFg}}>{vm.pf2?.ap?.next?.st}</span>
-                          </>) : null}
-                        </div>
+                        <div style={{fontWeight: "800", fontSize: "14px"}}>{"نوبت بعدی"}</div>
                         {(vm.pf2?.ap?.hasNext) ? (<>
-                          <div style={{background: "linear-gradient(135deg,#E3F2F1,#f3f8fd)", border: "1px solid #cfe7e5", borderRadius: "16px", padding: "16px", display: "flex", flexDirection: "column", gap: "10px"}}>
+                          <div style={{background: "linear-gradient(135deg,#E3F2F1,#f3f8fd)", border: "1px solid #cfe7e5", borderRadius: "16px", padding: "16px"}}>
                             <div style={{display: "flex", alignItems: "baseline", gap: "10px", flexWrap: "wrap"}}>
-                              <span style={{fontSize: "22px", fontWeight: "800", color: "#0B2545"}}>{vm.pf2?.ap?.next?.date}</span>
+                              <span style={{fontSize: "22px", fontWeight: "800", color: "#0B2545", fontFamily: "'Noto Kufi Arabic',sans-serif"}}>{vm.pf2?.ap?.next?.date}</span>
                               <span style={{fontSize: "15px", fontWeight: "800", color: "#0A5C5B"}}>{"ساعت "}{vm.pf2?.ap?.next?.time}</span>
                             </div>
-                            <div style={{fontSize: "12px", color: "#3A4A63"}}>
-                              {vm.pf2?.ap?.next?.wd}
-                              {(vm.pf2?.ap?.next?.hasRel) ? (<>
-                                {" · "}
-                                <b style={{color: "#0A5C5B"}}>{vm.pf2?.ap?.next?.rel}</b>
-                              </>) : null}
-                            </div>
-                            <div style={{display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px"}}>
-                              <div style={{background: "#fff", borderRadius: "12px", padding: "8px 11px"}}>
-                                <div style={{fontSize: "11px", color: "#7A889C"}}>{"خدمت"}</div>
-                                <div style={{fontSize: "13px", fontWeight: "800", marginTop: "2px"}}>{vm.pf2?.ap?.next?.service}</div>
-                              </div>
-                              <div style={{background: "#fff", borderRadius: "12px", padding: "8px 11px"}}>
-                                <div style={{fontSize: "11px", color: "#7A889C"}}>{"محل"}</div>
-                                <div style={{fontSize: "13px", fontWeight: "800", marginTop: "2px"}}>{vm.pf2?.ap?.next?.place}</div>
-                              </div>
-                              <div style={{background: "#fff", borderRadius: "12px", padding: "8px 11px", gridColumn: "1 / -1"}}>
-                                <div style={{fontSize: "11px", color: "#7A889C"}}>{"مبلغ پرداختی"}</div>
-                                <div style={{fontSize: "13px", fontWeight: "800", marginTop: "2px"}}>{vm.pf2?.ap?.next?.paid}</div>
-                              </div>
+                            <div style={{fontSize: "13px", fontWeight: "700", marginTop: "8px"}}>{vm.pf2?.ap?.next?.part}</div>
+                            <div style={{marginTop: "10px"}}>
+                              <span style={{fontSize: "11px", fontWeight: "800", padding: "4px 10px", borderRadius: "999px", background: vm.pf2?.ap?.next?.stBg, color: vm.pf2?.ap?.next?.stFg}}>{vm.pf2?.ap?.next?.st}</span>
                             </div>
                           </div>
                         </>) : null}
                         {(vm.pf2?.ap?.noNext) ? (<>
-                          <div style={{background: "#F7F9FC", borderRadius: "14px", padding: "16px", fontSize: "13px", color: "#5B6B82"}}>{"نوبت آینده‌ای برای این بیمار ثبت نشده است."}</div>
+                          <div style={{background: "#F7F9FC", borderRadius: "14px", padding: "16px", fontSize: "13px", color: "#5B6B82"}}>{"نوبت آینده‌ای ثبت نشده است."}</div>
                         </>) : null}
                       </div>
                       <div style={{background: "#fff", border: "1px solid #E3E8EF", borderRadius: "20px", padding: "18px 20px", display: "flex", flexDirection: "column", gap: "12px"}}>
-                        <div style={{display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap"}}>
-                          <div style={{width: "34px", height: "34px", borderRadius: "10px", background: "#f0ebf8", color: "#6a4b9c", display: "grid", placeItems: "center"}}>
-                            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
-                          </div>
-                          <div style={{flex: "1", minWidth: "120px"}}>
-                            <div style={{fontWeight: "800", fontSize: "14px"}}>{"آخرین گفتگوی آنلاین"}</div>
-                            {(vm.pf2?.ap?.hasChat) ? (<>
-                              <div style={{fontSize: "11px", color: "#7A889C", marginTop: "2px"}}>{vm.pf2?.ap?.chat?.service}{" · "}{vm.pf2?.ap?.chat?.count}</div>
-                            </>) : null}
-                          </div>
-                          {(vm.pf2?.ap?.hasChat) ? (<>
-                            <span style={{fontSize: "11px", fontWeight: "800", padding: "4px 10px", borderRadius: "999px", background: vm.pf2?.ap?.chat?.stBg, color: vm.pf2?.ap?.chat?.stFg}}>{vm.pf2?.ap?.chat?.st}</span>
-                            <span style={{fontSize: "11px", fontWeight: "800", padding: "4px 10px", borderRadius: "999px", background: vm.pf2?.ap?.chat?.openBg, color: vm.pf2?.ap?.chat?.openFg}}>{vm.pf2?.ap?.chat?.openText}</span>
-                          </>) : null}
-                        </div>
-                        {(vm.pf2?.ap?.hasChat) ? (<>
-                          <div style={{background: "#FAFBFD", border: "1px solid #EEF1F5", borderRadius: "16px", padding: "12px", display: "flex", flexDirection: "column", gap: "8px", maxHeight: "340px", overflow: "auto"}}>
-                            {(vm.pf2?.ap?.chat?.hasMsgs) ? (<>
-                              <div style={{fontSize: "11px", color: "#7A889C", textAlign: "center"}}>{vm.pf2?.ap?.chat?.shown}</div>
-                            </>) : null}
-                            {(vm.pf2?.ap?.chat?.msgs || []).map((m, __i14) => <React.Fragment key={__i14}>
-                              <div style={{display: "flex", flexDirection: "column", alignItems: m?.al}}>
-                                <div style={{maxWidth: "85%", background: m?.bg, color: m?.fg, borderRadius: m?.rad, padding: "8px 12px", fontSize: "13px", lineHeight: "1.8", wordBreak: "break-word"}}>
-                                  <div style={{fontSize: "10px", fontWeight: "800", opacity: ".75", marginBottom: "2px"}}>{m?.who}</div>
-                                  {(m?.hasText) ? (<>
-                                    <div style={{whiteSpace: "pre-wrap"}}>{m?.text}</div>
-                                  </>) : null}
-                                  {(m?.file) ? (<>
-                                    <div style={{fontSize: "12px", fontWeight: "700", opacity: ".85"}}>{"📎 فایل یا تصویر پیوست شده"}</div>
-                                  </>) : null}
-                                </div>
-                                <div style={{fontSize: "10px", color: "#A9B4C4", marginTop: "2px"}}>{m?.at}</div>
-                              </div>
-                            </React.Fragment>)}
+                        <div style={{fontWeight: "800", fontSize: "14px"}}>{"آخرین نوبت دریافتی"}</div>
+                        {(vm.pf2?.ap?.hasLast) ? (<>
+                          <div style={{background: "#FAFBFD", border: "1px solid #EEF1F5", borderRadius: "16px", padding: "16px"}}>
+                            <div style={{display: "flex", alignItems: "baseline", gap: "10px", flexWrap: "wrap"}}>
+                              <span style={{fontSize: "22px", fontWeight: "800", color: "#0B2545", fontFamily: "'Noto Kufi Arabic',sans-serif"}}>{vm.pf2?.ap?.last?.date}</span>
+                              <span style={{fontSize: "15px", fontWeight: "800", color: "#1D4E89"}}>{"ساعت "}{vm.pf2?.ap?.last?.time}</span>
+                            </div>
+                            <div style={{fontSize: "13px", fontWeight: "700", marginTop: "8px"}}>{vm.pf2?.ap?.last?.part}</div>
+                            <div style={{fontSize: "11px", color: "#7A889C", marginTop: "6px"}}>{"ثبت: "}{vm.pf2?.ap?.lastCreated}</div>
+                            <div style={{marginTop: "10px"}}>
+                              <span style={{fontSize: "11px", fontWeight: "800", padding: "4px 10px", borderRadius: "999px", background: vm.pf2?.ap?.last?.stBg, color: vm.pf2?.ap?.last?.stFg}}>{vm.pf2?.ap?.last?.st}</span>
+                            </div>
                           </div>
                         </>) : null}
-                        {(vm.pf2?.ap?.noChat) ? (<>
-                          <div style={{background: "#F7F9FC", borderRadius: "14px", padding: "16px", fontSize: "13px", color: "#5B6B82"}}>{"گفتگوی آنلاینی با پیام برای این بیمار ثبت نشده است."}</div>
+                        {(vm.pf2?.ap?.noLast) ? (<>
+                          <div style={{background: "#F7F9FC", borderRadius: "14px", padding: "16px", fontSize: "13px", color: "#5B6B82"}}>{"نوبت گذشته‌ای ثبت نشده است."}</div>
                         </>) : null}
                       </div>
                     </div>
@@ -2829,33 +2818,31 @@ export default function AppView({ vm }) {
                           <button onClick={t?.pick} style={{border: `1px solid ${t?.bd}`, background: t?.bg, color: t?.fg, padding: "6px 12px", borderRadius: "999px", fontSize: "12px", fontWeight: "700", cursor: "pointer", fontFamily: "inherit"}}>{t?.label}</button>
                         </React.Fragment>)}
                       </div>
+                      {(vm.pf2?.ap?.hasOmitted) ? (<>
+                        <div style={{fontSize: "11px", color: "#7A889C"}}>{vm.pf2?.ap?.omitted}</div>
+                      </>) : null}
                       {(vm.pf2?.ap?.hasRows) ? (<>
                         <div style={{display: "flex", flexDirection: "column", gap: "8px"}}>
                           {(vm.pf2?.ap?.rows || []).map((r, __i13) => <React.Fragment key={__i13}>
-                            <div style={{display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap", border: "1px solid #EEF1F5", background: r?.futBg, borderRadius: "14px", padding: "10px 14px", opacity: r?.op}}>
-                              <div style={{minWidth: "118px"}}>
-                                <div style={{fontSize: "14px", fontWeight: "800"}}>{r?.date}</div>
-                                <div style={{fontSize: "11px", color: "#7A889C", marginTop: "2px"}}>{r?.wd}{" · ساعت "}{r?.time}</div>
+                            <div style={{display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap", border: "1px solid #EEF1F5", background: r?.futBg, borderRadius: "14px", padding: "12px 14px", opacity: r?.op}}>
+                              <div style={{minWidth: "110px"}}>
+                                <div style={{fontSize: "15px", fontWeight: "800", fontFamily: "'Noto Kufi Arabic',sans-serif"}}>{r?.date}</div>
+                                <div style={{fontSize: "11px", color: "#7A889C", marginTop: "2px"}}>{"ساعت "}{r?.time}</div>
                               </div>
-                              <div style={{flex: "1", minWidth: "150px"}}>
-                                <div style={{fontSize: "13px", fontWeight: "800"}}>{r?.service}</div>
-                                <div style={{fontSize: "11px", color: "#7A889C", marginTop: "2px"}}>
-                                  {r?.rel}
-                                  {(r?.hasPlace) ? (<>
-                                    {" · "}{r?.place}
-                                  </>) : null}
-                                  {(r?.hasPaid) ? (<>
-                                    {" · پرداخت: "}{r?.paid}
+                              <div style={{flex: "1", minWidth: "160px"}}>
+                                <div style={{fontSize: "13px", fontWeight: "800"}}>{r?.part}</div>
+                                <div style={{fontSize: "11px", color: "#7A889C", marginTop: "3px"}}>
+                                  {r?.agent}{" · "}{r?.doctor}
+                                  {(r?.hasId) ? (<>
+                                    {" · "}
+                                    <b style={{color: "#B47A00"}}>{"کد معرف: "}{r?.identifier}</b>
                                   </>) : null}
                                 </div>
+                                <div style={{fontSize: "11px", color: "#9AA6B8", marginTop: "2px", direction: "ltr", textAlign: "right"}}>{"#"}{r?.id}{" · "}{r?.tracking}</div>
                               </div>
                               <div style={{display: "flex", gap: "6px", flexWrap: "wrap", alignItems: "center"}}>
-                                {(r?.hasMsgs) ? (<>
-                                  <span style={{fontSize: "11px", color: "#6a4b9c", fontWeight: "700"}}>{r?.msgs}</span>
-                                </>) : null}
-                                {(r?.online) ? (<>
-                                  <span title="وضعیت گفتگو" style={{fontSize: "11px", fontWeight: "800", padding: "3px 9px", borderRadius: "999px", background: r?.osBg, color: r?.osFg}}>{"گفتگو: "}{r?.os}</span>
-                                </>) : null}
+                                <span style={{fontSize: "11px", fontWeight: "800", padding: "3px 9px", borderRadius: "999px", background: r?.confBg, color: r?.confFg}}>{r?.confirmed}</span>
+                                <span style={{fontSize: "11px", fontWeight: "800", padding: "3px 9px", borderRadius: "999px", background: "#f0ebf8", color: "#6a4b9c"}}>{r?.kind}</span>
                                 <span style={{fontSize: "11px", fontWeight: "800", padding: "3px 9px", borderRadius: "999px", background: r?.stBg, color: r?.stFg}}>{r?.st}</span>
                               </div>
                             </div>
@@ -2868,6 +2855,10 @@ export default function AppView({ vm }) {
                       {(vm.pf2?.ap?.more) ? (<>
                         <button onClick={vm.pf2?.ap?.togMore} style={{alignSelf: "center", border: "1px solid #E3E8EF", background: "#fff", color: "#1D4E89", padding: "7px 16px", borderRadius: "999px", fontSize: "12px", fontWeight: "800", cursor: "pointer", fontFamily: "inherit"}}>{vm.pf2?.ap?.moreText}</button>
                       </>) : null}
+                    </div>
+                    <div style={{background: "#fff", border: "1px solid #E3E8EF", borderRadius: "20px", padding: "18px 20px"}}>
+                      <div style={{fontWeight: "800", fontSize: "14px", marginBottom: "8px"}}>{"توضیحات پرونده"}</div>
+                      <div style={{fontSize: "13px", color: "#3A4A63", lineHeight: "1.9", whiteSpace: "pre-wrap"}}>{vm.pf2?.ap?.notes}</div>
                     </div>
                   </>) : null}
                 </div>
@@ -3424,26 +3415,37 @@ export default function AppView({ vm }) {
               </>) : null}
               {(vm.pf2?.apMode) ? (<>
                 <div style={{display: "flex", flexDirection: "column", gap: "16px"}}>
-                  <div style={{background: "#fff", border: "1px solid #E3E8EF", borderRadius: "20px", overflow: "hidden", boxShadow: "0 1px 2px rgba(11,37,69,.04),0 14px 34px -22px rgba(11,37,69,.25)"}}>
-                    <div style={{background: "linear-gradient(120deg,#0B2545 0%,#164e63 100%)", color: "#fff", padding: "18px 22px", display: "flex", alignItems: "center", gap: "14px", flexWrap: "wrap"}}>
+                  <div style={{background: "#fff", border: "1px solid #E3E8EF", borderRadius: "22px", overflow: "hidden", boxShadow: "0 1px 2px rgba(11,37,69,.04),0 18px 40px -26px rgba(11,37,69,.35)"}}>
+                    <div style={{background: "linear-gradient(135deg,#0B2545 0%,#123A66 52%,#0D5C63 100%)", color: "#fff", padding: "22px 24px", display: "flex", alignItems: "center", gap: "16px", flexWrap: "wrap", position: "relative"}}>
+                      <span style={{position: "absolute", left: "-40px", bottom: "-60px", width: "180px", height: "180px", borderRadius: "50%", border: "28px solid rgba(95,208,194,.12)", pointerEvents: "none"}} />
                       {(vm.pf2?.ap?.has) ? (<>
-                        <div style={{width: "52px", height: "52px", borderRadius: "16px", background: "rgba(95,208,194,.16)", color: "#5FD0C2", display: "grid", placeItems: "center", fontSize: "22px", fontWeight: "800", flexShrink: "0"}}>{vm.pf2?.ap?.ini}</div>
+                        <div style={{width: "56px", height: "56px", borderRadius: "18px", background: "rgba(95,208,194,.18)", color: "#5FD0C2", display: "grid", placeItems: "center", fontSize: "22px", fontWeight: "800", flexShrink: "0", fontFamily: "'Noto Kufi Arabic',sans-serif"}}>{vm.pf2?.ap?.ini}</div>
                       </>) : null}
-                      <div style={{flex: "1", minWidth: "170px"}}>
-                        <div style={{fontSize: "11px", color: "#5FD0C2", fontWeight: "700"}}>{"پرونده بیمار · سامانه نوبت‌دهی کلینیک"}</div>
+                      <div style={{flex: "1", minWidth: "180px", position: "relative"}}>
+                        <div style={{fontSize: "11px", color: "#5FD0C2", fontWeight: "700"}}>{"مشاهده پرونده · کامیلو"}</div>
                         {(vm.pf2?.ap?.has) ? (<>
-                          <div style={{fontSize: "20px", fontWeight: "800", marginTop: "2px"}}>{vm.pf2?.ap?.name}</div>
+                          <div style={{fontSize: "22px", fontWeight: "800", marginTop: "3px", fontFamily: "'Noto Kufi Arabic',sans-serif"}}>{vm.pf2?.ap?.name}</div>
                         </>) : null}
-                        <div style={{fontSize: "11px", color: "#C3CBD6", marginTop: "4px"}}>{vm.pf2?.crmAt}</div>
+                        <div style={{fontSize: "12px", color: "#C3CBD6", marginTop: "4px", direction: "ltr", textAlign: "right"}}>{vm.pf2?.phone}</div>
+                        <div style={{fontSize: "11px", color: "#9FB0C8", marginTop: "4px"}}>{vm.pf2?.crmAt}</div>
                       </div>
-                      {(vm.pf2?.ap?.hasFile) ? (<>
-                        <span style={{background: "rgba(255,255,255,.1)", border: "1px solid rgba(255,255,255,.2)", padding: "6px 12px", borderRadius: "999px", fontSize: "12px", fontWeight: "800"}}>{"شماره پرونده "}{vm.pf2?.ap?.file}</span>
+                      {(vm.pf2?.ap?.has && vm.pf2?.ap?.hasIdCode) ? (<>
+                        <div style={{background: "linear-gradient(135deg,#F6C453,#E8A317)", color: "#1A1408", borderRadius: "16px", padding: "12px 18px", minWidth: "160px", boxShadow: "0 10px 24px rgba(232,163,23,.28)"}}>
+                          <div style={{fontSize: "10px", fontWeight: "800", letterSpacing: ".4px", opacity: ".85"}}>{"کد معرف"}</div>
+                          <div style={{fontSize: "20px", fontWeight: "900", marginTop: "2px", fontFamily: "'Noto Kufi Arabic',sans-serif", direction: "ltr", textAlign: "right"}}>{vm.pf2?.ap?.idCodeText}</div>
+                        </div>
+                      </>) : null}
+                      {(vm.pf2?.ap?.has && vm.pf2?.ap?.noIdCode) ? (<>
+                        <div style={{background: "rgba(255,255,255,.08)", border: "1px dashed rgba(255,255,255,.28)", borderRadius: "16px", padding: "12px 18px", minWidth: "140px"}}>
+                          <div style={{fontSize: "10px", fontWeight: "800", color: "#9FB0C8"}}>{"کد معرف"}</div>
+                          <div style={{fontSize: "15px", fontWeight: "800", marginTop: "2px", color: "#C3CBD6"}}>{"ثبت نشده"}</div>
+                        </div>
                       </>) : null}
                       {(vm.pf2?.looking) ? (<>
                         <span style={{fontSize: "11px", color: "#9FCFCC", fontWeight: "700"}}>{"در حال به‌روزرسانی…"}</span>
                       </>) : null}
                       {(vm.pf2?.canRefresh) ? (<>
-                        <button onClick={vm.pf2?.refresh} style={{border: "1px solid rgba(255,255,255,.25)", background: "transparent", color: "#fff", padding: "7px 12px", borderRadius: "10px", fontSize: "12px", fontWeight: "700", cursor: "pointer", fontFamily: "inherit"}}>{vm.pf2?.refreshText}</button>
+                        <button onClick={vm.pf2?.refresh} style={{border: "1px solid rgba(255,255,255,.25)", background: "transparent", color: "#fff", padding: "8px 14px", borderRadius: "12px", fontSize: "12px", fontWeight: "700", cursor: "pointer", fontFamily: "inherit"}}>{vm.pf2?.refreshText}</button>
                       </>) : null}
                     </div>
                     {(vm.pf2?.crmMsg) ? (<>
@@ -3453,131 +3455,109 @@ export default function AppView({ vm }) {
                       </div>
                     </>) : null}
                     {(vm.pf2?.ap?.has) ? (<>
-                      <div style={{padding: "18px 22px", display: "flex", flexDirection: "column", gap: "16px"}}>
-                        <div style={{display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(140px,1fr))", gap: "10px"}}>
-                          <div style={{background: "#F7F9FC", borderRadius: "14px", padding: "11px 14px"}}>
-                            <div style={{fontSize: "11px", color: "#7A889C"}}>{"نام"}</div>
-                            <div style={{fontSize: "15px", fontWeight: "800", marginTop: "4px"}}>{vm.pf2?.ap?.first}</div>
-                          </div>
-                          <div style={{background: "#F7F9FC", borderRadius: "14px", padding: "11px 14px"}}>
-                            <div style={{fontSize: "11px", color: "#7A889C"}}>{"نام خانوادگی"}</div>
-                            <div style={{fontSize: "15px", fontWeight: "800", marginTop: "4px"}}>{vm.pf2?.ap?.last}</div>
-                          </div>
-                          <div style={{background: "#F7F9FC", borderRadius: "14px", padding: "11px 14px"}}>
-                            <div style={{display: "flex", alignItems: "center", justifyContent: "space-between", gap: "6px"}}>
-                              <span style={{fontSize: "11px", color: "#7A889C"}}>{"کد ملی"}</span>
-                              {(vm.pf2?.ap?.hasNid) ? (<>
-                                <button onClick={vm.pf2?.ap?.togNid} style={{border: "none", background: "transparent", color: "#1D4E89", fontSize: "11px", fontWeight: "700", cursor: "pointer", padding: "0", fontFamily: "inherit"}}>{vm.pf2?.ap?.nidBtn}</button>
-                              </>) : null}
-                            </div>
-                            <div style={{fontSize: "15px", fontWeight: "800", marginTop: "4px", letterSpacing: "1px", direction: "ltr", textAlign: "right"}}>{vm.pf2?.ap?.nid}</div>
-                          </div>
-                          <div style={{background: "#F7F9FC", borderRadius: "14px", padding: "11px 14px"}}>
-                            <div style={{fontSize: "11px", color: "#7A889C"}}>{"شناسه بیمار"}</div>
-                            <div style={{fontSize: "15px", fontWeight: "800", marginTop: "4px"}}>{vm.pf2?.ap?.pid}</div>
-                          </div>
-                        </div>
-                        <div style={{display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(130px,1fr))", gap: "10px"}}>
+                      <div style={{padding: "20px 22px", display: "flex", flexDirection: "column", gap: "16px"}}>
+                        <div style={{display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(120px,1fr))", gap: "10px"}}>
                           {(vm.pf2?.ap?.kpis || []).map((k, __i13) => <React.Fragment key={__i13}>
                             <div style={{background: k?.bg, color: k?.fg, borderRadius: "16px", padding: "14px 16px"}}>
-                              <div style={{fontSize: "26px", fontWeight: "800", lineHeight: "1.1"}}>{k?.value}</div>
+                              <div style={{fontSize: "24px", fontWeight: "800", lineHeight: "1.15", fontFamily: "'Noto Kufi Arabic',sans-serif"}}>{k?.value}</div>
                               <div style={{fontSize: "12px", fontWeight: "700", marginTop: "6px"}}>{k?.label}</div>
-                              {(k?.hasSub) ? (<>
-                                <div style={{fontSize: "11px", opacity: ".8", marginTop: "2px"}}>{k?.sub}</div>
-                              </>) : null}
                             </div>
                           </React.Fragment>)}
+                        </div>
+                        <div style={{display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(150px,1fr))", gap: "10px"}}>
+                          <div style={{background: "#F7F9FC", borderRadius: "14px", padding: "12px 14px"}}>
+                            <div style={{fontSize: "11px", color: "#7A889C"}}>{"زیبایار"}</div>
+                            <div style={{fontSize: "14px", fontWeight: "800", marginTop: "4px"}}>{vm.pf2?.ap?.agent}</div>
+                          </div>
+                          <div style={{background: "#F7F9FC", borderRadius: "14px", padding: "12px 14px"}}>
+                            <div style={{fontSize: "11px", color: "#7A889C"}}>{"بخش"}</div>
+                            <div style={{fontSize: "14px", fontWeight: "800", marginTop: "4px"}}>{vm.pf2?.ap?.part}</div>
+                          </div>
+                          <div style={{background: "#F7F9FC", borderRadius: "14px", padding: "12px 14px"}}>
+                            <div style={{fontSize: "11px", color: "#7A889C"}}>{"پزشک"}</div>
+                            <div style={{fontSize: "14px", fontWeight: "800", marginTop: "4px"}}>{vm.pf2?.ap?.doctor}</div>
+                          </div>
+                          <div style={{background: "#F7F9FC", borderRadius: "14px", padding: "12px 14px"}}>
+                            <div style={{fontSize: "11px", color: "#7A889C"}}>{"موبایل"}</div>
+                            <div style={{fontSize: "14px", fontWeight: "800", marginTop: "4px", direction: "ltr", textAlign: "right"}}>{vm.pf2?.ap?.phone}</div>
+                          </div>
+                          {(vm.pf2?.ap?.hasSecond) ? (<>
+                            <div style={{background: "#F7F9FC", borderRadius: "14px", padding: "12px 14px"}}>
+                              <div style={{fontSize: "11px", color: "#7A889C"}}>{"شماره دوم"}</div>
+                              <div style={{fontSize: "14px", fontWeight: "800", marginTop: "4px", direction: "ltr", textAlign: "right"}}>{vm.pf2?.ap?.second}</div>
+                            </div>
+                          </>) : null}
+                          <div style={{background: "#F7F9FC", borderRadius: "14px", padding: "12px 14px"}}>
+                            <div style={{fontSize: "11px", color: "#7A889C"}}>{"وضعیت نوبت"}</div>
+                            <div style={{fontSize: "14px", fontWeight: "800", marginTop: "4px"}}>{vm.pf2?.ap?.status}</div>
+                          </div>
+                          <div style={{background: "#F7F9FC", borderRadius: "14px", padding: "12px 14px"}}>
+                            <div style={{fontSize: "11px", color: "#7A889C"}}>{"نوع نوبت"}</div>
+                            <div style={{fontSize: "14px", fontWeight: "800", marginTop: "4px"}}>{vm.pf2?.ap?.kind}</div>
+                          </div>
+                          {(vm.pf2?.ap?.hasCategory) ? (<>
+                            <div style={{background: "#F7F9FC", borderRadius: "14px", padding: "12px 14px"}}>
+                              <div style={{fontSize: "11px", color: "#7A889C"}}>{"دسته نوبت"}</div>
+                              <div style={{fontSize: "14px", fontWeight: "800", marginTop: "4px"}}>{vm.pf2?.ap?.category}</div>
+                            </div>
+                          </>) : null}
+                          <div style={{background: vm.pf2?.ap?.confBg, borderRadius: "14px", padding: "12px 14px"}}>
+                            <div style={{fontSize: "11px", color: "#7A889C"}}>{"Confirm"}</div>
+                            <div style={{fontSize: "14px", fontWeight: "800", marginTop: "4px", color: vm.pf2?.ap?.confFg}}>{vm.pf2?.ap?.confirmed}</div>
+                          </div>
+                          <div style={{background: "#F7F9FC", borderRadius: "14px", padding: "12px 14px"}}>
+                            <div style={{fontSize: "11px", color: "#7A889C"}}>{"شهر / استان"}</div>
+                            <div style={{fontSize: "14px", fontWeight: "800", marginTop: "4px"}}>{vm.pf2?.ap?.loc}</div>
+                          </div>
+                          <div style={{background: "#F7F9FC", borderRadius: "14px", padding: "12px 14px"}}>
+                            <div style={{fontSize: "11px", color: "#7A889C"}}>{"پیگیری نوبت"}</div>
+                            <div style={{fontSize: "14px", fontWeight: "800", marginTop: "4px", direction: "ltr", textAlign: "right"}}>{vm.pf2?.ap?.tracking}</div>
+                          </div>
+                          <div style={{background: "#F7F9FC", borderRadius: "14px", padding: "12px 14px"}}>
+                            <div style={{fontSize: "11px", color: "#7A889C"}}>{"شناسه نوبت"}</div>
+                            <div style={{fontSize: "14px", fontWeight: "800", marginTop: "4px"}}>{vm.pf2?.ap?.apptId}</div>
+                          </div>
                         </div>
                       </div>
                     </>) : null}
                   </div>
                   {(vm.pf2?.ap?.has) ? (<>
-                    <div style={{display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(300px,1fr))", gap: "16px", alignItems: "start"}}>
+                    <div style={{display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(280px,1fr))", gap: "14px"}}>
                       <div style={{background: "#fff", border: "1px solid #E3E8EF", borderRadius: "20px", padding: "18px 20px", display: "flex", flexDirection: "column", gap: "12px"}}>
-                        <div style={{display: "flex", alignItems: "center", gap: "10px"}}>
-                          <div style={{width: "34px", height: "34px", borderRadius: "10px", background: "#E3F2F1", color: "#0A5C5B", display: "grid", placeItems: "center"}}>
-                            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                              <rect x="3" y="4" width="18" height="18" rx="2" />
-                              <path d="M16 2v4M8 2v4M3 10h18" />
-                            </svg>
-                          </div>
-                          <div style={{fontWeight: "800", fontSize: "14px", flex: "1"}}>{"نوبت بعدی"}</div>
-                          {(vm.pf2?.ap?.hasNext) ? (<>
-                            <span style={{fontSize: "11px", fontWeight: "800", padding: "4px 10px", borderRadius: "999px", background: vm.pf2?.ap?.next?.stBg, color: vm.pf2?.ap?.next?.stFg}}>{vm.pf2?.ap?.next?.st}</span>
-                          </>) : null}
-                        </div>
+                        <div style={{fontWeight: "800", fontSize: "14px"}}>{"نوبت بعدی"}</div>
                         {(vm.pf2?.ap?.hasNext) ? (<>
-                          <div style={{background: "linear-gradient(135deg,#E3F2F1,#f3f8fd)", border: "1px solid #cfe7e5", borderRadius: "16px", padding: "16px", display: "flex", flexDirection: "column", gap: "10px"}}>
+                          <div style={{background: "linear-gradient(135deg,#E3F2F1,#f3f8fd)", border: "1px solid #cfe7e5", borderRadius: "16px", padding: "16px"}}>
                             <div style={{display: "flex", alignItems: "baseline", gap: "10px", flexWrap: "wrap"}}>
-                              <span style={{fontSize: "22px", fontWeight: "800", color: "#0B2545"}}>{vm.pf2?.ap?.next?.date}</span>
+                              <span style={{fontSize: "22px", fontWeight: "800", color: "#0B2545", fontFamily: "'Noto Kufi Arabic',sans-serif"}}>{vm.pf2?.ap?.next?.date}</span>
                               <span style={{fontSize: "15px", fontWeight: "800", color: "#0A5C5B"}}>{"ساعت "}{vm.pf2?.ap?.next?.time}</span>
                             </div>
-                            <div style={{fontSize: "12px", color: "#3A4A63"}}>
-                              {vm.pf2?.ap?.next?.wd}
-                              {(vm.pf2?.ap?.next?.hasRel) ? (<>
-                                {" · "}
-                                <b style={{color: "#0A5C5B"}}>{vm.pf2?.ap?.next?.rel}</b>
-                              </>) : null}
-                            </div>
-                            <div style={{display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px"}}>
-                              <div style={{background: "#fff", borderRadius: "12px", padding: "8px 11px"}}>
-                                <div style={{fontSize: "11px", color: "#7A889C"}}>{"خدمت"}</div>
-                                <div style={{fontSize: "13px", fontWeight: "800", marginTop: "2px"}}>{vm.pf2?.ap?.next?.service}</div>
-                              </div>
-                              <div style={{background: "#fff", borderRadius: "12px", padding: "8px 11px"}}>
-                                <div style={{fontSize: "11px", color: "#7A889C"}}>{"محل"}</div>
-                                <div style={{fontSize: "13px", fontWeight: "800", marginTop: "2px"}}>{vm.pf2?.ap?.next?.place}</div>
-                              </div>
-                              <div style={{background: "#fff", borderRadius: "12px", padding: "8px 11px", gridColumn: "1 / -1"}}>
-                                <div style={{fontSize: "11px", color: "#7A889C"}}>{"مبلغ پرداختی"}</div>
-                                <div style={{fontSize: "13px", fontWeight: "800", marginTop: "2px"}}>{vm.pf2?.ap?.next?.paid}</div>
-                              </div>
+                            <div style={{fontSize: "13px", fontWeight: "700", marginTop: "8px"}}>{vm.pf2?.ap?.next?.part}</div>
+                            <div style={{marginTop: "10px"}}>
+                              <span style={{fontSize: "11px", fontWeight: "800", padding: "4px 10px", borderRadius: "999px", background: vm.pf2?.ap?.next?.stBg, color: vm.pf2?.ap?.next?.stFg}}>{vm.pf2?.ap?.next?.st}</span>
                             </div>
                           </div>
                         </>) : null}
                         {(vm.pf2?.ap?.noNext) ? (<>
-                          <div style={{background: "#F7F9FC", borderRadius: "14px", padding: "16px", fontSize: "13px", color: "#5B6B82"}}>{"نوبت آینده‌ای برای این بیمار ثبت نشده است."}</div>
+                          <div style={{background: "#F7F9FC", borderRadius: "14px", padding: "16px", fontSize: "13px", color: "#5B6B82"}}>{"نوبت آینده‌ای ثبت نشده است."}</div>
                         </>) : null}
                       </div>
                       <div style={{background: "#fff", border: "1px solid #E3E8EF", borderRadius: "20px", padding: "18px 20px", display: "flex", flexDirection: "column", gap: "12px"}}>
-                        <div style={{display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap"}}>
-                          <div style={{width: "34px", height: "34px", borderRadius: "10px", background: "#f0ebf8", color: "#6a4b9c", display: "grid", placeItems: "center"}}>
-                            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
-                          </div>
-                          <div style={{flex: "1", minWidth: "120px"}}>
-                            <div style={{fontWeight: "800", fontSize: "14px"}}>{"آخرین گفتگوی آنلاین"}</div>
-                            {(vm.pf2?.ap?.hasChat) ? (<>
-                              <div style={{fontSize: "11px", color: "#7A889C", marginTop: "2px"}}>{vm.pf2?.ap?.chat?.service}{" · "}{vm.pf2?.ap?.chat?.count}</div>
-                            </>) : null}
-                          </div>
-                          {(vm.pf2?.ap?.hasChat) ? (<>
-                            <span style={{fontSize: "11px", fontWeight: "800", padding: "4px 10px", borderRadius: "999px", background: vm.pf2?.ap?.chat?.stBg, color: vm.pf2?.ap?.chat?.stFg}}>{vm.pf2?.ap?.chat?.st}</span>
-                            <span style={{fontSize: "11px", fontWeight: "800", padding: "4px 10px", borderRadius: "999px", background: vm.pf2?.ap?.chat?.openBg, color: vm.pf2?.ap?.chat?.openFg}}>{vm.pf2?.ap?.chat?.openText}</span>
-                          </>) : null}
-                        </div>
-                        {(vm.pf2?.ap?.hasChat) ? (<>
-                          <div style={{background: "#FAFBFD", border: "1px solid #EEF1F5", borderRadius: "16px", padding: "12px", display: "flex", flexDirection: "column", gap: "8px", maxHeight: "340px", overflow: "auto"}}>
-                            {(vm.pf2?.ap?.chat?.hasMsgs) ? (<>
-                              <div style={{fontSize: "11px", color: "#7A889C", textAlign: "center"}}>{vm.pf2?.ap?.chat?.shown}</div>
-                            </>) : null}
-                            {(vm.pf2?.ap?.chat?.msgs || []).map((m, __i14) => <React.Fragment key={__i14}>
-                              <div style={{display: "flex", flexDirection: "column", alignItems: m?.al}}>
-                                <div style={{maxWidth: "85%", background: m?.bg, color: m?.fg, borderRadius: m?.rad, padding: "8px 12px", fontSize: "13px", lineHeight: "1.8", wordBreak: "break-word"}}>
-                                  <div style={{fontSize: "10px", fontWeight: "800", opacity: ".75", marginBottom: "2px"}}>{m?.who}</div>
-                                  {(m?.hasText) ? (<>
-                                    <div style={{whiteSpace: "pre-wrap"}}>{m?.text}</div>
-                                  </>) : null}
-                                  {(m?.file) ? (<>
-                                    <div style={{fontSize: "12px", fontWeight: "700", opacity: ".85"}}>{"📎 فایل یا تصویر پیوست شده"}</div>
-                                  </>) : null}
-                                </div>
-                                <div style={{fontSize: "10px", color: "#A9B4C4", marginTop: "2px"}}>{m?.at}</div>
-                              </div>
-                            </React.Fragment>)}
+                        <div style={{fontWeight: "800", fontSize: "14px"}}>{"آخرین نوبت دریافتی"}</div>
+                        {(vm.pf2?.ap?.hasLast) ? (<>
+                          <div style={{background: "#FAFBFD", border: "1px solid #EEF1F5", borderRadius: "16px", padding: "16px"}}>
+                            <div style={{display: "flex", alignItems: "baseline", gap: "10px", flexWrap: "wrap"}}>
+                              <span style={{fontSize: "22px", fontWeight: "800", color: "#0B2545", fontFamily: "'Noto Kufi Arabic',sans-serif"}}>{vm.pf2?.ap?.last?.date}</span>
+                              <span style={{fontSize: "15px", fontWeight: "800", color: "#1D4E89"}}>{"ساعت "}{vm.pf2?.ap?.last?.time}</span>
+                            </div>
+                            <div style={{fontSize: "13px", fontWeight: "700", marginTop: "8px"}}>{vm.pf2?.ap?.last?.part}</div>
+                            <div style={{fontSize: "11px", color: "#7A889C", marginTop: "6px"}}>{"ثبت: "}{vm.pf2?.ap?.lastCreated}</div>
+                            <div style={{marginTop: "10px"}}>
+                              <span style={{fontSize: "11px", fontWeight: "800", padding: "4px 10px", borderRadius: "999px", background: vm.pf2?.ap?.last?.stBg, color: vm.pf2?.ap?.last?.stFg}}>{vm.pf2?.ap?.last?.st}</span>
+                            </div>
                           </div>
                         </>) : null}
-                        {(vm.pf2?.ap?.noChat) ? (<>
-                          <div style={{background: "#F7F9FC", borderRadius: "14px", padding: "16px", fontSize: "13px", color: "#5B6B82"}}>{"گفتگوی آنلاینی با پیام برای این بیمار ثبت نشده است."}</div>
+                        {(vm.pf2?.ap?.noLast) ? (<>
+                          <div style={{background: "#F7F9FC", borderRadius: "14px", padding: "16px", fontSize: "13px", color: "#5B6B82"}}>{"نوبت گذشته‌ای ثبت نشده است."}</div>
                         </>) : null}
                       </div>
                     </div>
@@ -3588,33 +3568,31 @@ export default function AppView({ vm }) {
                           <button onClick={t?.pick} style={{border: `1px solid ${t?.bd}`, background: t?.bg, color: t?.fg, padding: "6px 12px", borderRadius: "999px", fontSize: "12px", fontWeight: "700", cursor: "pointer", fontFamily: "inherit"}}>{t?.label}</button>
                         </React.Fragment>)}
                       </div>
+                      {(vm.pf2?.ap?.hasOmitted) ? (<>
+                        <div style={{fontSize: "11px", color: "#7A889C"}}>{vm.pf2?.ap?.omitted}</div>
+                      </>) : null}
                       {(vm.pf2?.ap?.hasRows) ? (<>
                         <div style={{display: "flex", flexDirection: "column", gap: "8px"}}>
                           {(vm.pf2?.ap?.rows || []).map((r, __i13) => <React.Fragment key={__i13}>
-                            <div style={{display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap", border: "1px solid #EEF1F5", background: r?.futBg, borderRadius: "14px", padding: "10px 14px", opacity: r?.op}}>
-                              <div style={{minWidth: "118px"}}>
-                                <div style={{fontSize: "14px", fontWeight: "800"}}>{r?.date}</div>
-                                <div style={{fontSize: "11px", color: "#7A889C", marginTop: "2px"}}>{r?.wd}{" · ساعت "}{r?.time}</div>
+                            <div style={{display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap", border: "1px solid #EEF1F5", background: r?.futBg, borderRadius: "14px", padding: "12px 14px", opacity: r?.op}}>
+                              <div style={{minWidth: "110px"}}>
+                                <div style={{fontSize: "15px", fontWeight: "800", fontFamily: "'Noto Kufi Arabic',sans-serif"}}>{r?.date}</div>
+                                <div style={{fontSize: "11px", color: "#7A889C", marginTop: "2px"}}>{"ساعت "}{r?.time}</div>
                               </div>
-                              <div style={{flex: "1", minWidth: "150px"}}>
-                                <div style={{fontSize: "13px", fontWeight: "800"}}>{r?.service}</div>
-                                <div style={{fontSize: "11px", color: "#7A889C", marginTop: "2px"}}>
-                                  {r?.rel}
-                                  {(r?.hasPlace) ? (<>
-                                    {" · "}{r?.place}
-                                  </>) : null}
-                                  {(r?.hasPaid) ? (<>
-                                    {" · پرداخت: "}{r?.paid}
+                              <div style={{flex: "1", minWidth: "160px"}}>
+                                <div style={{fontSize: "13px", fontWeight: "800"}}>{r?.part}</div>
+                                <div style={{fontSize: "11px", color: "#7A889C", marginTop: "3px"}}>
+                                  {r?.agent}{" · "}{r?.doctor}
+                                  {(r?.hasId) ? (<>
+                                    {" · "}
+                                    <b style={{color: "#B47A00"}}>{"کد معرف: "}{r?.identifier}</b>
                                   </>) : null}
                                 </div>
+                                <div style={{fontSize: "11px", color: "#9AA6B8", marginTop: "2px", direction: "ltr", textAlign: "right"}}>{"#"}{r?.id}{" · "}{r?.tracking}</div>
                               </div>
                               <div style={{display: "flex", gap: "6px", flexWrap: "wrap", alignItems: "center"}}>
-                                {(r?.hasMsgs) ? (<>
-                                  <span style={{fontSize: "11px", color: "#6a4b9c", fontWeight: "700"}}>{r?.msgs}</span>
-                                </>) : null}
-                                {(r?.online) ? (<>
-                                  <span title="وضعیت گفتگو" style={{fontSize: "11px", fontWeight: "800", padding: "3px 9px", borderRadius: "999px", background: r?.osBg, color: r?.osFg}}>{"گفتگو: "}{r?.os}</span>
-                                </>) : null}
+                                <span style={{fontSize: "11px", fontWeight: "800", padding: "3px 9px", borderRadius: "999px", background: r?.confBg, color: r?.confFg}}>{r?.confirmed}</span>
+                                <span style={{fontSize: "11px", fontWeight: "800", padding: "3px 9px", borderRadius: "999px", background: "#f0ebf8", color: "#6a4b9c"}}>{r?.kind}</span>
                                 <span style={{fontSize: "11px", fontWeight: "800", padding: "3px 9px", borderRadius: "999px", background: r?.stBg, color: r?.stFg}}>{r?.st}</span>
                               </div>
                             </div>
@@ -3627,6 +3605,10 @@ export default function AppView({ vm }) {
                       {(vm.pf2?.ap?.more) ? (<>
                         <button onClick={vm.pf2?.ap?.togMore} style={{alignSelf: "center", border: "1px solid #E3E8EF", background: "#fff", color: "#1D4E89", padding: "7px 16px", borderRadius: "999px", fontSize: "12px", fontWeight: "800", cursor: "pointer", fontFamily: "inherit"}}>{vm.pf2?.ap?.moreText}</button>
                       </>) : null}
+                    </div>
+                    <div style={{background: "#fff", border: "1px solid #E3E8EF", borderRadius: "20px", padding: "18px 20px"}}>
+                      <div style={{fontWeight: "800", fontSize: "14px", marginBottom: "8px"}}>{"توضیحات پرونده"}</div>
+                      <div style={{fontSize: "13px", color: "#3A4A63", lineHeight: "1.9", whiteSpace: "pre-wrap"}}>{vm.pf2?.ap?.notes}</div>
                     </div>
                   </>) : null}
                 </div>

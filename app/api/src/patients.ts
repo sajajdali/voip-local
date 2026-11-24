@@ -442,19 +442,71 @@ export function apptCard(raw: any) {
   if (!isApptCrm(raw)) return null;
   const str = (v: any) => (v === null || v === undefined ? '' : String(v).trim());
   const num = (v: any) => (v === null || v === undefined || v === '' || !Number.isFinite(Number(v)) ? null : Number(v));
+  const bool = (v: any) => v === true || v === 1 || v === '1' || v === 'true';
+  const doc = (d: any) => (d && typeof d === 'object' ? { id: d.id ?? null, name: str(d.name) } : null);
+  const when = (x: any) => (x && typeof x === 'object' ? { id: x.id ?? null, date: str(x.date), time: str(x.time || x.time_from) } : null);
   const appt = (x: any) => (x && typeof x === 'object' ? {
-    id: x.id ?? null, date: str(x.date), jalali: str(x.jalali), service: str(x.service), place: str(x.place),
+    id: x.id ?? null, date: str(x.date), jalali: str(x.jalali), time: str(x.time || x.time_from), timeTo: str(x.time_to),
+    service: str(x.service || x.part), part: str(x.part || x.service), place: str(x.place),
     status: num(x.status), statusLabel: str(x.status_label), paid: num(x.amount_paid),
+    kind: str(x.kind), kindLabel: str(x.kind_label || x.kind_status_label),
+    confirmed: bool(x.is_confirmed), confirmedLabel: str(x.is_confirmed_label),
+    category: x.appointment_category ?? null, categoryLabel: str(x.appointment_category_label),
+    first: bool(x.is_first_appointment), identifier: str(x.identifier_code),
+    tracking: str(x.tracking_code || x.code), secondMobile: str(x.second_mobile),
+    agentId: x.agent_id ?? null, agentName: str(x.agent_name), doctor: doc(x.doctor),
+    visit: num(x.visit), visitLabel: str(x.visit_label), note: str(x.confirmed_comment),
+    createdAt: str(x.created_at), updatedAt: str(x.updated_at),
     onlineStatus: num(x.online_status), onlineLabel: str(x.online_status_label), messages: num(x.messages_count),
   } : null);
   const list = (v: any) => (Array.isArray(v) ? v : []).slice(0, 400).map(appt).filter(Boolean);
   const msg = (m: any) => (m && typeof m === 'object' ? { sender: m.sender === 'staff' || +m.type === 2 ? 'staff' : 'patient', body: str(m.body).slice(0, 1500), file: !!m.has_file || (!str(m.body) && m.has_file !== false), at: str(m.sent_at), jalali: str(m.jalali) } : null);
   const ch = raw.last_online_chat && typeof raw.last_online_chat === 'object' ? raw.last_online_chat : null;
+  const sum = raw.summary && typeof raw.summary === 'object' ? raw.summary : null;
+  const patient = raw.patient && typeof raw.patient === 'object' ? raw.patient : null;
+  // Prefer the rich dossier list; fall back to legacy in-person / online arrays.
+  const richList = list(raw.appointments);
+  const inPersonList = list(raw.in_person_appointments);
+  const onlineList = list(raw.online_appointments);
+  const appointments = richList.length ? richList : [...inPersonList, ...onlineList]
+    .sort((a: any, b: any) => String(b.date || '').localeCompare(String(a.date || '')) || String(b.time || '').localeCompare(String(a.time || '')));
   return {
-    found: raw.found === true, id: raw.id ?? null, name: str(raw.name), first: str(raw.first_name), last: str(raw.last_name), phone: str(raw.phone),
-    nid: str(raw.national_code).replace(/\D/g, ''), fileNo: str(raw.file_no),
-    total: num(raw.appointments_total), inPerson: num(raw.appointments_in_person), online: num(raw.appointments_online), calls: num(raw.calls_total), callsToday: num(raw.calls_today),
-    next: appt(raw.next_appointment), inPersonList: list(raw.in_person_appointments), onlineList: list(raw.online_appointments),
+    found: raw.found === true, id: raw.id ?? patient?.id ?? null,
+    name: str(raw.name || patient?.name || sum?.full_name),
+    first: str(raw.first_name || patient?.first_name), last: str(raw.last_name || patient?.last_name),
+    phone: str(raw.phone || patient?.mobile || sum?.mobile),
+    secondMobile: str(raw.second_mobile || patient?.second_mobile || sum?.second_mobile),
+    nid: str(raw.national_code || patient?.national_code).replace(/\D/g, ''), fileNo: str(raw.file_no || patient?.file_no),
+    city: str(raw.city || patient?.city || sum?.city), province: str(raw.province || patient?.province || sum?.province),
+    address: str(raw.address || patient?.address || sum?.address),
+    total: num(raw.appointments_total), received: num(raw.appointments_received_count ?? sum?.appointments_received_count),
+    active: num(raw.appointments_active_count ?? sum?.appointments_active_count),
+    cancelled: num(raw.appointments_cancelled_count ?? sum?.appointments_cancelled_count),
+    inPerson: num(raw.appointments_in_person), online: num(raw.appointments_online),
+    calls: num(raw.calls_total), callsToday: num(raw.calls_today),
+    next: appt(raw.next_appointment) || when(sum?.next_appointment_at),
+    lastReceived: appt(raw.last_received_appointment) || when(sum?.last_received_appointment_at),
+    lastReceivedCreatedAt: str(raw.last_received_appointment?.created_at || sum?.last_received_created_at),
+    appointments, appointmentsTruncated: raw.appointments_truncated === true, appointmentsOmitted: num(raw.appointments_omitted) || 0,
+    inPersonList, onlineList,
+    summary: sum ? {
+      fullName: str(sum.full_name), agentName: str(sum.agent_name), agentId: sum.agent_id ?? null,
+      first: bool(sum.is_first_appointment), firstLabel: str(sum.is_first_appointment_label),
+      received: num(sum.appointments_received_count), mobile: str(sum.mobile), secondMobile: str(sum.second_mobile),
+      part: str(sum.part), doctor: doc(sum.doctor),
+      nextAt: when(sum.next_appointment_at), lastAt: when(sum.last_received_appointment_at),
+      lastCreatedAt: str(sum.last_received_created_at),
+      kind: str(sum.appointment_kind), kindLabel: str(sum.appointment_kind_label),
+      status: num(sum.status), statusLabel: str(sum.status_label),
+      confirmed: bool(sum.is_confirmed), confirmedLabel: str(sum.is_confirmed_label),
+      city: str(sum.city), province: str(sum.province), address: str(sum.address),
+      category: sum.appointment_category ?? null, categoryLabel: str(sum.appointment_category_label),
+      identifier: str(sum.identifier_code), tracking: str(sum.tracking_code), appointmentId: sum.appointment_id ?? null,
+      active: num(sum.appointments_active_count), cancelled: num(sum.appointments_cancelled_count),
+      notes: str(sum.dossier_notes || raw.dossier_notes),
+    } : null,
+    notes: str(sum?.dossier_notes || raw.dossier_notes),
+    notesSupported: raw.dossier_notes_supported === true,
     chat: ch ? {
       apptId: ch.appointment_id ?? null, service: str(ch.service), status: num(ch.online_status), statusLabel: str(ch.online_status_label), open: ch.is_open === true,
       messages: num(ch.messages_count), last: msg(ch.last_message), recent: (Array.isArray(ch.recent_messages) ? ch.recent_messages : []).slice(0, 10).map(msg).filter(Boolean),
