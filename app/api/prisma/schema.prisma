@@ -15,6 +15,10 @@ model User {
   role      String // admin | supervisor | operator | accounting | reception | emergency
   ext       String?
   title     String? // shown under the name after login, instead of «role · extension»
+  /// Kamilo زیبایار agent_id — matched on inbound «ارتباط با اپراتور» for preferred ring
+  apiId     String?
+  /// System recording id (snds) played before preferred ring: «شما در حال اتصال به {name} هستید»
+  announceSnd String?
   active    Boolean  @default(true)
   perms     Json? // {section: [view|add|edit|delete]}; empty = the role's defaults
   tenantId  String?
@@ -23,6 +27,7 @@ model User {
   createdAt DateTime @default(now())
 
   @@index([tenantId])
+  @@index([apiId])
 }
 
 model Tenant {
@@ -292,6 +297,19 @@ model CallReport {
   @@index([callId])
   @@index([phone])
   @@index([createdAt])
+}
+
+/// Free-form «توضیحات» on a patient/dossier phone — author edits own; others view only.
+model PatientNote {
+  id        Int      @id @default(autoincrement())
+  phone     String
+  text      String
+  userId    String
+  userName  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([phone, createdAt])
 }
 
 /// One SMS sent from the panel for a call (each template at most once per call).

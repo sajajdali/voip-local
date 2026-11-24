@@ -76,4 +76,19 @@ describe('dialplan CRM lookup passes DID', () => {
     assert.match(ext, /lookup\?s=s,num=\$\{CC_CID\}&did=\$\{CC_DID\}/);
     assert.match(ext, /cname\?s=s,num=\$\{CC_NUM\}&did=\$\{CC_DID\}/);
   });
+
+  it('queue dialplan tries preferred agent before Queue()', () => {
+    const cfg: any = {
+      exts: [{ n: '101', name: 'a' }], trunks: [], vqs: [{ id: 'q1', name: 'پذیرش', members: ['101'], maxWait: 60 }],
+      ivrs: [], snds: [], routes: [], tgroups: [], tconds: [], holidays: [], rgroups: [], fmes: {}, blist: [], bset: {},
+    };
+    const ext = generate(cfg, { hookUrl: 'http://127.0.0.1/h', hookSecret: 's', mohDir: '/tmp' }).files['extensions.conf'];
+    assert.match(ext, /prefagent\?s=s,num=\$\{CC_NUM\}&did=\$\{CC_DID\}/);
+    assert.match(ext, /Dial\(PJSIP\/\$\{CC_PREFEXT\},20/);
+    assert.match(ext, /Queue\(cc-q1/);
+    // preferred block must appear before Queue in the same context
+    const iPref = ext.indexOf('prefagent?s=s');
+    const iQueue = ext.indexOf('Queue(cc-q1');
+    assert.ok(iPref > 0 && iQueue > iPref);
+  });
 });

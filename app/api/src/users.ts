@@ -24,7 +24,11 @@ export class UsersController {
     const last = new Map(logins.map(l => [l.userId, l._max.at]));
     return {
       sections: SECTIONS, roles: ROLES.map(r => ({ id: r, label: ROLE_LABEL[r], perms: rolePerms(r) })),
-      users: users.map(u => ({ id: u.id, username: u.username, name: u.name, title: u.title || '', role: u.role, ext: u.ext, active: u.active, tenantId: u.tenantId || null, perms: permsOf(u), custom: !!u.perms && u.role !== 'admin', lastLogin: last.get(u.id) || null })),
+      users: users.map(u => ({
+        id: u.id, username: u.username, name: u.name, title: u.title || '', role: u.role, ext: u.ext,
+        apiId: u.apiId || '', announceSnd: u.announceSnd || '',
+        active: u.active, tenantId: u.tenantId || null, perms: permsOf(u), custom: !!u.perms && u.role !== 'admin', lastLogin: last.get(u.id) || null,
+      })),
     };
   }
 
@@ -38,6 +42,17 @@ export class UsersController {
     if (b.role !== undefined && !ROLES.includes(b.role)) throw new BadRequestException('نقش نامعتبر است');
     if (b.password !== undefined && b.password !== '' && String(b.password).length < 6) throw new BadRequestException('رمز عبور حداقل ۶ کاراکتر باشد');
     if (b.ext !== undefined && b.ext !== '' && b.ext !== null && !/^\d{2,6}$/.test(String(b.ext))) throw new BadRequestException('شماره داخلی نامعتبر است');
+    if (b.apiId !== undefined && b.apiId !== '' && b.apiId !== null) {
+      const apiId = String(b.apiId).trim();
+      if (!/^[A-Za-z0-9._-]{1,64}$/.test(apiId)) throw new BadRequestException('api id فقط حروف، عدد، نقطه، خط تیره و زیرخط باشد (حداکثر ۶۴)');
+      const other = await this.db.user.findFirst({ where: { apiId, ...(id ? { id: { not: id } } : {}) } });
+      if (other) throw new BadRequestException('این api id برای کاربر دیگری ثبت شده است');
+    }
+    if (b.announceSnd !== undefined && b.announceSnd !== '' && b.announceSnd !== null) {
+      if (!/^s\d+$/.test(String(b.announceSnd)) && !/^[A-Za-z0-9_-]{2,40}$/.test(String(b.announceSnd))) {
+        throw new BadRequestException('شناسه فایل صوتی اعلام نامعتبر است');
+      }
+    }
     return username;
   }
 
@@ -81,12 +96,14 @@ export class UsersController {
     const perms = tenantId
       ? (role === 'admin' ? tenantAdminPerms() : cleanPerms(b.perms || rolePerms(role)))
       : (role === 'admin' ? undefined : cleanPerms(b.perms));
+    const apiId = b.apiId !== undefined && b.apiId !== null && String(b.apiId).trim() ? String(b.apiId).trim() : null;
+    const announceSnd = b.announceSnd !== undefined && b.announceSnd !== null && String(b.announceSnd).trim() ? String(b.announceSnd).trim() : null;
     const u = await this.db.user.create({ data: {
       username, name: String(b.name).trim().slice(0, 60), title: String(b.title || '').trim().slice(0, 60) || null, role,
-      ext: b.ext ? String(b.ext) : null, active: b.active !== false, tenantId,
+      ext: b.ext ? String(b.ext) : null, apiId, announceSnd, active: b.active !== false, tenantId,
       password: await bcrypt.hash(String(b.password), 10), perms: perms as any,
     } });
-    await this.db.auditLog.create({ data: { userId: me.id, userName: me.name, action: 'user.create', target: u.username, detail: { role, tenantId, perms: role === 'admin' && !tenantId ? 'all' : perms } as any } });
+    await this.db.auditLog.create({ data: { userId: me.id, userName: me.name, action: 'user.create', target: u.username, detail: { role, tenantId, apiId, announceSnd, perms: role === 'admin' && !tenantId ? 'all' : perms } as any } });
     return { id: u.id, tenantId };
   }
 
@@ -106,6 +123,8 @@ export class UsersController {
     if (b.name !== undefined) data.name = String(b.name).trim().slice(0, 60) || cur.name;
     if (b.ext !== undefined) data.ext = b.ext ? String(b.ext) : null;
     if (b.title !== undefined) data.title = String(b.title || '').trim().slice(0, 60) || null;
+    if (b.apiId !== undefined) data.apiId = b.apiId !== null && String(b.apiId).trim() ? String(b.apiId).trim() : null;
+    if (b.announceSnd !== undefined) data.announceSnd = b.announceSnd !== null && String(b.announceSnd).trim() ? String(b.announceSnd).trim() : null;
     if (b.password) data.password = await bcrypt.hash(String(b.password), 10);
     if (cur.tenantId || me.tenantId) {
       data.tenantId = cur.tenantId || me.tenantId;

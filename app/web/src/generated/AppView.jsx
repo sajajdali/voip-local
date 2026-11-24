@@ -2868,7 +2868,7 @@ export default function AppView({ vm }) {
                         </>) : null}
                       </div>
                     </div><div style={{background: "#fff", border: "1px solid #E3E8EF", borderRadius: "20px", padding: "18px 20px"}}>
-                      <div style={{fontWeight: "800", fontSize: "14px", marginBottom: "8px"}}>{"توضیحات پرونده"}</div>
+                      <div style={{fontWeight: "800", fontSize: "14px", marginBottom: "8px"}}>{"توضیحات سامانه"}</div>
                       <div style={{fontSize: "13px", color: "#3A4A63", lineHeight: "1.9", whiteSpace: "pre-wrap"}}>{vm.pf2?.ap?.notes}</div>
                     </div>
                   </>) : null}
@@ -3273,6 +3273,47 @@ export default function AppView({ vm }) {
                   </>) : null}
                 </div>
               </>) : null}
+              <div style={{background: "#fff", border: "1px solid #E3E8EF", borderRadius: "22px", padding: "18px 20px", display: "flex", flexDirection: "column", gap: "12px"}}>
+                <div style={{display: "flex", alignItems: "center", justifyContent: "space-between", gap: "10px", flexWrap: "wrap"}}>
+                  <div style={{fontWeight: "800", fontSize: "15px"}}>{"توضیحات"}{(vm.pf2?.notes?.has) ? (<>{" ("}{vm.pf2?.notes?.count}{")"}</>) : null}</div>
+                  <div style={{fontSize: "11px", color: "#7A889C"}}>{"نویسنده می‌تواند توضیح خودش را ویرایش کند؛ دیگران فقط می‌بینند"}</div>
+                </div>
+                {(vm.pf2?.notes?.canAdd) ? (<>
+                  <div style={{display: "flex", flexDirection: "column", gap: "8px", background: "#F7F9FC", borderRadius: "16px", padding: "12px 14px"}}>
+                    <textarea value={vm.pf2?.notes?.draft} onChange={vm.pf2?.notes?.setDraft} placeholder="توضیح جدید درباره این بیمار…" rows="3" style={{border: "1px solid #E3E8EF", borderRadius: "12px", padding: "10px 12px", fontSize: "13px", fontFamily: "inherit", lineHeight: "1.8", resize: "vertical", outline: "none", background: "#fff"}} />
+                    <div style={{display: "flex", justifyContent: "flex-end"}}>
+                      <button onClick={vm.pf2?.notes?.add} style={{border: "none", background: "#0E7C7B", color: "#fff", padding: "9px 16px", borderRadius: "12px", fontSize: "13px", fontWeight: "800", cursor: "pointer", fontFamily: "inherit", opacity: vm.pf2?.notes?.busy ? 0.7 : 1}}>{vm.pf2?.notes?.saveLabel}</button>
+                    </div>
+                  </div>
+                </>) : null}
+                {(vm.pf2?.notes?.none) ? (<>
+                  <div style={{fontSize: "13px", color: "#5B6B82", background: "#F7F9FC", borderRadius: "14px", padding: "14px 16px"}}>{"هنوز توضیحی ثبت نشده است."}</div>
+                </>) : null}
+                <div style={{display: "flex", flexDirection: "column", gap: "10px"}}>
+                  {(vm.pf2?.notes?.items || []).map((n, __iNote) => <React.Fragment key={__iNote}>
+                    <div style={{background: n?.mine ? "#F4FBFA" : "#fff", border: "1px solid #E3E8EF", borderRadius: "16px", padding: "12px 14px", display: "flex", flexDirection: "column", gap: "8px"}}>
+                      {(n?.viewing) ? (<>
+                        <div style={{fontSize: "13px", lineHeight: "1.9", whiteSpace: "pre-wrap", color: "#16213A"}}>{n?.text}</div>
+                      </>) : null}
+                      {(n?.editing) ? (<>
+                        <textarea value={n?.editText} onChange={n?.setEdit} rows="3" style={{border: "1px solid #0E7C7B", borderRadius: "12px", padding: "10px 12px", fontSize: "13px", fontFamily: "inherit", lineHeight: "1.8", resize: "vertical", outline: "none", background: "#fff"}} />
+                        <div style={{display: "flex", gap: "8px", justifyContent: "flex-end"}}>
+                          <button onClick={n?.cancelEdit} style={{border: "1px solid #E3E8EF", background: "#fff", color: "#0B2545", padding: "7px 12px", borderRadius: "10px", fontSize: "12px", fontWeight: "800", cursor: "pointer", fontFamily: "inherit"}}>{"انصراف"}</button>
+                          <button onClick={n?.saveEdit} style={{border: "none", background: "#0E7C7B", color: "#fff", padding: "7px 12px", borderRadius: "10px", fontSize: "12px", fontWeight: "800", cursor: "pointer", fontFamily: "inherit"}}>{"ذخیره"}</button>
+                        </div>
+                      </>) : null}
+                      <div style={{display: "flex", alignItems: "center", gap: "8px", fontSize: "11px", color: "#7A889C"}}>
+                        <span style={{width: "22px", height: "22px", borderRadius: "7px", background: "#E3F2F1", color: "#0A5C5B", display: "grid", placeItems: "center", fontWeight: "800", fontSize: "11px"}}>{n?.ini}</span>
+                        <span style={{flex: "1"}}>{n?.by}{" · "}{n?.when}{n?.edited}</span>
+                        {(n?.mine && n?.viewing) ? (<>
+                          <button onClick={n?.startEdit} style={{border: "none", background: "transparent", color: "#0A5C5B", fontSize: "11px", fontWeight: "700", cursor: "pointer", fontFamily: "inherit", padding: "2px 4px"}}>{"ویرایش"}</button>
+                          <button onClick={n?.del} style={{border: "none", background: "transparent", color: "#b42318", fontSize: "11px", fontWeight: "700", cursor: "pointer", fontFamily: "inherit", padding: "2px 4px"}}>{"حذف"}</button>
+                        </>) : null}
+                      </div>
+                    </div>
+                  </React.Fragment>)}
+                </div>
+              </div>
               {(vm.pf2?.hasReports) ? (<>
                 <div style={{background: "#fff", border: "1px solid #E3E8EF", borderRadius: "22px", padding: "18px 20px", display: "flex", flexDirection: "column", gap: "10px"}}>
                   <div style={{fontWeight: "700", fontSize: "14px"}}>{"گزارش‌های ثبت‌شده برای این بیمار ("}{vm.pf2?.repCount}{")"}</div>
@@ -3287,7 +3328,15 @@ export default function AppView({ vm }) {
                           </>) : null}
                         </div>
                         <div style={{fontSize: "13px", lineHeight: "1.9", whiteSpace: "pre-wrap"}}>{g?.text}</div>
-                        <div style={{fontSize: "11px", color: "#7A889C"}}>{g?.by}{" · "}{g?.when}</div>
+                        <div style={{display: "flex", alignItems: "center", gap: "8px", fontSize: "11px", color: "#7A889C"}}>
+                          <span style={{flex: "1"}}>{g?.by}{" · "}{g?.when}</span>
+                          {(g?.mine) ? (<>
+                            <button onClick={g?.edit} style={{border: "none", background: "transparent", color: "#0A5C5B", fontSize: "11px", fontWeight: "700", cursor: "pointer", fontFamily: "inherit", padding: "2px 4px"}}>{"ویرایش"}</button>
+                          </>) : null}
+                          {(g?.canDel) ? (<>
+                            <button onClick={g?.del} style={{border: "none", background: "transparent", color: "#b42318", fontSize: "11px", fontWeight: "700", cursor: "pointer", fontFamily: "inherit", padding: "2px 4px"}}>{"حذف"}</button>
+                          </>) : null}
+                        </div>
                       </div>
                     </React.Fragment>)}
                   </div>
@@ -3629,7 +3678,7 @@ export default function AppView({ vm }) {
                         </>) : null}
                       </div>
                     </div><div style={{background: "#fff", border: "1px solid #E3E8EF", borderRadius: "20px", padding: "18px 20px"}}>
-                      <div style={{fontWeight: "800", fontSize: "14px", marginBottom: "8px"}}>{"توضیحات پرونده"}</div>
+                      <div style={{fontWeight: "800", fontSize: "14px", marginBottom: "8px"}}>{"توضیحات سامانه"}</div>
                       <div style={{fontSize: "13px", color: "#3A4A63", lineHeight: "1.9", whiteSpace: "pre-wrap"}}>{vm.pf2?.ap?.notes}</div>
                     </div>
                   </>) : null}
@@ -4034,6 +4083,47 @@ export default function AppView({ vm }) {
                   </>) : null}
                 </div>
               </>) : null}
+              <div style={{background: "#fff", border: "1px solid #E3E8EF", borderRadius: "22px", padding: "18px 20px", display: "flex", flexDirection: "column", gap: "12px"}}>
+                <div style={{display: "flex", alignItems: "center", justifyContent: "space-between", gap: "10px", flexWrap: "wrap"}}>
+                  <div style={{fontWeight: "800", fontSize: "15px"}}>{"توضیحات"}{(vm.pf2?.notes?.has) ? (<>{" ("}{vm.pf2?.notes?.count}{")"}</>) : null}</div>
+                  <div style={{fontSize: "11px", color: "#7A889C"}}>{"نویسنده می‌تواند توضیح خودش را ویرایش کند؛ دیگران فقط می‌بینند"}</div>
+                </div>
+                {(vm.pf2?.notes?.canAdd) ? (<>
+                  <div style={{display: "flex", flexDirection: "column", gap: "8px", background: "#F7F9FC", borderRadius: "16px", padding: "12px 14px"}}>
+                    <textarea value={vm.pf2?.notes?.draft} onChange={vm.pf2?.notes?.setDraft} placeholder="توضیح جدید درباره این بیمار…" rows="3" style={{border: "1px solid #E3E8EF", borderRadius: "12px", padding: "10px 12px", fontSize: "13px", fontFamily: "inherit", lineHeight: "1.8", resize: "vertical", outline: "none", background: "#fff"}} />
+                    <div style={{display: "flex", justifyContent: "flex-end"}}>
+                      <button onClick={vm.pf2?.notes?.add} style={{border: "none", background: "#0E7C7B", color: "#fff", padding: "9px 16px", borderRadius: "12px", fontSize: "13px", fontWeight: "800", cursor: "pointer", fontFamily: "inherit", opacity: vm.pf2?.notes?.busy ? 0.7 : 1}}>{vm.pf2?.notes?.saveLabel}</button>
+                    </div>
+                  </div>
+                </>) : null}
+                {(vm.pf2?.notes?.none) ? (<>
+                  <div style={{fontSize: "13px", color: "#5B6B82", background: "#F7F9FC", borderRadius: "14px", padding: "14px 16px"}}>{"هنوز توضیحی ثبت نشده است."}</div>
+                </>) : null}
+                <div style={{display: "flex", flexDirection: "column", gap: "10px"}}>
+                  {(vm.pf2?.notes?.items || []).map((n, __iNote) => <React.Fragment key={__iNote}>
+                    <div style={{background: n?.mine ? "#F4FBFA" : "#fff", border: "1px solid #E3E8EF", borderRadius: "16px", padding: "12px 14px", display: "flex", flexDirection: "column", gap: "8px"}}>
+                      {(n?.viewing) ? (<>
+                        <div style={{fontSize: "13px", lineHeight: "1.9", whiteSpace: "pre-wrap", color: "#16213A"}}>{n?.text}</div>
+                      </>) : null}
+                      {(n?.editing) ? (<>
+                        <textarea value={n?.editText} onChange={n?.setEdit} rows="3" style={{border: "1px solid #0E7C7B", borderRadius: "12px", padding: "10px 12px", fontSize: "13px", fontFamily: "inherit", lineHeight: "1.8", resize: "vertical", outline: "none", background: "#fff"}} />
+                        <div style={{display: "flex", gap: "8px", justifyContent: "flex-end"}}>
+                          <button onClick={n?.cancelEdit} style={{border: "1px solid #E3E8EF", background: "#fff", color: "#0B2545", padding: "7px 12px", borderRadius: "10px", fontSize: "12px", fontWeight: "800", cursor: "pointer", fontFamily: "inherit"}}>{"انصراف"}</button>
+                          <button onClick={n?.saveEdit} style={{border: "none", background: "#0E7C7B", color: "#fff", padding: "7px 12px", borderRadius: "10px", fontSize: "12px", fontWeight: "800", cursor: "pointer", fontFamily: "inherit"}}>{"ذخیره"}</button>
+                        </div>
+                      </>) : null}
+                      <div style={{display: "flex", alignItems: "center", gap: "8px", fontSize: "11px", color: "#7A889C"}}>
+                        <span style={{width: "22px", height: "22px", borderRadius: "7px", background: "#E3F2F1", color: "#0A5C5B", display: "grid", placeItems: "center", fontWeight: "800", fontSize: "11px"}}>{n?.ini}</span>
+                        <span style={{flex: "1"}}>{n?.by}{" · "}{n?.when}{n?.edited}</span>
+                        {(n?.mine && n?.viewing) ? (<>
+                          <button onClick={n?.startEdit} style={{border: "none", background: "transparent", color: "#0A5C5B", fontSize: "11px", fontWeight: "700", cursor: "pointer", fontFamily: "inherit", padding: "2px 4px"}}>{"ویرایش"}</button>
+                          <button onClick={n?.del} style={{border: "none", background: "transparent", color: "#b42318", fontSize: "11px", fontWeight: "700", cursor: "pointer", fontFamily: "inherit", padding: "2px 4px"}}>{"حذف"}</button>
+                        </>) : null}
+                      </div>
+                    </div>
+                  </React.Fragment>)}
+                </div>
+              </div>
               {(vm.pf2?.hasReports) ? (<>
                 <div style={{background: "#fff", border: "1px solid #E3E8EF", borderRadius: "22px", padding: "18px 20px", display: "flex", flexDirection: "column", gap: "10px"}}>
                   <div style={{fontWeight: "700", fontSize: "14px"}}>{"گزارش‌های ثبت‌شده برای این بیمار ("}{vm.pf2?.repCount}{")"}</div>
@@ -4048,7 +4138,15 @@ export default function AppView({ vm }) {
                           </>) : null}
                         </div>
                         <div style={{fontSize: "13px", lineHeight: "1.9", whiteSpace: "pre-wrap"}}>{g?.text}</div>
-                        <div style={{fontSize: "11px", color: "#7A889C"}}>{g?.by}{" · "}{g?.when}</div>
+                        <div style={{display: "flex", alignItems: "center", gap: "8px", fontSize: "11px", color: "#7A889C"}}>
+                          <span style={{flex: "1"}}>{g?.by}{" · "}{g?.when}</span>
+                          {(g?.mine) ? (<>
+                            <button onClick={g?.edit} style={{border: "none", background: "transparent", color: "#0A5C5B", fontSize: "11px", fontWeight: "700", cursor: "pointer", fontFamily: "inherit", padding: "2px 4px"}}>{"ویرایش"}</button>
+                          </>) : null}
+                          {(g?.canDel) ? (<>
+                            <button onClick={g?.del} style={{border: "none", background: "transparent", color: "#b42318", fontSize: "11px", fontWeight: "700", cursor: "pointer", fontFamily: "inherit", padding: "2px 4px"}}>{"حذف"}</button>
+                          </>) : null}
+                        </div>
                       </div>
                     </React.Fragment>)}
                   </div>
@@ -6557,6 +6655,20 @@ export default function AppView({ vm }) {
                       {"داخلی (اختیاری)"}
                       <input value={vm.uv?.form?.f?.ext} onChange={vm.uv?.form?.set?.ext} placeholder="مثلاً 101" style={{border: "1px solid #E3E8EF", borderRadius: "10px", padding: "10px 12px", fontSize: "13px", outline: "none", background: "#fff", color: "#16213A", fontFamily: "inherit", width: "100%", direction: "ltr", textAlign: "left"}} />
                     </label>
+                    <label style={{display: "flex", flexDirection: "column", gap: "4px", fontSize: "11px", color: "#5B6B82"}}>
+                      {"api id (agent_id زیبایار کامیلو)"}
+                      <input value={vm.uv?.form?.f?.apiId} onChange={vm.uv?.form?.set?.apiId} placeholder="مثلاً 42 یا uuid زیبایار" style={{border: "1px solid #E3E8EF", borderRadius: "10px", padding: "10px 12px", fontSize: "13px", outline: "none", background: "#fff", color: "#16213A", fontFamily: "inherit", width: "100%", direction: "ltr", textAlign: "left"}} />
+                    </label>
+                    <label style={{display: "flex", flexDirection: "column", gap: "4px", fontSize: "11px", color: "#5B6B82"}}>
+                      {"پیام اعلام قبل از زنگ («شما در حال اتصال به … هستید»)"}
+                      <select value={vm.uv?.form?.f?.announceSnd || ""} onChange={vm.uv?.form?.setAnnounce} style={{border: "1px solid #E3E8EF", borderRadius: "10px", padding: "10px 12px", fontSize: "13px", outline: "none", background: "#fff", color: "#16213A", fontFamily: "inherit", width: "100%"}}>
+                        {(vm.uv?.form?.announceOpts || []).map((o, __iAnn) => <option key={__iAnn} value={o?.id}>{o?.name}</option>)}
+                      </select>
+                    </label>
+                    <label style={{display: "flex", flexDirection: "column", gap: "4px", fontSize: "11px", color: "#5B6B82"}}>
+                      {"یا بارگذاری فایل اعلام جدید"}
+                      <input type="file" accept="audio/*,.wav,.mp3" onChange={vm.uv?.form?.uploadAnnounce} style={{border: "1px solid #E3E8EF", borderRadius: "10px", padding: "8px 10px", fontSize: "12px", background: "#fff", fontFamily: "inherit", width: "100%"}} />
+                    </label>
                   </div>
                   <div style={{display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap"}}>
                     <span style={{fontSize: "12px", color: "#5B6B82"}}>{"قالب دسترسی:"}</span>
@@ -6620,6 +6732,7 @@ export default function AppView({ vm }) {
                       <tr>
                         <th style={{padding: "10px 12px", fontSize: "12px", color: "#5B6B82", fontWeight: "600", textAlign: "right", whiteSpace: "nowrap", borderBottom: "1px solid #EEF1F5", background: "#F8FAFC"}}>{"کاربر"}</th>
                         <th style={{padding: "10px 12px", fontSize: "12px", color: "#5B6B82", fontWeight: "600", textAlign: "right", whiteSpace: "nowrap", borderBottom: "1px solid #EEF1F5", background: "#F8FAFC"}}>{"داخلی"}</th>
+                        <th style={{padding: "10px 12px", fontSize: "12px", color: "#5B6B82", fontWeight: "600", textAlign: "right", whiteSpace: "nowrap", borderBottom: "1px solid #EEF1F5", background: "#F8FAFC"}}>{"api id"}</th>
                         <th style={{padding: "10px 12px", fontSize: "12px", color: "#5B6B82", fontWeight: "600", textAlign: "right", whiteSpace: "nowrap", borderBottom: "1px solid #EEF1F5", background: "#F8FAFC"}}>{"نقش"}</th>
                         <th style={{padding: "10px 12px", fontSize: "12px", color: "#5B6B82", fontWeight: "600", textAlign: "right", whiteSpace: "nowrap", borderBottom: "1px solid #EEF1F5", background: "#F8FAFC"}}>{"وضعیت"}</th>
                         <th style={{padding: "10px 12px", fontSize: "12px", color: "#5B6B82", fontWeight: "600", textAlign: "right", whiteSpace: "nowrap", borderBottom: "1px solid #EEF1F5", background: "#F8FAFC"}}>{"آخرین ورود"}</th>
@@ -6637,6 +6750,12 @@ export default function AppView({ vm }) {
                             <div style={{fontSize: "12px", color: "#5B6B82", direction: "ltr", textAlign: "right"}}>{u?.username}</div>
                           </td>
                           <td data-label="داخلی" style={{padding: "11px 12px", fontSize: "13px", borderBottom: "1px solid #EEF1F5", whiteSpace: "nowrap"}}>{u?.ext}</td>
+                          <td data-label="api id" style={{padding: "11px 12px", fontSize: "13px", borderBottom: "1px solid #EEF1F5", whiteSpace: "nowrap", direction: "ltr", textAlign: "right"}}>
+                            <div>{u?.apiIdText}</div>
+                            {(u?.hasAnnounce) ? (<>
+                              <div style={{fontSize: "11px", color: "#0A5C5B", fontWeight: "600"}}>{"اعلام: "}{u?.announceLabel}</div>
+                            </>) : null}
+                          </td>
                           <td data-label="نقش" style={{padding: "11px 12px", fontSize: "13px", borderBottom: "1px solid #EEF1F5", whiteSpace: "nowrap"}}>
                             <span style={{padding: "3px 10px", borderRadius: "999px", fontSize: "12px", fontWeight: "700", background: u?.roleBg, color: u?.roleFg}}>{u?.roleTag}</span>
                           </td>
@@ -11028,6 +11147,8 @@ export default function AppView({ vm }) {
                     </>) : null}
                     {(g?.mine) ? (<>
                       <button onClick={g?.edit} style={{border: "none", background: "transparent", color: "#0A5C5B", fontSize: "11px", fontWeight: "700", cursor: "pointer", fontFamily: "inherit", padding: "2px 4px"}}>{"ویرایش"}</button>
+                    </>) : null}
+                    {(g?.canDel) ? (<>
                       <button onClick={g?.del} style={{border: "none", background: "transparent", color: "#b42318", fontSize: "11px", fontWeight: "700", cursor: "pointer", fontFamily: "inherit", padding: "2px 4px"}}>{"حذف"}</button>
                     </>) : null}
                   </div>

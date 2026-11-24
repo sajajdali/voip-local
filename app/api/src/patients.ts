@@ -1,6 +1,6 @@
 // Patient directory: names come from the clinic CRM, looked up once per inbound call and cached locally.
 // The CRM logs every lookup as a call, so it is asked exactly once per inbound call and never in bulk.
-import { BadRequestException, Body, Controller, Get, Injectable, Logger, Param, Post, Put, Query } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Delete, Get, Injectable, Logger, Param, Post, Put, Query } from '@nestjs/common';
 import * as http from 'http';
 import * as https from 'https';
 import { CurrentUser, Me, Roles, Perm } from './auth';
@@ -382,6 +382,54 @@ export class PatientsService {
     const name = clean(latin ? toLatin(p.name) : p.name).slice(0, note ? 40 - note.length - 3 : 40);
     return note ? `${name} - ${note}` : name;
   }
+
+  /**
+   * Preferred operator for inbound «ارتباط با اپراتور»:
+   * CRM زیبایار agent_id on the dossier → User.apiId → extension (+ optional announce sound id).
+   * Returns null when no match; never throws into the dialplan path.
+   */
+  async preferredAgent(phone: string, tenantId?: string | null): Promise<{ ext: string; announceSnd: string; name: string; apiId: string } | null> {
+    if (!phone) return null;
+    try {
+      // CRM lookup started at call entry; give it a short window before reading the cache.
+      await this.waitLookup(phone, 1200);
+      const p = await this.db.patient.findUnique({ where: { phone } });
+      const agentKey = pickCrmAgentId(p?.crm);
+      if (!agentKey) return null;
+      const where: any = { apiId: agentKey, active: true, ext: { not: null } };
+      if (tenantId) where.tenantId = tenantId;
+      let u = await this.db.user.findFirst({ where });
+      // Platform users (tenantId null) can also match when the DID is tenant-scoped
+      if (!u && tenantId) u = await this.db.user.findFirst({ where: { apiId: agentKey, active: true, ext: { not: null }, tenantId: null } });
+      if (!u || !u.ext || !/^\d{2,6}$/.test(u.ext)) return null;
+      return { ext: u.ext, announceSnd: u.announceSnd || '', name: u.name, apiId: agentKey };
+    } catch {
+      return null;
+    }
+  }
+}
+
+/** Prefer summary / next appointment / newest appointment agent_id from a cached CRM payload. */
+export function pickCrmAgentId(raw: any): string {
+  if (!raw || typeof raw !== 'object') return '';
+  const norm = (v: any) => {
+    if (v === null || v === undefined || v === '') return '';
+    return String(v).trim();
+  };
+  const card = apptCard(raw);
+  if (card?.summary?.agentId != null && norm(card.summary.agentId)) return norm(card.summary.agentId);
+  const fromAppt = (x: any) => (x && x.agentId != null ? norm(x.agentId) : '');
+  const next = fromAppt(card?.next);
+  if (next) return next;
+  for (const a of (card?.appointments || [])) {
+    const id = fromAppt(a);
+    if (id) return id;
+  }
+  // Raw fallback when apptCard did not recognise the payload shape
+  const sum = raw.summary && typeof raw.summary === 'object' ? raw.summary : null;
+  if (sum && norm(sum.agent_id)) return norm(sum.agent_id);
+  if (norm(raw.agent_id)) return norm(raw.agent_id);
+  return '';
 }
 
 @Perm('vcrm')
@@ -628,6 +676,11 @@ function dgCard(raw: any) {
   return raw && typeof raw === 'object' && raw.found === true && raw.patient && typeof raw.patient === 'object' ? raw : null;
 }
 
+const noteView = (n: { id: number; phone: string; text: string; userId: string; userName: string; createdAt: Date; updatedAt: Date }) => ({
+  id: n.id, phone: n.phone, text: n.text, by: n.userName, userId: n.userId, at: n.createdAt,
+  edited: +n.updatedAt - +n.createdAt > 60e3,
+});
+
 /** Caller card / patient file: what the CRM said, plus our own history of this number. */
 @Controller('patients')
 export class PatientCardController {
@@ -637,9 +690,10 @@ export class PatientCardController {
   @Get(':phone/card')
   async card(@Param('phone') phone: string, @CurrentUser() me: Me) {
     const p = String(phone).replace(/\D/g, '');
-    const [pt, s, reports, chk] = await Promise.all([
+    const [pt, s, reports, notes, chk] = await Promise.all([
       this.db.patient.findUnique({ where: { phone: p } }), this.patients.settings(me.tenantId),
       this.db.callReport.findMany({ where: { phone: p }, orderBy: { createdAt: 'desc' }, take: 20 }),
+      this.db.patientNote.findMany({ where: { phone: p }, orderBy: { createdAt: 'desc' }, take: 100 }),
       this.db.crmCheck.findUnique({ where: { phone: p } }),
     ]);
     const days = daysSince(pt?.surgery);
@@ -657,7 +711,41 @@ export class PatientCardController {
       provider: s.provider, dg: dgOn ? dgCard(pt?.crm) : null, appt: dgOn ? null : apptCard(pt?.crm),
       fields: dgOn || isApptCrm(pt?.crm) ? [] : crmFields(pt?.crm).filter(f => !CLIN_KEYS.has(f.key.split('.').pop()!)), clinical: clinicalOf(dgOn || isApptCrm(pt?.crm) ? null : pt?.crm),
       reports: reports.map(r => ({ id: r.id, callId: r.callId, cat: r.cat, outcome: r.outcome, text: r.text, followUp: r.followUp || '', by: r.userName, userId: r.userId, at: r.createdAt })),
+      notes: notes.map(noteView),
     };
+  }
+
+  /** Free-form «توضیحات» on the dossier: author edits/deletes own; others view only. */
+  @Perm('calls', 'edit')
+  @Post(':phone/notes')
+  async addNote(@Param('phone') phone: string, @Body() b: { text?: string }, @CurrentUser() me: Me) {
+    const p = String(phone).replace(/\D/g, '');
+    if (!/^0\d{6,}$/.test(p)) throw new BadRequestException('شماره معتبر نیست');
+    const text = String(b?.text || '').trim().slice(0, 4000);
+    if (text.length < 2) throw new BadRequestException('متن توضیح را بنویسید');
+    const n = await this.db.patientNote.create({ data: { phone: p, text, userId: me.id, userName: me.name } });
+    return noteView(n);
+  }
+
+  @Perm('calls', 'edit')
+  @Put(':phone/notes/:id')
+  async editNote(@Param('phone') phone: string, @Param('id') id: string, @Body() b: { text?: string }, @CurrentUser() me: Me) {
+    const n = await this.db.patientNote.findUnique({ where: { id: +id || 0 } });
+    if (!n || n.phone !== String(phone).replace(/\D/g, '')) throw new BadRequestException('توضیح پیدا نشد');
+    if (n.userId !== me.id) throw new BadRequestException('فقط نویسنده توضیح می‌تواند آن را ویرایش کند');
+    const text = String(b?.text || '').trim().slice(0, 4000);
+    if (text.length < 2) throw new BadRequestException('متن توضیح را بنویسید');
+    return noteView(await this.db.patientNote.update({ where: { id: n.id }, data: { text } }));
+  }
+
+  @Perm('calls', 'edit')
+  @Delete(':phone/notes/:id')
+  async removeNote(@Param('phone') phone: string, @Param('id') id: string, @CurrentUser() me: Me) {
+    const n = await this.db.patientNote.findUnique({ where: { id: +id || 0 } });
+    if (!n || n.phone !== String(phone).replace(/\D/g, '')) throw new BadRequestException('توضیح پیدا نشد');
+    if (n.userId !== me.id) throw new BadRequestException('فقط نویسنده توضیح می‌تواند آن را حذف کند');
+    await this.db.patientNote.delete({ where: { id: n.id } });
+    return { ok: true };
   }
 
   /** «به‌روزرسانی از سامانه بیماران» in the file: one fresh CRM request (at most once a minute per number). */

@@ -1961,9 +1961,11 @@ class LiveApp extends React.Component {
     const last = fmtWhen(lastSrc);
     const tab = s.apTab || 'all';
     const isCancel = x => x.status === 3 || /کنسل|لغو/i.test(x.statusLabel || '');
+    const isConfirmed = x => !!(x.confirmed || /confirm\s*شده/i.test(x.confirmedLabel || ''));
     const filtered = all.filter(x => {
       if (tab === 'active') return !isCancel(x);
       if (tab === 'cancel') return isCancel(x);
+      if (tab === 'confirm') return isConfirmed(x);
       return true;
     });
     // Always show the full filtered list (no silent 8-row cap).
@@ -2020,12 +2022,18 @@ class LiveApp extends React.Component {
         hasNext: !!next, noNext: !next, next: next || {},
         hasLast: !!last, noLast: !last, last: last || {},
         rows, hasRows: rows.length > 0, noRows: !rows.length,
-        noRowsText: expected > 0 ? 'فهرست نوبت‌ها هنوز نرسیده؛ در حال دریافت مجدد…' : 'نوبتی برای این بیمار ثبت نشده است.',
+        noRowsText: expected > 0 ? 'فهرست نوبت‌ها هنوز نرسیده؛ در حال دریافت مجدد…'
+          : tab === 'confirm' ? 'نوبت confirm‌شده‌ای برای این بیمار نیست.'
+          : tab === 'cancel' ? 'نوبت کنسل‌شده‌ای نیست.'
+          : tab === 'active' ? 'نوبت فعالی نیست.'
+          : 'نوبتی برای این بیمار ثبت نشده است.',
         more: false, moreText: '', togMore: () => {},
         omitted: A.appointmentsOmitted ? '· ' + fa(A.appointmentsOmitted) + ' نوبت قدیمی‌تر در پاسخ کامل نیست' : '',
         hasOmitted: !!A.appointmentsOmitted,
-        tabs: [['all', 'همه'], ['active', 'فعال'], ['cancel', 'کنسل']].map(([k, label]) => {
-          const n = k === 'all' ? all.length : all.filter(x => (k === 'cancel') === isCancel(x)).length;
+        tabs: [['all', 'همه'], ['active', 'فعال'], ['confirm', 'confirm‌شده'], ['cancel', 'کنسل']].map(([k, label]) => {
+          const n = k === 'all' ? all.length
+            : k === 'confirm' ? all.filter(isConfirmed).length
+            : all.filter(x => (k === 'cancel') === isCancel(x)).length;
           const on = tab === k;
           return { label: label + ' ' + fa(n), bg: on ? '#0B2545' : '#fff', fg: on ? '#fff' : '#3A4A63', bd: on ? '#0B2545' : '#E3E8EF', pick: () => this.setState({ apTab: k }) };
         }),
@@ -2044,10 +2052,31 @@ class LiveApp extends React.Component {
     const d = (s.popCards || {})[phone];
     if (!d && this._cardFor !== phone) { this._cardFor = phone; setTimeout(() => this.loadCard(phone), 0); }
     const ago = t => { if (!t) return ''; const dt = new Date(t); return fa(jStr(dt)) + ' ساعت ' + fa(jpad(dt.getHours()) + ':' + jpad(dt.getMinutes())); };
-    const reports = d ? d.reports.map(r => { const dt = new Date(r.at); return this.repCard({ ...r, date: jStr(dt), time: jpad(dt.getHours()) + ':' + jpad(dt.getMinutes()), edited: false }); }) : [];
+    const reports = d ? (d.reports || []).map(r => { const dt = new Date(r.at); return this.repCard({ ...r, date: jStr(dt), time: jpad(dt.getHours()) + ':' + jpad(dt.getMinutes()), edited: false }); }) : [];
+    const noteItems = d ? (d.notes || []).map(n => this.noteCard(n, phone)) : [];
+    const pnDraft = s.pnDraft || '';
+    const canNote = CAN('calls', 'edit');
+    const notesVm = {
+      items: noteItems, has: noteItems.length > 0, none: !!d && !noteItems.length, count: fa(noteItems.length),
+      canAdd: canNote, draft: pnDraft, setDraft: e => this.setState({ pnDraft: e.target.value }),
+      busy: !!s.pnBusy, saveLabel: s.pnBusy ? 'در حال ثبت…' : 'ثبت توضیح',
+      add: async () => {
+        const text = String(pnDraft || '').trim();
+        if (text.length < 2) { this.toast('متن توضیح را بنویسید'); return; }
+        if (s.pnBusy) return;
+        this.setState({ pnBusy: true });
+        try {
+          await api('/patients/' + encodeURIComponent(phone) + '/notes', { text });
+          this.setState({ pnDraft: '', pnBusy: false, pnForm: null });
+          this.toast('توضیح ثبت شد');
+          this.refreshFileCard(phone);
+        } catch (e) { this.setState({ pnBusy: false }); this.toast(e.message); }
+      },
+    };
     const apptExtra = this.apptFileVals(s, d);
     return { pf2: {
       has: true, loading: !d, newCaller: !hasCalls, phone: phone.replace(/^(\d{4})(\d{3})(\d+)$/, '$1 $2 $3'), name: (d && d.name) || 'شماره ناشناس',
+      notes: notesVm,
       crmOn: !!(d && d.crmOn), fields: d ? d.fields : [], hasFields: !!(d && d.fields.length) && !apptExtra.apMode, noFields: !!d && !d.fields.length && !apptExtra.apMode,
       crmAt: d && d.checkedAt ? 'آخرین استعلام: ' + ago(d.checkedAt) : d && d.crmAt ? 'آخرین دریافت: ' + ago(d.crmAt) : '', looking: !!(d && d.looking),
       ...(() => {
@@ -2396,19 +2425,62 @@ class LiveApp extends React.Component {
     const fa = n => String(n).replace(/\d/g, x => '۰۱۲۳۴۵۶۷۸۹'[x]);
     const { cats, outs } = this.repMeta();
     const o = outs[r.outcome] || outs.done;
-    const mine = r.userId === ME.id || CAN('calls', 'delete');
+    const isAuthor = r.userId === ME.id;
+    const canDel = isAuthor || CAN('calls', 'delete');
     const overdue = r.outcome === 'follow' && r.followUp && r.followUp <= TODAY;
     return {
       id: r.id, text: r.text, by: r.by, when: fa(r.date) + ' · ' + fa(r.time), edited: r.edited ? ' · ویرایش‌شده' : '',
       cat: (cats.find(c => c[0] === r.cat) || [0, 'سایر'])[1], out: o[0], outBg: o[1], outFg: o[2],
       hasFu: r.outcome === 'follow' && !!r.followUp, fu: 'پیگیری: ' + fa(r.followUp || ''), fuBg: overdue ? '#fdeceb' : '#fcf3e0', fuFg: overdue ? '#b42318' : '#8a5a00',
-      ini: (r.by || '؟').trim().slice(0, 1), mine,
-      edit: () => this.setState({ crForm: { callId: r.callId, editId: r.id, cat: r.cat, outcome: r.outcome, text: r.text, fu: r.followUp || '' } }),
-      del: async () => {
+      ini: (r.by || '؟').trim().slice(0, 1), mine: isAuthor, canDel,
+      edit: isAuthor ? () => this.setState({ crForm: { callId: r.callId, editId: r.id, cat: r.cat, outcome: r.outcome, text: r.text, fu: r.followUp || '' } }) : undefined,
+      del: canDel ? async () => {
         if (!confirm('این گزارش حذف شود؟')) return;
-        try { await api('/call-reports/' + r.id, undefined, 'DELETE'); this.toast('گزارش حذف شد'); this.loadCallReports(r.callId); if (this.state.page === 'creports') this.loadCReports(); } catch (e) { this.toast(e.message); }
-      },
+        try { await api('/call-reports/' + r.id, undefined, 'DELETE'); this.toast('گزارش حذف شد'); this.loadCallReports(r.callId); if (this.state.page === 'creports') this.loadCReports(); this.refreshFileCard(r.phone); } catch (e) { this.toast(e.message); }
+      } : undefined,
       ...extra,
+    };
+  }
+
+  /** Reload the open dossier card after a note/report change. */
+  refreshFileCard(phone) {
+    const p = String(phone || this.state.fileKey || '').replace(/\D/g, '');
+    if (!p) return;
+    this.loadCard(p);
+  }
+
+  noteCard(n, phone) {
+    const fa = x => String(x).replace(/\d/g, d => '۰۱۲۳۴۵۶۷۸۹'[d]);
+    const dt = new Date(n.at);
+    const when = fa(jStr(dt)) + ' · ' + fa(jpad(dt.getHours()) + ':' + jpad(dt.getMinutes()));
+    const mine = n.userId === ME.id;
+    const editing = !!(this.state.pnForm && this.state.pnForm.id === n.id);
+    return {
+      id: n.id, text: n.text, by: n.by, when, edited: n.edited ? ' · ویرایش‌شده' : '',
+      ini: (n.by || '؟').trim().slice(0, 1), mine, editing, viewing: !editing,
+      editText: editing ? (this.state.pnForm.text || '') : n.text,
+      setEdit: e => this.setState({ pnForm: { ...(this.state.pnForm || {}), id: n.id, text: e.target.value } }),
+      startEdit: () => this.setState({ pnForm: { id: n.id, text: n.text } }),
+      cancelEdit: () => this.setState({ pnForm: null }),
+      saveEdit: async () => {
+        const text = String((this.state.pnForm && this.state.pnForm.text) || '').trim();
+        if (text.length < 2) { this.toast('متن توضیح را بنویسید'); return; }
+        this.setState({ pnBusy: true });
+        try {
+          await api('/patients/' + encodeURIComponent(phone) + '/notes/' + n.id, { text }, 'PUT');
+          this.setState({ pnForm: null, pnBusy: false });
+          this.toast('توضیح ویرایش شد');
+          this.refreshFileCard(phone);
+        } catch (e) { this.setState({ pnBusy: false }); this.toast(e.message); }
+      },
+      del: async () => {
+        if (!confirm('این توضیح حذف شود؟')) return;
+        try {
+          await api('/patients/' + encodeURIComponent(phone) + '/notes/' + n.id, undefined, 'DELETE');
+          this.toast('توضیح حذف شد');
+          this.refreshFileCard(phone);
+        } catch (e) { this.toast(e.message); }
+      },
     };
   }
 
@@ -2520,9 +2592,12 @@ class LiveApp extends React.Component {
     const when = iso => { if (!iso) return 'هرگز'; const t = new Date(iso); return fa(jStr(t) + ' · ' + jpad(t.getHours()) + ':' + jpad(t.getMinutes())); };
     const f = s.uEdit;
     const canAdd = CAN('users', 'add'), canEdit = CAN('users', 'edit'), canDel = CAN('users', 'delete');
-    const open = u => this.setState({ uEdit: u ? { id: u.id, username: u.username, name: u.name, title: u.title || '', ext: u.ext || '', role: u.role, active: u.active, password: '', perms: JSON.parse(JSON.stringify(u.perms || {})) } : { id: null, username: '', name: '', title: '', ext: '', role: 'operator', active: true, password: '', perms: JSON.parse(JSON.stringify(d.roles.find(r => r.id === 'operator').perms)) } });
+    const open = u => this.setState({ uEdit: u ? { id: u.id, username: u.username, name: u.name, title: u.title || '', ext: u.ext || '', apiId: u.apiId || '', announceSnd: u.announceSnd || '', role: u.role, active: u.active, password: '', perms: JSON.parse(JSON.stringify(u.perms || {})) } : { id: null, username: '', name: '', title: '', ext: '', apiId: '', announceSnd: '', role: 'operator', active: true, password: '', perms: JSON.parse(JSON.stringify(d.roles.find(r => r.id === 'operator').perms)) } });
     const users = d.users.map(u => ({
-      name: u.name, title: u.title || '', hasTitle: !!u.title, username: u.username, ext: u.ext ? fa(u.ext) : '—', role: ROLE[u.role] || u.role, custom: u.custom, roleTag: u.custom ? ROLE[u.role] + ' · سفارشی' : ROLE[u.role],
+      name: u.name, title: u.title || '', hasTitle: !!u.title, username: u.username, ext: u.ext ? fa(u.ext) : '—',
+      apiId: u.apiId || '', hasApiId: !!u.apiId, apiIdText: u.apiId || '—',
+      hasAnnounce: !!u.announceSnd, announceLabel: u.announceSnd ? ((s.snds || []).find(x => x.id === u.announceSnd) || {}).name || u.announceSnd : '',
+      role: ROLE[u.role] || u.role, custom: u.custom, roleTag: u.custom ? ROLE[u.role] + ' · سفارشی' : ROLE[u.role],
       roleBg: u.role === 'admin' ? '#2E2F31' : '#f2f3ef', roleFg: u.role === 'admin' ? '#8DC63F' : '#3a3b3d',
       active: u.active, inactive: !u.active, statusLabel: u.active ? 'فعال' : 'غیرفعال', statusBg: u.active ? '#eaf4dc' : '#f2f3ef', statusFg: u.active ? '#3d6a0c' : '#8b8e89',
       last: when(u.lastLogin), self: u.id === ME.id, op: u.active ? 1 : 0.6,
@@ -2557,16 +2632,33 @@ class LiveApp extends React.Component {
         })) };
       });
       const preset = r => () => setF({ role: r.id, perms: JSON.parse(JSON.stringify(r.perms)) });
+      const snds = (s.snds || []).filter(x => x.file);
       form = {
         isNew: !f.id, title: f.id ? 'ویرایش کاربر' : 'کاربر جدید', f, isAdmin, notAdmin: !isAdmin, self: f.id === ME.id,
-        set: Object.fromEntries(['name', 'title', 'username', 'password', 'ext'].map(k => [k, e => setF({ [k]: e.target.value })])),
+        set: Object.fromEntries(['name', 'title', 'username', 'password', 'ext', 'apiId'].map(k => [k, e => setF({ [k]: e.target.value })])),
+        setAnnounce: e => setF({ announceSnd: e.target.value }),
+        announceOpts: [{ id: '', name: '— بدون پیام اعلام —' }, ...snds.map(x => ({ id: x.id, name: x.name }))],
+        uploadAnnounce: async e => {
+          const file = e.target.files && e.target.files[0];
+          if (!file) return;
+          e.target.value = '';
+          try {
+            const r = await this.uploadSound(file, 'greet');
+            const id = r && r.sound && r.sound.id;
+            if (id) setF({ announceSnd: id });
+          } catch (_) { /* uploadSound already toasted */ }
+        },
         presets: d.roles.map(r => ({ label: r.label, click: preset(r), bg: f.role === r.id ? '#2E2F31' : '#fff', fg: f.role === r.id ? '#fff' : '#3a3b3d', bd: f.role === r.id ? '#2E2F31' : '#e1e3dc' })),
         activeT: { bg: f.active ? '#8DC63F' : '#d9dad6', j: f.active ? 'flex-end' : 'flex-start' }, toggleActive: () => f.id !== ME.id && setF({ active: !f.active }),
         groups, acts: ['view', 'add', 'edit', 'delete'].map(a => ({ label: ACT[a] })),
         passPh: f.id ? 'خالی بگذارید تا تغییر نکند' : 'حداقل ۶ کاراکتر',
         cancel: () => this.setState({ uEdit: null }),
         save: async () => {
-          const body = { name: f.name, title: f.title, username: f.username, ext: f.ext, role: f.role, active: f.active, perms: f.perms, ...(f.password ? { password: f.password } : {}) };
+          const body = {
+            name: f.name, title: f.title, username: f.username, ext: f.ext,
+            apiId: f.apiId, announceSnd: f.announceSnd,
+            role: f.role, active: f.active, perms: f.perms, ...(f.password ? { password: f.password } : {}),
+          };
           try { if (f.id) await api('/users/' + f.id, body, 'PUT'); else await api('/users', body); this.toast(f.id ? 'تغییرات کاربر ذخیره شد' : 'کاربر ساخته شد'); this.setState({ uEdit: null }); this.loadUsers(); }
           catch (e) { this.toast(e.message); }
         },
@@ -2809,9 +2901,11 @@ class LiveApp extends React.Component {
       this.applyRemote({ snds: r.snds });
       this.toast('فایل «' + r.sound.name + '» بارگذاری و به فرمت مرکز تلفن تبدیل شد');
       if (ME.tenantId) this.loadAccount();
+      return r;
     } catch (e) {
       if (e.status === 507 || e.code === 'STORAGE_FULL') this.toast(e.message || 'فضای ذخیره‌سازی پر است؛ از «حساب من» فضای بیشتر بخرید');
       else this.toast('بارگذاری ناموفق بود: ' + e.message);
+      throw e;
     }
   }
 

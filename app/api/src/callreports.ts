@@ -84,17 +84,21 @@ export class CallReportsController {
     return view(r);
   }
 
-  private async own(id: string, me: Me) {
+  private async own(id: string, me: Me, mode: 'edit' | 'delete') {
     const r = await this.db.callReport.findUnique({ where: { id: +id || 0 } });
     if (!r) throw new NotFoundException('گزارش پیدا نشد');
-    if (r.userId !== me.id && !can(me, 'calls', 'delete')) throw new ForbiddenException('فقط نویسنده گزارش یا مدیر می‌تواند آن را تغییر دهد');
-    return r;
+    if (r.userId === me.id) return r;
+    // Others may only view; delete is allowed for managers with calls:delete.
+    if (mode === 'delete' && can(me, 'calls', 'delete')) return r;
+    throw new ForbiddenException(mode === 'edit'
+      ? 'فقط نویسنده گزارش می‌تواند آن را ویرایش کند'
+      : 'فقط نویسنده گزارش یا مدیر می‌تواند آن را حذف کند');
   }
 
   @Perm('calls', 'edit')
   @Put(':id')
   async edit(@Param('id') id: string, @Body() b: any, @CurrentUser() me: Me) {
-    const r = await this.own(id, me);
+    const r = await this.own(id, me, 'edit');
     const x = await this.db.callReport.update({ where: { id: r.id }, data: this.clean(b) });
     this.bus.emit('calls', { id: r.callId });
     return view(x);
@@ -103,7 +107,7 @@ export class CallReportsController {
   @Perm('calls', 'edit')
   @Delete(':id')
   async remove(@Param('id') id: string, @CurrentUser() me: Me) {
-    const r = await this.own(id, me);
+    const r = await this.own(id, me, 'delete');
     await this.db.callReport.delete({ where: { id: r.id } });
     await this.db.auditLog.create({ data: { userId: me.id, userName: me.name, action: 'callreport.delete', target: r.callId, detail: { id: r.id } } });
     this.bus.emit('calls', { id: r.callId });

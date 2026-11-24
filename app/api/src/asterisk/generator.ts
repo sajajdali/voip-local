@@ -393,12 +393,28 @@ function dialplan(cfg: VoipConfig, opts: { hookUrl: string; hookSecret: string }
   }
 
   // --- queues
+  // Preferred agent (Kamilo زیبایار agent_id → User.apiId): announce + ring that ext first; on no-answer continue to Queue as today.
+  const prefagent = [
+    ` same => n,Set(CC_PREF=\${CURL(${opts.hookUrl}/prefagent?s=${opts.hookSecret},num=\${CC_NUM}&did=\${CC_DID})})`,
+    ' same => n,GotoIf($["${CC_PREF}"=""]?prefskip)',
+    ' same => n,Set(CC_PREFEXT=${CUT(CC_PREF,|,1)})',
+    ' same => n,Set(CC_PREFSND=${CUT(CC_PREF,|,2)})',
+    ' same => n,GotoIf($["${CC_PREFEXT}"=""]?prefskip)',
+    // Skip if the preferred phone is not free — fall through to the queue without delaying the caller.
+    ' same => n,GotoIf($["${DEVICE_STATE(PJSIP/${CC_PREFEXT})}"!="NOT_INUSE"]?prefskip)',
+    ' same => n,ExecIf($["${CC_PREFSND}"!=""]?Playback(${CC_PREFSND}))',
+    ` same => n,${ccEvent('call.ringing', 'Target: preferred,Ext: ${CC_PREFEXT}')}`,
+    ' same => n,Dial(PJSIP/${CC_PREFEXT},20,trgU(cc-agent-answer^0))',
+    ' same => n,GotoIf($["${DIALSTATUS}"="ANSWER"]?cc-survey,s,1)',
+    ' same => n(prefskip),NoOp(no preferred agent)',
+  ];
   for (const q of cfg.vqs) {
     X(`cc-queue-${sid(q.id)}`, [
       'exten => s,1,Answer()',
       ` same => n,Set(__CC_QUEUE=${safe(q.name)})`,
       ` same => n,${ccEvent('call.queued', `Queue: ${evText(q.name)}`)}`,
       ...cname,
+      ...prefagent,
       ...(q.moh && cfg.snds.some(s => s.id === q.moh) ? [` same => n,Set(CHANNEL(musicclass)=snd-${sid(q.moh)})`] : []),
       ` same => n,Queue(cc-${sid(q.id)},tc,,,${+q.maxWait > 0 ? Math.max(10, +q.maxWait) : ''},,cc-agent-answer)`,
       ' same => n,GotoIf($["${CC_ANSEXT}"!=""]?cc-survey,s,1)',

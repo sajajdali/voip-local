@@ -715,6 +715,25 @@ export class HooksController {
     return phone ? this.patients.phoneName(phone, tenantId, did) : '';
   }
 
+  /**
+   * Preferred agent before a queue: body `ext|announcePath` (path empty if no voice).
+   * Empty string = no match → dialplan continues to the normal queue.
+   */
+  @Public()
+  @Post('prefagent')
+  async prefagent(@Req() req: Request, @Query('s') s: string, @Body() b: Record<string, string>) {
+    this.check(req, s);
+    const phone = normalizePhone(b.num || (req.query.num as string));
+    const did = String(b.did || (req.query.did as string) || '');
+    const tenantId = await this.calls.tenantForDid(did);
+    if (!phone) return '';
+    const pref = await this.patients.preferredAgent(phone, tenantId);
+    if (!pref) return '';
+    // Dialplan Playback() expects custom/<id> (see generator sound()).
+    const snd = pref.announceSnd ? `custom/${String(pref.announceSnd).replace(/[^A-Za-z0-9_-]/g, '')}` : '';
+    return `${pref.ext}|${snd}`;
+  }
+
   @Public()
   @Post('answer')
   answer(@Req() req: Request, @Query('s') s: string, @Body() b: Record<string, string>) {
