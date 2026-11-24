@@ -2632,22 +2632,17 @@ class LiveApp extends React.Component {
         })) };
       });
       const preset = r => () => setF({ role: r.id, perms: JSON.parse(JSON.stringify(r.perms)) });
+      // Same system-sound picker as IVR / صندوق پیام / نظرسنجی (select existing snds only — no upload here).
       const snds = (s.snds || []).filter(x => x.file);
+      const hasAnnounce = !!(f.announceSnd && snds.some(x => x.id === f.announceSnd));
       form = {
         isNew: !f.id, title: f.id ? 'ویرایش کاربر' : 'کاربر جدید', f, isAdmin, notAdmin: !isAdmin, self: f.id === ME.id,
         set: Object.fromEntries(['name', 'title', 'username', 'password', 'ext', 'apiId'].map(k => [k, e => setF({ [k]: e.target.value })])),
         setAnnounce: e => setF({ announceSnd: e.target.value }),
-        announceOpts: [{ id: '', name: '— بدون پیام اعلام —' }, ...snds.map(x => ({ id: x.id, name: x.name }))],
-        uploadAnnounce: async e => {
-          const file = e.target.files && e.target.files[0];
-          if (!file) return;
-          e.target.value = '';
-          try {
-            const r = await this.uploadSound(file, 'greet');
-            const id = r && r.sound && r.sound.id;
-            if (id) setF({ announceSnd: id });
-          } catch (_) { /* uploadSound already toasted */ }
-        },
+        announceOpts: [{ v: '', label: '— بدون پیام اعلام —' }, ...snds.map(x => ({ v: x.id, label: x.name }))],
+        hasAnnounce, playAnnounce: () => f.announceSnd && this.playSound({ id: f.announceSnd }),
+        announcePlaying: s.sndPlay === f.announceSnd && !!f.announceSnd,
+        goSounds: () => this.setState({ page: 'vsound', uEdit: null }),
         presets: d.roles.map(r => ({ label: r.label, click: preset(r), bg: f.role === r.id ? '#2E2F31' : '#fff', fg: f.role === r.id ? '#fff' : '#3a3b3d', bd: f.role === r.id ? '#2E2F31' : '#e1e3dc' })),
         activeT: { bg: f.active ? '#8DC63F' : '#d9dad6', j: f.active ? 'flex-end' : 'flex-start' }, toggleActive: () => f.id !== ME.id && setF({ active: !f.active }),
         groups, acts: ['view', 'add', 'edit', 'delete'].map(a => ({ label: ACT[a] })),

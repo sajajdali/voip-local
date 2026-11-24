@@ -6659,15 +6659,20 @@ export default function AppView({ vm }) {
                       {"api id (agent_id زیبایار کامیلو)"}
                       <input value={vm.uv?.form?.f?.apiId} onChange={vm.uv?.form?.set?.apiId} placeholder="مثلاً 42 یا uuid زیبایار" style={{border: "1px solid #E3E8EF", borderRadius: "10px", padding: "10px 12px", fontSize: "13px", outline: "none", background: "#fff", color: "#16213A", fontFamily: "inherit", width: "100%", direction: "ltr", textAlign: "left"}} />
                     </label>
-                    <label style={{display: "flex", flexDirection: "column", gap: "4px", fontSize: "11px", color: "#5B6B82"}}>
-                      {"پیام اعلام قبل از زنگ («شما در حال اتصال به … هستید»)"}
-                      <select value={vm.uv?.form?.f?.announceSnd || ""} onChange={vm.uv?.form?.setAnnounce} style={{border: "1px solid #E3E8EF", borderRadius: "10px", padding: "10px 12px", fontSize: "13px", outline: "none", background: "#fff", color: "#16213A", fontFamily: "inherit", width: "100%"}}>
-                        {(vm.uv?.form?.announceOpts || []).map((o, __iAnn) => <option key={__iAnn} value={o?.id}>{o?.name}</option>)}
-                      </select>
-                    </label>
-                    <label style={{display: "flex", flexDirection: "column", gap: "4px", fontSize: "11px", color: "#5B6B82"}}>
-                      {"یا بارگذاری فایل اعلام جدید"}
-                      <input type="file" accept="audio/*,.wav,.mp3" onChange={vm.uv?.form?.uploadAnnounce} style={{border: "1px solid #E3E8EF", borderRadius: "10px", padding: "8px 10px", fontSize: "12px", background: "#fff", fontFamily: "inherit", width: "100%"}} />
+                    <label style={{display: "flex", flexDirection: "column", gap: "4px", fontSize: "11px", color: "#5B6B82", gridColumn: "1 / -1"}}>
+                      <div style={{display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap"}}>
+                        <span style={{flex: "1"}}>{"پیام اعلام قبل از زنگ («شما در حال اتصال به … هستید») · از صداهای سامانه"}</span>
+                        <button type="button" onClick={vm.uv?.form?.goSounds} style={{background: "#fff", border: "1px solid #E3E8EF", color: "#3A4A63", padding: "6px 11px", borderRadius: "9px", fontSize: "12px", fontWeight: "700", cursor: "pointer", fontFamily: "inherit"}}>{"صداها ←"}</button>
+                      </div>
+                      <div style={{display: "flex", gap: "8px"}}>
+                        <select value={vm.uv?.form?.f?.announceSnd || ""} onChange={vm.uv?.form?.setAnnounce} style={{border: "1px solid #E3E8EF", borderRadius: "10px", padding: "9px 12px", fontSize: "13px", outline: "none", background: "#F7F9FC", color: "#16213A", fontFamily: "inherit", width: "100%"}}>
+                          {(vm.uv?.form?.announceOpts || []).map((o, __iAnn) => <option key={__iAnn} value={o?.v}>{o?.label}</option>)}
+                        </select>
+                        {(vm.uv?.form?.hasAnnounce) ? (<>
+                          <button type="button" onClick={vm.uv?.form?.playAnnounce} style={{width: "42px", flexShrink: "0", borderRadius: "10px", border: "1px solid #E3E8EF", background: "#E3F2F1", color: "#0A5C5B", cursor: "pointer", fontSize: "13px"}}>{vm.uv?.form?.announcePlaying ? "❚❚" : "▶"}</button>
+                        </>) : null}
+                      </div>
+                      <span style={{fontSize: "11px", color: "#7A889C"}}>{"همان فهرست صداهای IVR و نظرسنجی؛ فایل جدید را از «صداها» بارگذاری کنید، بعد اینجا انتخاب کنید."}</span>
                     </label>
                   </div>
                   <div style={{display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap"}}>
