@@ -11,6 +11,7 @@ import { Bus } from './bus';
 import { normalizePhone } from './calls';
 import { ConfigStore } from './config';
 import { PrismaService } from './prisma.service';
+import { normalizeInboundDid } from './tenant-scope';
 
 const SPY_PORT = 9030;
 const KIND = { hangup: 0x00, uuid: 0x01, audio: 0x10, error: 0xff };
@@ -20,11 +21,31 @@ export interface LiveCall {
   id: string; dir: 'in' | 'out' | 'internal'; phone: string; name: string; state: string; stateKey: string;
   with: string; queue: string; since: number; talkSince: number | null; channel: string;
   ext: string; ringExts: string[]; // the operator on the call, and extensions ringing for it
+  did?: string; tenantId?: string | null;
+}
+
+export interface CallPop {
+  id: string; phone: string; name: string; stateKey: string; state: string; with: string;
+  ext: string; ringExts: string[]; queue: string; since: number; talkSince: number | null;
+  did?: string; tenantId?: string | null;
 }
 
 interface Spy { uuid: string; ws: Socket; me: Me; callId: string; tcp?: net.Socket; keep?: NodeJS.Timeout; started: number }
 
 const hms = (d: string) => { const [h, m, s] = String(d || '0:0:0').split(':').map(Number); return (h || 0) * 3600 + (m || 0) * 60 + (s || 0); };
+
+/** Dialplan contexts that mean this channel is (still) an inbound call. */
+export function isInboundContext(ctx: string) {
+  const c = String(ctx || '');
+  return /^(from-trunk|cc-inbound|cc-book|cc-blocked)$/.test(c)
+    || /^cc-(route|ivr|tc|queue|rg|ext|vm|tenant)-/.test(c)
+    || /^cc-tenant-/.test(c);
+}
+
+/** Local channel halves used for *88 / AMI simulate-inbound. */
+export function isInboundLocal(ch: string) {
+  return /^Local\/.+@(from-trunk|cc-inbound)/.test(ch);
+}
 
 @Injectable()
 export class LiveCallsService implements OnModuleInit {
@@ -36,8 +57,11 @@ export class LiveCallsService implements OnModuleInit {
   private spies = new Map<string, Spy>();
   private last = '';
   private lastPop = '';
+  /** did → tenantId (refreshed occasionally). */
+  private didTenant = new Map<string, string>();
+  private didTenantAt = 0;
   /** Inbound callers right now, for the caller card in the corner of every panel. */
-  pops: any[] = [];
+  pops: CallPop[] = [];
 
   constructor(private ast: AsteriskService, private bus: Bus, private db: PrismaService, private store: ConfigStore) {}
 
@@ -46,9 +70,17 @@ export class LiveCallsService implements OnModuleInit {
     net.createServer(sock => this.onAudioSocket(sock)).listen(SPY_PORT, '127.0.0.1').on('error', e => this.log.error('spy socket: ' + e.message));
   }
 
+  /** Pops visible to this session: platform sees all; tenants only their DID/tenant calls. */
+  popsFor(me: Me | null | undefined): CallPop[] {
+    if (!me?.tenantId) return this.pops;
+    const tid = me.tenantId;
+    return this.pops.filter(p => p.tenantId === tid || (!!p.did && this.didTenant.get(p.did) === tid));
+  }
+
   // ---------------- live call list
   private async update(chans: any[]) {
     const cfg = await this.store.all();
+    await this.refreshDidMap();
     const extOf = (ch: string) => (/^PJSIP\/(\d+)-/.exec(ch) || [])[1] || '';
     const isTrunk = (ch: string) => /^PJSIP\/trunk-/.test(ch);
     const real = chans.filter(c => !/^AudioSocket\//.test(c.Channel || '') && c.Application !== 'ChanSpy');
@@ -61,12 +93,16 @@ export class LiveCallsService implements OnModuleInit {
       // a call placed into the dialplan through a Local channel (route test, simulated inbound): its ;2 half is the caller
       if (caller && /^Local\/.*;1$/.test(caller.Channel)) {
         const half = l.find(c => c.Channel === caller.Channel.replace(/;1$/, ';2'));
-        if (half && /^cc-(inbound|route|ivr|tc|queue|rg|ext|vm|ai)/.test(half.Context || '')) caller = half;
+        if (half && isInboundContext(half.Context || '')) caller = half;
       }
       if (!caller || /^Local\/.*;1$/.test(caller.Channel) || /@cc-(ai-session|outext)/.test(caller.Channel)) continue;
       const ch = caller.Channel as string;
-      const dir: LiveCall['dir'] = isTrunk(ch) || /^Local\/.*@cc-inbound/.test(ch) ? 'in' : l.some(c => isTrunk(c.Channel) || /@cc-outext/.test(c.Channel)) || caller.Context === 'cc-callback' ? 'out' : 'internal';
+      const dir: LiveCall['dir'] = isTrunk(ch) || isInboundLocal(ch) || (isInboundContext(caller.Context || '') && !l.some(c => /@cc-outext/.test(c.Channel) || c.Context === 'cc-callback'))
+        ? 'in'
+        : l.some(c => isTrunk(c.Channel) || /@cc-outext/.test(c.Channel)) || caller.Context === 'cc-callback' ? 'out' : 'internal';
       const phone = normalizePhone(dir === 'in' ? caller.CallerIDNum : dir === 'out' ? caller.ConnectedLineNum || caller.Exten : caller.CallerIDNum) || caller.CallerIDNum || '';
+      const did = this.didOf(caller, ch);
+      const tenantId = did ? (this.didTenant.get(did) || null) : null;
       const bridged = caller.BridgeId ? l.find(c => c !== caller && c.BridgeId === caller.BridgeId) : null;
       const peerOf = (c: any) => {
         if (!c) return '';
@@ -88,6 +124,7 @@ export class LiveCallsService implements OnModuleInit {
         if (dir === 'out' && extOf(ch)) withWhom = peerOf(caller);
       } else if (app === 'Queue') { stateKey = 'queue'; state = 'در صف انتظار'; }
       else if (/^(BackGround|WaitExten|Playback|Read)$/.test(app)) { stateKey = 'ivr'; state = caller.Context === 'cc-survey' ? 'در حال نظرسنجی' : 'در منوی تلفنی'; }
+      else if (app === 'AGI' || /^cc-book/.test(caller.Context || '')) { stateKey = 'ivr'; state = 'نوبت‌دهی تلفنی'; }
       else if (app === 'Record') { stateKey = 'vm'; state = 'در حال گذاشتن پیام صوتی'; }
       else if (app === 'Dial' || l.some(c => /Ring/.test(c.ChannelStateDesc || ''))) {
         stateKey = 'ring'; state = 'در حال زنگ خوردن';
@@ -96,20 +133,40 @@ export class LiveCallsService implements OnModuleInit {
       if (stateKey === 'talk') { if (!this.talkSince.has(id)) this.talkSince.set(id, now); } else this.talkSince.delete(id);
       out.push({
         id, dir, phone, name: '', state, stateKey, with: withWhom, queue, channel: ch, ext: bridged ? agentExt : '', ringExts,
-        since: now - hms(caller.Duration) * 1000, talkSince: this.talkSince.get(id) || null,
+        since: now - hms(caller.Duration) * 1000, talkSince: this.talkSince.get(id) || null, did, tenantId,
       });
     }
     for (const k of [...this.talkSince.keys()]) if (!groups.has(k)) this.talkSince.delete(k);
     await this.fillNames(out);
     out.sort((a, b) => a.since - b.since);
     this.calls = out;
-    const j = JSON.stringify(out.map(c => [c.id, c.stateKey, c.with, c.name, c.talkSince, c.ext, c.ringExts]));
+    const j = JSON.stringify(out.map(c => [c.id, c.stateKey, c.with, c.name, c.talkSince, c.ext, c.ringExts, c.did, c.tenantId]));
     if (j !== this.last) { this.last = j; this.bus.emit('livecalls', out); }
-    this.pops = out.filter(c => c.dir === 'in' && c.phone).map(c => ({ id: c.id, phone: c.phone, name: c.name, stateKey: c.stateKey, state: c.state, with: c.with, ext: c.ext, ringExts: c.ringExts, queue: c.queue, since: c.since, talkSince: c.talkSince }));
-    const jp = JSON.stringify(this.pops.map(c => [c.id, c.stateKey, c.ext, c.ringExts, c.name]));
+    this.pops = out.filter(c => c.dir === 'in' && c.phone).map(c => ({
+      id: c.id, phone: c.phone, name: c.name, stateKey: c.stateKey, state: c.state, with: c.with,
+      ext: c.ext, ringExts: c.ringExts, queue: c.queue, since: c.since, talkSince: c.talkSince, did: c.did, tenantId: c.tenantId,
+    }));
+    const jp = JSON.stringify(this.pops.map(c => [c.id, c.stateKey, c.ext, c.ringExts, c.name, c.did, c.tenantId]));
     if (jp !== this.lastPop) { this.lastPop = jp; this.bus.emit('callpop', this.pops); }
     // a listened call ended: tell the listener
     for (const s of this.spies.values()) if (!groups.has(s.callId)) this.stop(s.uuid, 'تماس تمام شد');
+  }
+
+  private didOf(caller: any, ch: string) {
+    const fromAcct = normalizeInboundDid(caller.Accountcode || caller.AccountCode || '');
+    if (fromAcct) return fromAcct;
+    const fromExten = normalizeInboundDid(caller.Exten || '');
+    if (fromExten && fromExten !== 's') return fromExten;
+    const m = /^Local\/([+0-9]+)@/.exec(ch);
+    return m ? normalizeInboundDid(m[1]) : '';
+  }
+
+  private async refreshDidMap() {
+    if (Date.now() - this.didTenantAt < 15e3 && this.didTenant.size) return;
+    const rows = await this.db.didAssignment.findMany({ select: { did: true, tenantId: true } }).catch(() => []);
+    this.didTenant.clear();
+    for (const r of rows) this.didTenant.set(r.did, r.tenantId);
+    this.didTenantAt = Date.now();
   }
 
   private async fillNames(list: LiveCall[]) {

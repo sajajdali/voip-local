@@ -290,6 +290,8 @@ function dialplan(cfg: VoipConfig, opts: { hookUrl: string; hookSecret: string }
     ' same => n,Set(CHANNEL(hangup_handler_push)=cc-hangup,s,1)',
     ' same => n,Set(CC_CID=${FILTER(0-9,${CALLERID(num)})})',
     ' same => n,Set(__CC_NUM=${CC_CID})',
+    // Accountcode survives Gotos (Exten becomes s) so live callpop can recover the DID
+    ' same => n,Set(CHANNEL(accountcode)=${CC_DID})',
     ' same => n,GotoIf($["${CC_CID}"=""]?anon)',
     ' same => n,GotoIf(${DB_EXISTS(ccbl/${CC_CID})}?blocked:route)',
     ' same => n(anon),GotoIf($["${DB(ccset/anon)}"="1"]?blocked:route)',
@@ -314,6 +316,7 @@ function dialplan(cfg: VoipConfig, opts: { hookUrl: string; hookSecret: string }
       `exten => s,1,NoOp(Tenant ${safe(d.name || d.tenantId)} DID ${did})`,
       ` same => n,Set(__CC_TENANT=${sid(d.tenantId)})`,
       ` same => n,Set(__CC_DID=${did})`,
+      ` same => n,Set(CHANNEL(accountcode)=${did})`,
       ` same => n,Goto(${destTarget(d.dest, cfg)})`,
     ]);
   }

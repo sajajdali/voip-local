@@ -27,10 +27,18 @@ export class LiveGateway implements OnGatewayConnection, OnGatewayDisconnect {
     });
     bus.on('cb', x => this.server.to('user:' + x.userId).emit('cb', x));
     bus.on('livecalls', x => this.server && this.server.to('perm:live').emit('livecalls', x));
-    bus.on('callpop', x => {
+    bus.on('callpop', (pops: any) => {
       if (!this.server) return;
-      if (x?.tenantId) this.server.to('tenant:' + x.tenantId).to('perm:calls').emit('callpop', x);
-      else this.server.to('perm:calls').emit('callpop', x);
+      const list = Array.isArray(pops) ? pops : [];
+      // Platform admins see every inbound popup; each tenant only its own DID/tenant calls
+      // (emit empty lists too so a finished call clears the corner card).
+      this.server.to('tenant:platform').to('perm:calls').emit('callpop', list);
+      for (const room of this.server.sockets.adapter.rooms.keys()) {
+        if (typeof room !== 'string' || !room.startsWith('tenant:') || room === 'tenant:platform') continue;
+        const tid = room.slice('tenant:'.length);
+        const rows = list.filter((p: any) => p?.tenantId === tid);
+        this.server.to(room).to('perm:calls').emit('callpop', rows);
+      }
     });
     bus.on('patient', x => this.server && this.server.to('perm:calls').emit('patient', x));
     bus.on('sms', x => this.server && this.server.to('perm:calls').emit('sms', x));
@@ -55,7 +63,7 @@ export class LiveGateway implements OnGatewayConnection, OnGatewayDisconnect {
     s.data.tok = tok;
     s.emit('live', this.ast.live);
     if (can(me, 'live')) { s.join('perm:live'); s.emit('livecalls', this.live.calls); }
-    if (can(me, 'calls')) { s.join('perm:calls'); s.emit('callpop', this.live.pops); }
+    if (can(me, 'calls')) { s.join('perm:calls'); s.emit('callpop', this.live.popsFor(me)); }
   }
 
   handleDisconnect(s: Socket) { this.live.stopFor(s); }
