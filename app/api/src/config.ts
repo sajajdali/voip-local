@@ -235,12 +235,16 @@ export class ConfigStore {
     this.bus.emit('config', { key, data, by: null });
   }
 
-  /** Non-admins never receive SIP secrets or trunk passwords. Tenant users never see trunks. */
+  /** Platform non-admins never receive SIP secrets or trunk passwords. Tenant users never see trunks.
+   *  Tenant-scoped configs may include SIP secrets so staff can provision phones (forUser already isolates the tenant). */
   publicView(key: string, data: any, me: Me | { role: string; tenantId?: string | null }) {
     if (!Array.isArray(data)) return data;
     if (key === 'trunks' && !isSuperAdmin(me as Me)) return [];
     if (isSuperAdmin(me as Me)) return data;
-    if (key === 'exts') return data.map((e: any) => ({ ...e, secret: undefined }));
+    if (key === 'exts') {
+      if ((me as Me).tenantId) return data;
+      return data.map((e: any) => ({ ...e, secret: undefined }));
+    }
     if (key === 'trunks') return data.map((t: any) => ({ ...t, pass: undefined, user: undefined }));
     return data;
   }
