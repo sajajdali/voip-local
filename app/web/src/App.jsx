@@ -2817,19 +2817,58 @@ class LiveApp extends React.Component {
     };
     if (!d) return <div style={{ padding: 40, fontFamily: 'IRANSansX, Tahoma, sans-serif', direction: 'rtl' }}>در حال بارگذاری…</div>;
     const inp = { padding: 9, borderRadius: 10, border: '1px solid #E3E8EF', fontFamily: 'inherit' };
+    const tenants = d.tenants || [];
+    const userCount = tenants.reduce((n, t) => n + ((t.users || []).length), 0);
+    const didAssigned = tenants.reduce((n, t) => n + ((t.dids || []).length), 0);
+    const freeDids = d.pool?.free ?? Math.max(0, (d.pool?.total || 1000) - didAssigned);
+    const poolTotal = d.pool?.total || 1000;
+    const btnGhost = { border: '1px solid rgba(255,255,255,.28)', background: 'rgba(255,255,255,.1)', color: '#fff', padding: '10px 16px', borderRadius: 12, cursor: 'pointer', fontFamily: 'inherit', fontWeight: 600 };
+    const btnPrimary = { border: 'none', background: '#fff', color: '#0B2545', padding: '10px 16px', borderRadius: 12, cursor: 'pointer', fontFamily: 'inherit', fontWeight: 800 };
     return (
-      <div style={{ minHeight: '100vh', background: 'linear-gradient(160deg,#F7F9FC 0%,#EEF8F7 45%,#E2ECFA 100%)', padding: '24px 20px 48px', fontFamily: 'IRANSansX, Tahoma, sans-serif', direction: 'rtl', color: '#0B2545' }}>
-        <div style={{ maxWidth: 980, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 18 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', alignItems: 'flex-end' }}>
-            <div>
-              <button type="button" onClick={back} style={{ border: '1px solid #E3E8EF', background: '#fff', borderRadius: 10, padding: '6px 12px', cursor: 'pointer', marginBottom: 10, fontFamily: 'inherit' }}>← بازگشت به تنظیمات</button>
-              <h1 style={{ margin: 0, fontSize: 22, fontFamily: "'Noto Kufi Arabic',sans-serif" }}>مستأجرها · اشتراک · DID ۳۱۹۸۵</h1>
-              <div style={{ color: '#5B6B82', fontSize: 13, marginTop: 4 }}>ورود مستأجر: <b dir="ltr">https://voip.s8n.ir</b> · بازه {d.pool.min}…{d.pool.max} · آزاد: {fa(d.pool.free || 0)} از {fa(d.pool.total)}</div>
+      <div style={{ minHeight: '100vh', background: 'radial-gradient(900px 420px at 100% -10%,rgba(43,179,163,.18),transparent 55%),radial-gradient(700px 380px at 0% 0%,rgba(29,78,137,.12),transparent 50%),#F3F6FA', padding: '20px 18px 48px', fontFamily: 'IRANSansX, Tahoma, sans-serif', direction: 'rtl', color: '#0B2545' }}>
+        <div style={{ maxWidth: 1040, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 18 }}>
+          <button type="button" onClick={back} style={{ alignSelf: 'flex-start', border: '1px solid #E3E8EF', background: '#fff', borderRadius: 10, padding: '6px 12px', cursor: 'pointer', fontFamily: 'inherit', color: '#3A4A63' }}>← بازگشت به تنظیمات</button>
+
+          <section style={{ position: 'relative', overflow: 'hidden', borderRadius: 24, background: 'linear-gradient(135deg,#0B2545 0%,#123A66 48%,#0D5C63 100%)', color: '#fff', padding: '28px 26px 24px', boxShadow: '0 24px 50px -34px rgba(11,37,69,.65)' }}>
+            <span style={{ position: 'absolute', left: -70, bottom: -90, width: 260, height: 260, borderRadius: '50%', border: '40px solid rgba(95,208,194,.12)', pointerEvents: 'none' }} />
+            <div style={{ position: 'relative', display: 'flex', justifyContent: 'space-between', gap: 18, flexWrap: 'wrap', alignItems: 'flex-start' }}>
+              <div style={{ maxWidth: 560 }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: '#5FD0C2', letterSpacing: '.3px', marginBottom: 8 }}>Neuron · voip.s8n.ir</div>
+                <h1 style={{ margin: 0, fontSize: 28, fontFamily: "'Noto Kufi Arabic',sans-serif", fontWeight: 800, lineHeight: 1.45 }}>مدیریت مستأجرها</h1>
+                <p style={{ margin: '8px 0 0', fontSize: 13.5, color: '#C9D3E3', lineHeight: 1.8, maxWidth: 480 }}>
+                  تخصیص DID بازهٔ ۳۱۹۸۵، کاربران هر مستأجر، و ورود سریع به پنل آن‌ها — همه در یک صفحه.
+                </p>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 18 }}>
+                  <button type="button" onClick={() => this.setState({ tnForm: { ...blankForm(), defaultDest: (queues[0] && queues[0].id) || '' } })} style={btnPrimary}>مستأجر جدید</button>
+                  <button type="button" onClick={() => this.setState({ page: 'dids', didInvPage: 1 })} style={btnGhost}>فهرست کامل DID</button>
+                </div>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(132px, 1fr))', gap: 10, minWidth: 290, flex: '1 1 290px' }}>
+                <div style={{ background: 'rgba(255,255,255,.1)', border: '1px solid rgba(255,255,255,.16)', borderRadius: 16, padding: '14px 16px' }}>
+                  <div style={{ fontSize: 11, color: '#9FB0C8', fontWeight: 600 }}>تعداد افراد</div>
+                  <div style={{ fontFamily: "'Noto Kufi Arabic',sans-serif", fontSize: 30, fontWeight: 800, marginTop: 4, lineHeight: 1.2 }}>{fa(userCount)}</div>
+                  <div style={{ fontSize: 11, color: '#9FB0C8', marginTop: 4 }}>کاربر در همه مستأجرها</div>
+                </div>
+                <div style={{ background: 'rgba(95,208,194,.16)', border: '1px solid rgba(95,208,194,.35)', borderRadius: 16, padding: '14px 16px' }}>
+                  <div style={{ fontSize: 11, color: '#9FE0D6', fontWeight: 600 }}>شماره‌های خالی</div>
+                  <div style={{ fontFamily: "'Noto Kufi Arabic',sans-serif", fontSize: 30, fontWeight: 800, marginTop: 4, lineHeight: 1.2, color: '#5FD0C2' }}>{fa(freeDids)}</div>
+                  <div style={{ fontSize: 11, color: '#9FE0D6', marginTop: 4 }}>از {fa(poolTotal)} شمارهٔ ۳۱۹۸۵</div>
+                </div>
+                <div style={{ background: 'rgba(255,255,255,.07)', border: '1px solid rgba(255,255,255,.12)', borderRadius: 14, padding: '12px 14px' }}>
+                  <div style={{ fontSize: 11, color: '#9FB0C8' }}>مستأجرها</div>
+                  <div style={{ fontSize: 20, fontWeight: 800, marginTop: 2 }}>{fa(tenants.length)}</div>
+                </div>
+                <div style={{ background: 'rgba(255,255,255,.07)', border: '1px solid rgba(255,255,255,.12)', borderRadius: 14, padding: '12px 14px' }}>
+                  <div style={{ fontSize: 11, color: '#9FB0C8' }}>DID تخصیص‌شده</div>
+                  <div style={{ fontSize: 20, fontWeight: 800, marginTop: 2 }}>{fa(didAssigned)}</div>
+                </div>
+              </div>
             </div>
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-              <button type="button" onClick={() => this.setState({ page: 'dids', didInvPage: 1 })} style={{ border: '1px solid #E3E8EF', background: '#fff', padding: '10px 16px', borderRadius: 12, cursor: 'pointer', fontFamily: 'inherit', fontWeight: 600 }}>فهرست کامل DID</button>
-              <button type="button" onClick={() => this.setState({ tnForm: { ...blankForm(), defaultDest: (queues[0] && queues[0].id) || '' } })} style={{ border: 'none', background: 'linear-gradient(135deg,#0B2545,#1D4E89)', color: '#fff', padding: '10px 16px', borderRadius: 12, cursor: 'pointer', fontFamily: 'inherit', fontWeight: 600 }}>مستأجر جدید</button>
-            </div>
+          </section>
+
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>
+            <h2 style={{ margin: 0, fontSize: 16, fontFamily: "'Noto Kufi Arabic',sans-serif", fontWeight: 800 }}>فهرست مستأجرها</h2>
+            <div style={{ fontSize: 12, color: '#5B6B82' }}>بازه <b dir="ltr">{d.pool?.min}…{d.pool?.max}</b></div>
           </div>
 
           {f && f.createdLogin && (
@@ -2952,50 +2991,62 @@ class LiveApp extends React.Component {
             </div>
           )}
 
-          {(d.tenants || []).map(t => {
+          {tenants.map(t => {
             const st = statusBadge(t);
             const exp = t.expiresAt ? new Date(t.expiresAt).toLocaleString('fa-IR') : '—';
+            const uN = (t.users || []).length;
+            const dN = (t.dids || []).length;
+            const ghostBtn = { border: '1px solid #E3E8EF', background: '#fff', padding: '7px 11px', borderRadius: 10, cursor: 'pointer', fontFamily: 'inherit', fontSize: 12, color: '#3A4A63' };
             return (
-              <div key={t.id} style={{ background: '#fff', border: '1px solid ' + (t.accessOk === false ? '#f5c2c0' : '#E3E8EF'), borderRadius: 16, padding: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
-                  <div>
-                    <div style={{ fontWeight: 800, fontSize: 16 }}>
-                      {t.name}{' '}
-                      <span style={{ fontWeight: 500, color: '#5B6B82', fontSize: 12 }}>({t.slug})</span>
-                      <span style={{ marginRight: 8, background: st.bg, color: st.c, fontSize: 11, padding: '2px 8px', borderRadius: 999, fontWeight: 700 }}>{st.t}</span>
+              <article key={t.id} style={{ background: '#fff', border: '1px solid ' + (t.accessOk === false ? '#f5c2c0' : '#E3E8EF'), borderRadius: 20, padding: 0, overflow: 'hidden', boxShadow: '0 10px 28px -24px rgba(11,37,69,.35)', display: 'flex', flexDirection: 'column' }}>
+                <div style={{ padding: '16px 18px 14px', display: 'flex', justifyContent: 'space-between', gap: 14, flexWrap: 'wrap', alignItems: 'flex-start', borderBottom: '1px solid #F0F3F7' }}>
+                  <div style={{ minWidth: 220, flex: '1 1 240px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                      <h3 style={{ margin: 0, fontSize: 18, fontFamily: "'Noto Kufi Arabic',sans-serif", fontWeight: 800 }}>{t.name}</h3>
+                      <span style={{ fontWeight: 500, color: '#7A889C', fontSize: 12 }} dir="ltr">/{t.slug}</span>
+                      <span style={{ background: st.bg, color: st.c, fontSize: 11, padding: '2px 9px', borderRadius: 999, fontWeight: 700 }}>{st.t}</span>
                     </div>
-                    <div style={{ fontSize: 12, color: '#5B6B82', marginTop: 4, lineHeight: 1.7 }}>
-                      اشتراک: <b>{t.planLabel || t.planPeriod}</b> · قیمت: <b>{fa((t.priceToman || 0).toLocaleString('en-US'))} تومان</b> · انقضا: <b>{exp}</b>
-                      <br />مقصد: {t.defaultDest || '—'} · کاربران: {fa((t.users || []).length)} · DID: {fa((t.dids || []).length)}
+                    <div style={{ fontSize: 12.5, color: '#5B6B82', marginTop: 8, lineHeight: 1.75 }}>
+                      اشتراک <b>{t.planLabel || t.planPeriod}</b>
+                      {' · '}قیمت <b>{fa((t.priceToman || 0).toLocaleString('en-US'))} تومان</b>
+                      {' · '}انقضا <b>{exp}</b>
+                      {t.defaultDest ? <>{' · '}مقصد <b dir="ltr">{t.defaultDest}</b></> : null}
+                    </div>
+                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
+                      <span style={{ background: '#F3F6FA', border: '1px solid #E3E8EF', borderRadius: 10, padding: '5px 10px', fontSize: 12, fontWeight: 700 }}>افراد: {fa(uN)}</span>
+                      <span style={{ background: '#E3F2F1', border: '1px solid #C7E6E3', borderRadius: 10, padding: '5px 10px', fontSize: 12, fontWeight: 700, color: '#0A5C5B' }}>DID: {fa(dN)}</span>
                     </div>
                   </div>
-                  <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-                    <button type="button" onClick={() => this.enterTenant(t)} title="ورود به پنل این مستأجر با دسترسی مدیر سامانه" style={{ border: 'none', background: 'linear-gradient(135deg,#1D4E89,#0E7C7B)', color: '#fff', padding: '8px 12px', borderRadius: 10, cursor: 'pointer', fontFamily: 'inherit', fontWeight: 700 }}>ورود با این مستأجر</button>
-                    <button type="button" onClick={() => openEdit(t)} style={{ border: '1px solid #E3E8EF', background: '#fff', padding: '8px 12px', borderRadius: 10, cursor: 'pointer', fontFamily: 'inherit' }}>ویرایش</button>
-                    <button type="button" onClick={async () => {
-                      try {
-                        const r = await api('/tenants/' + t.id + '/pay/simulate', { success: true });
-                        this.toast(r.message || 'پرداخت موفق'); this.loadTenants();
-                      } catch (e) { this.toast(e.message); }
-                    }} style={{ border: 'none', background: '#0A5C5B', color: '#fff', padding: '8px 12px', borderRadius: 10, cursor: 'pointer', fontFamily: 'inherit' }}>پرداخت شبیه‌ساز ✓</button>
-                    <button type="button" onClick={async () => {
-                      try { await api('/tenants/' + t.id + '/pay/simulate', { success: false }); this.toast('پرداخت ناموفق ثبت شد'); this.loadTenants(); }
-                      catch (e) { this.toast(e.message); }
-                    }} style={{ border: '1px solid #E3E8EF', background: '#fff', padding: '8px 12px', borderRadius: 10, cursor: 'pointer', fontFamily: 'inherit', fontSize: 12 }}>ناموفق</button>
-                    <button type="button" onClick={async () => { try { await api('/tenants/' + t.id, { active: !t.active }, 'PUT'); this.loadTenants(); } catch (e) { this.toast(e.message); } }} style={{ border: '1px solid #E3E8EF', background: t.active ? '#fff' : '#fdeceb', padding: '8px 12px', borderRadius: 10, cursor: 'pointer', fontFamily: 'inherit' }}>{t.active ? 'غیرفعال' : 'فعال'}</button>
-                    <button type="button" onClick={async () => { if (!confirm('حذف مستأجر «' + t.name + '»؟')) return; try { await api('/tenants/' + t.id, null, 'DELETE'); this.toast('حذف شد'); this.loadTenants(); } catch (e) { this.toast(e.message); } }} style={{ border: '1px solid #f5c2c0', background: '#fdeceb', color: '#b42318', padding: '8px 12px', borderRadius: 10, cursor: 'pointer', fontFamily: 'inherit' }}>حذف</button>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'stretch', minWidth: 180 }}>
+                    <button type="button" onClick={() => this.enterTenant(t)} title="ورود به پنل این مستأجر با دسترسی مدیر سامانه" style={{ border: 'none', background: 'linear-gradient(135deg,#1D4E89,#0E7C7B)', color: '#fff', padding: '10px 14px', borderRadius: 12, cursor: 'pointer', fontFamily: 'inherit', fontWeight: 800, fontSize: 13 }}>ورود با این مستأجر</button>
+                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                      <button type="button" onClick={() => openEdit(t)} style={ghostBtn}>ویرایش</button>
+                      <button type="button" onClick={async () => {
+                        try {
+                          const r = await api('/tenants/' + t.id + '/pay/simulate', { success: true });
+                          this.toast(r.message || 'پرداخت موفق'); this.loadTenants();
+                        } catch (e) { this.toast(e.message); }
+                      }} style={{ ...ghostBtn, borderColor: '#9FCFCC', background: '#E3F2F1', color: '#0A5C5B' }}>پرداخت ✓</button>
+                      <button type="button" onClick={async () => {
+                        try { await api('/tenants/' + t.id + '/pay/simulate', { success: false }); this.toast('پرداخت ناموفق ثبت شد'); this.loadTenants(); }
+                        catch (e) { this.toast(e.message); }
+                      }} style={ghostBtn}>ناموفق</button>
+                      <button type="button" onClick={async () => { try { await api('/tenants/' + t.id, { active: !t.active }, 'PUT'); this.loadTenants(); } catch (e) { this.toast(e.message); } }} style={{ ...ghostBtn, background: t.active ? '#fff' : '#fdeceb' }}>{t.active ? 'غیرفعال' : 'فعال'}</button>
+                      <button type="button" onClick={async () => { if (!confirm('حذف مستأجر «' + t.name + '»؟')) return; try { await api('/tenants/' + t.id, null, 'DELETE'); this.toast('حذف شد'); this.loadTenants(); } catch (e) { this.toast(e.message); } }} style={{ ...ghostBtn, borderColor: '#f5c2c0', background: '#fdeceb', color: '#b42318' }}>حذف</button>
+                    </div>
                   </div>
                 </div>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                <div style={{ padding: '12px 18px', display: 'flex', flexWrap: 'wrap', gap: 6, background: '#FAFBFC', borderBottom: '1px solid #F0F3F7' }}>
                   {featKeys.map(k => {
                     const on = t.features ? t.features[k] !== false : true;
                     return (
-                      <button key={k} type="button" onClick={() => toggleFeatLive(t, k)} title="کلیک برای روشن/خاموش" style={{ border: '1px solid ' + (on ? '#9FCFCC' : '#E3E8EF'), background: on ? '#E3F2F1' : '#F7F9FC', color: on ? '#0A5C5B' : '#7A889C', borderRadius: 999, padding: '4px 10px', fontSize: 11, cursor: 'pointer', fontFamily: 'inherit' }}>
+                      <button key={k} type="button" onClick={() => toggleFeatLive(t, k)} title="کلیک برای روشن/خاموش" style={{ border: '1px solid ' + (on ? '#9FCFCC' : '#E3E8EF'), background: on ? '#E3F2F1' : '#fff', color: on ? '#0A5C5B' : '#7A889C', borderRadius: 999, padding: '4px 10px', fontSize: 11, cursor: 'pointer', fontFamily: 'inherit' }}>
                         {labels[k]} {on ? '✓' : '✗'}
                       </button>
                     );
                   })}
                 </div>
+                <div style={{ padding: '14px 18px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
                 <div style={{ background: '#F7F9FC', border: '1px solid #E3E8EF', borderRadius: 12, padding: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
                   <div style={{ fontWeight: 800, fontSize: 13 }}>شماره‌های DID و کاربر</div>
                   {(t.dids || []).length === 0 && <div style={{ fontSize: 12, color: '#7A889C' }}>هنوز شماره‌ای به این مستأجر تخصیص نشده.</div>}
@@ -3077,10 +3128,11 @@ class LiveApp extends React.Component {
                     } catch (e) { this.toast(e.message); }
                   }} style={{ border: 'none', background: '#1D4E89', color: '#fff', padding: '8px 12px', borderRadius: 10, cursor: 'pointer', fontFamily: 'inherit' }}>افزودن کاربر</button>
                 </div>
-              </div>
+                </div>
+              </article>
             );
           })}
-          {!d.tenants.length && <div style={{ color: '#5B6B82', padding: 20, background: '#fff', borderRadius: 16, border: '1px dashed #E3E8EF' }}>هنوز مستأجری ساخته نشده. با فرم بالا بسازید؛ شماره به شکل ۳۱۹۸۵ + سه رقم است.</div>}
+          {!tenants.length && <div style={{ color: '#5B6B82', padding: 20, background: '#fff', borderRadius: 16, border: '1px dashed #E3E8EF' }}>هنوز مستأجری ساخته نشده. با فرم بالا بسازید؛ شماره به شکل ۳۱۹۸۵ + سه رقم است.</div>}
         </div>
       </div>
     );
