@@ -8,8 +8,8 @@ export interface VoipConfig {
   exts: any[]; trunks: any[]; vqs: any[]; ivrs: any[]; snds: any[]; routes: any[];
   tgroups: any[]; tconds: any[]; holidays: any[]; rgroups: any[]; fmes: Record<string, any>;
   blist: any[]; bset: any; oroutes?: any[]; survey?: any; vmbox?: any; aiagent?: any; booking?: any;
-  /** Preferred agent before queue: { ringSec } — default 40. */
-  prefagent?: { ringSec?: number };
+  /** Preferred agent before queue: ringSec default 40; noAgentSnd played when CID has no agent_id. */
+  prefagent?: { ringSec?: number; noAgentSnd?: string };
   didRoutes?: { did: string; tenantId: string; dest: string; name?: string }[];
 }
 
@@ -427,37 +427,45 @@ function dialplan(cfg: VoipConfig, opts: { hookUrl: string; hookSecret: string }
   }
 
   // --- queues
-  // Preferred agent (Kamilo زیبایار agent_id → User.apiId): announce + ring that ext first;
-  // unavailable / no-answer → optional queue-fallback announce, then Queue as today.
-  // Ring timeout is per-queue (tenant stamp prefRingSec) with platform prefagent.ringSec fallback (default 40).
-  const prefBlock = (ringSec: number) => {
+  // Preferred agent (CRM agent_id → User.apiId), dynamic per tenant via prefagent + hook:
+  //  - no agent_id → play prefagent.noAgentSnd (e.g. connect_to_operator), then Queue
+  //  - identified → announce + ring ext (prefRingSec / ringSec, default 40)
+  //    → no-answer / unavailable → user queueAnnounceSnd, then Queue
+  const prefBlock = (ringSec: number, noAgentSndPath: string) => {
     const sec = Math.max(5, Math.min(120, Math.round(+ringSec || 40)));
+    const noAgentPlay = noAgentSndPath
+      ? ` same => n(prefnone),Playback(${noAgentSndPath})`
+      : ' same => n(prefnone),NoOp(no preferred agent)';
     return [
       ` same => n,Set(CC_PREF=\${CURL(${opts.hookUrl}/prefagent?s=${opts.hookSecret},num=\${CC_NUM}&did=\${CC_DID})})`,
-      ' same => n,GotoIf($["${CC_PREF}"=""]?prefskip)',
+      ' same => n,GotoIf($["${CC_PREF}"=""]?prefnone)',
       ' same => n,Set(CC_PREFEXT=${CUT(CC_PREF,|,1)})',
       ' same => n,Set(CC_PREFSND=${CUT(CC_PREF,|,2)})',
       ' same => n,Set(CC_PREFQSND=${CUT(CC_PREF,|,3)})',
-      ' same => n,GotoIf($["${CC_PREFEXT}"=""]?prefskip)',
-      // Busy / offline: skip Dial, still play queue-fallback announce before Queue.
+      ' same => n,GotoIf($["${CC_PREFEXT}"=""]?prefnone)',
+      // Busy / offline: skip Dial, play queue-fallback announce before Queue.
       ' same => n,GotoIf($["${DEVICE_STATE(PJSIP/${CC_PREFEXT})}"!="NOT_INUSE"]?preffall)',
       ' same => n,ExecIf($["${CC_PREFSND}"!=""]?Playback(${CC_PREFSND}))',
       ` same => n,${ccEvent('call.ringing', 'Target: preferred,Ext: ${CC_PREFEXT}')}`,
       ` same => n,Dial(PJSIP/\${CC_PREFEXT},${sec},trgU(cc-agent-answer^0))`,
       ' same => n,GotoIf($["${DIALSTATUS}"="ANSWER"]?cc-survey,s,1)',
       ' same => n(preffall),ExecIf($["${CC_PREFQSND}"!=""]?Playback(${CC_PREFQSND}))',
-      ' same => n(prefskip),NoOp(preferred agent done)',
+      ' same => n,GotoIf($[1]?prefdone)',
+      noAgentPlay,
+      ' same => n(prefdone),NoOp(preferred agent done)',
     ];
   };
   const defaultPrefRing = Math.max(5, Math.min(120, Math.round(+(cfg.prefagent?.ringSec ?? 40) || 40)));
+  const defaultNoAgentSnd = sound(String(cfg.prefagent?.noAgentSnd || ''), cfg);
   for (const q of cfg.vqs) {
     const ring = q.prefRingSec != null ? +q.prefRingSec : defaultPrefRing;
+    const noAgent = q.prefNoAgentSnd != null ? sound(String(q.prefNoAgentSnd || ''), cfg) : defaultNoAgentSnd;
     X(`cc-queue-${sid(q.id)}`, [
       'exten => s,1,Answer()',
       ` same => n,Set(__CC_QUEUE=${safe(q.name)})`,
       ` same => n,${ccEvent('call.queued', `Queue: ${evText(q.name)}`)}`,
       ...cname,
-      ...prefBlock(ring),
+      ...prefBlock(ring, noAgent),
       ...(q.moh && cfg.snds.some(s => s.id === q.moh) ? [` same => n,Set(CHANNEL(musicclass)=snd-${sid(q.moh)})`] : []),
       ` same => n,Queue(cc-${sid(q.id)},tc,,,${+q.maxWait > 0 ? Math.max(10, +q.maxWait) : ''},,cc-agent-answer)`,
       ' same => n,GotoIf($["${CC_ANSEXT}"!=""]?cc-survey,s,1)',

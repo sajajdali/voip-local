@@ -2612,8 +2612,11 @@ class LiveApp extends React.Component {
       del: () => this.setState({ uDel: u.id }), confirmDel: s.uDel === u.id, notConfirm: s.uDel !== u.id, cancelDel: () => this.setState({ uDel: null }),
       doDel: async () => { try { await api('/users/' + u.id, null, 'DELETE'); this.toast('کاربر حذف شد'); this.setState({ uDel: null }); this.loadUsers(); } catch (e) { this.toast(e.message); } },
     }));
-    const pref = { ringSec: 40, ...(s.prefagent || {}) };
+    const pref = { ringSec: 40, noAgentSnd: '', ...(s.prefagent || {}) };
     const ringSec = Math.max(5, Math.min(120, Math.round(+pref.ringSec || 40)));
+    const noAgentSnd = String(pref.noAgentSnd || '');
+    const prefSnds = (s.snds || []).filter(x => x.file);
+    const noAgentOpts = [{ v: '', label: '— بدون پیام —' }, ...prefSnds.map(x => ({ v: x.id, label: x.name }))];
     let form = null;
     if (f) {
       const setF = o => this.setState({ uEdit: { ...f, ...o } });
@@ -2679,6 +2682,13 @@ class LiveApp extends React.Component {
           const v = Math.max(5, Math.min(120, Math.round(+e.target.value || 40)));
           this.setState({ prefagent: { ...(s.prefagent || {}), ringSec: v } });
         },
+        noAgentSnd, noAgentOpts,
+        setNoAgentSnd: e => {
+          this.setState({ prefagent: { ...(s.prefagent || {}), noAgentSnd: e.target.value || '' } });
+        },
+        hasNoAgentSnd: !!(noAgentSnd && prefSnds.some(x => x.id === noAgentSnd)),
+        playNoAgentSnd: () => noAgentSnd && this.playSound({ id: noAgentSnd }),
+        noAgentPlaying: s.sndPlay === noAgentSnd && !!noAgentSnd,
         canEditPref: canEdit || canAdd,
       },
     };

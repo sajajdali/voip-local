@@ -726,7 +726,8 @@ export class HooksController {
 
   /**
    * Preferred agent before a queue: body `sipOrExt|prefAnnounce|queueFallbackAnnounce`
-   * (paths empty when no voice). Empty string = no match → dialplan continues to the normal queue.
+   * (paths empty when no voice). Empty string = no CRM agent_id → dialplan plays prefagent.noAgentSnd then Queue.
+   * Match → ring preferred ext; on miss dialplan plays queueFallbackAnnounce then Queue.
    * Returns the PJSIP endpoint name (tenant-prefixed sip when applicable) so Dial() hits the right phone.
    */
   @Public()

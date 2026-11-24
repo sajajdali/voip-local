@@ -6630,13 +6630,24 @@ export default function AppView({ vm }) {
               <div style={{background: "#fff", border: "1px solid #E3E8EF", borderRadius: "16px", padding: "14px 18px", display: "flex", alignItems: "center", gap: "14px", flexWrap: "wrap"}}>
                 <div style={{flex: "1", minWidth: "220px"}}>
                   <div style={{fontSize: "13px", fontWeight: "700", color: "#0B2545"}}>{"زنگ ترجیحی عامل (api id)"}</div>
-                  <div style={{fontSize: "12px", color: "#5B6B82", marginTop: "2px", lineHeight: "1.7"}}>{"اگر پروندهٔ تماس‌گیرنده agent_id داشته باشد، اول همان داخلی زنگ می‌خورد؛ بعد از این زمان یا در صورت اشغال، اعلام صف و سپس صف عادی."}</div>
+                  <div style={{fontSize: "12px", color: "#5B6B82", marginTop: "2px", lineHeight: "1.7"}}>{"با agent_id: اول همان داخلی زنگ می‌خورد؛ بعد از مهلت یا اشغال، اعلام صف و سپس صف. بدون agent_id: پیام «اتصال به اپراتور» سپس صف."}</div>
                 </div>
                 <label style={{display: "flex", flexDirection: "column", gap: "4px", fontSize: "11px", color: "#5B6B82", width: "140px"}}>
                   {"مهلت زنگ (ثانیه)"}
                   <input type="number" min={5} max={120} value={vm.uv?.ringSec || 40} onChange={vm.uv?.setRingSec} disabled={!vm.uv?.canEditPref} style={{border: "1px solid #E3E8EF", borderRadius: "10px", padding: "9px 12px", fontSize: "13px", outline: "none", background: "#F7F9FC", color: "#16213A", fontFamily: "inherit", width: "100%", direction: "ltr", textAlign: "left"}} />
                 </label>
                 <div style={{fontSize: "12px", color: "#0A5C5B", fontWeight: "700"}}>{vm.uv?.ringSecText}{" ث"}</div>
+                <label style={{display: "flex", flexDirection: "column", gap: "4px", fontSize: "11px", color: "#5B6B82", minWidth: "200px", flex: "1"}}>
+                  {"پیام بدون agent_id"}
+                  <div style={{display: "flex", gap: "8px"}}>
+                    <select value={vm.uv?.noAgentSnd || ""} onChange={vm.uv?.setNoAgentSnd} disabled={!vm.uv?.canEditPref} style={{border: "1px solid #E3E8EF", borderRadius: "10px", padding: "9px 12px", fontSize: "13px", outline: "none", background: "#F7F9FC", color: "#16213A", fontFamily: "inherit", width: "100%"}}>
+                      {(vm.uv?.noAgentOpts || []).map((o, i) => <option key={i} value={o.v}>{o.label}</option>)}
+                    </select>
+                    {(vm.uv?.hasNoAgentSnd) ? (
+                      <button type="button" onClick={vm.uv?.playNoAgentSnd} style={{width: "42px", flexShrink: "0", borderRadius: "10px", border: "1px solid #E3E8EF", background: "#E3F2F1", color: "#0A5C5B", cursor: "pointer", fontSize: "13px"}}>{vm.uv?.noAgentPlaying ? "❚❚" : "▶"}</button>
+                    ) : null}
+                  </div>
+                </label>
               </div>
               {(vm.uv?.editing) ? (<>
                 <div style={{background: "#fff", border: "1px solid #E3E8EF", borderRadius: "20px", padding: "18px 20px", display: "flex", flexDirection: "column", gap: "16px", borderColor: "#9FCFCC", background: "#FBFEFE"}}>

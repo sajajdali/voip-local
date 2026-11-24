@@ -88,6 +88,7 @@ describe('dialplan CRM lookup passes DID', () => {
     assert.match(ext, /Dial\(PJSIP\/\$\{CC_PREFEXT\},40/);
     assert.match(ext, /CC_PREFQSND/);
     assert.match(ext, /preffall.*Playback|Playback\(\$\{CC_PREFQSND\}\)/s);
+    assert.match(ext, /GotoIf\(\$\["\$\{CC_PREF\}"=""]\?prefnone\)/);
     assert.match(ext, /Queue\(cc-q1/);
     // preferred block must appear before Queue in the same context
     const iPref = ext.indexOf('prefagent?s=s');
@@ -103,5 +104,41 @@ describe('dialplan CRM lookup passes DID', () => {
     };
     const ext = generate(cfg, { hookUrl: 'http://127.0.0.1/h', hookSecret: 's', mohDir: '/tmp' }).files['extensions.conf'];
     assert.match(ext, /Dial\(PJSIP\/\$\{CC_PREFEXT\},25/);
+  });
+
+  it('no agent_id path plays prefagent.noAgentSnd then Queue', () => {
+    const cfg: any = {
+      exts: [{ n: '101', name: 'a' }], trunks: [],
+      vqs: [{ id: 'q1', name: 'پذیرش', members: ['101'], maxWait: 60 }],
+      ivrs: [], snds: [{ id: 'sNO', name: 'connect_to_operator', file: 'connect_to_operator.wav' }],
+      routes: [], tgroups: [], tconds: [], holidays: [], rgroups: [], fmes: {}, blist: [], bset: {},
+      prefagent: { ringSec: 40, noAgentSnd: 'sNO' },
+    };
+    const ext = generate(cfg, { hookUrl: 'http://127.0.0.1/h', hookSecret: 's', mohDir: '/tmp' }).files['extensions.conf'];
+    assert.match(ext, /prefnone\),Playback\(custom\/sNO\)/);
+    // miss-announce (preffall) must not fall into no-agent Playback
+    const iFall = ext.indexOf('n(preffall)');
+    const iNone = ext.indexOf('n(prefnone)');
+    const iDone = ext.indexOf('n(prefdone)');
+    assert.ok(iFall > 0 && iNone > iFall && iDone > iNone);
+    assert.match(ext.slice(iFall, iNone), /GotoIf\(\$\[1\]\?prefdone\)/);
+  });
+
+  it('tenant queue stamp uses prefNoAgentSnd over platform default', () => {
+    const cfg: any = {
+      exts: [{ n: '101', name: 'a', tenantId: 't1' }], trunks: [],
+      vqs: [{ id: 'tn_q1', name: 'q', members: ['101'], maxWait: 60, tenantId: 't1', prefRingSec: 40, prefNoAgentSnd: 'sTEN' }],
+      ivrs: [],
+      snds: [
+        { id: 'sPLAT', name: 'plat', file: 'p.wav' },
+        { id: 'sTEN', name: 'connect_to_operator', file: 'c.wav', tenantId: 't1' },
+      ],
+      routes: [], tgroups: [], tconds: [], holidays: [], rgroups: [], fmes: {}, blist: [], bset: {},
+      prefagent: { ringSec: 40, noAgentSnd: 'sPLAT' },
+    };
+    const ext = generate(cfg, { hookUrl: 'http://127.0.0.1/h', hookSecret: 's', mohDir: '/tmp' }).files['extensions.conf'];
+    const block = ext.slice(ext.indexOf('[cc-queue-tn_q1]'), ext.indexOf('[cc-queue-tn_q1]') + 1200);
+    assert.match(block, /prefnone\),Playback\(custom\/sTEN\)/);
+    assert.doesNotMatch(block, /Playback\(custom\/sPLAT\)/);
   });
 });

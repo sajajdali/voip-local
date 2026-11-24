@@ -23,8 +23,10 @@ export const DEFAULT_SURVEY = {
 };
 /** «صندوق پیام»: greeting / closing prompts, how a message ends, and the key that opens it from every IVR. */
 export const DEFAULT_VMBOX = { on: false, key: '9', inIvr: true, greet: '', end: '', term: '*', beep: true, maxSec: 120, silence: 5 };
-/** Preferred agent (CRM agent_id → User.apiId) before queue: ring timeout in seconds. */
-export const DEFAULT_PREFAGENT = { ringSec: 40 };
+/** Preferred agent (CRM agent_id → User.apiId) before queue.
+ *  ringSec: dial timeout when a preferred ext is found (default 40).
+ *  noAgentSnd: system sound id played when caller has no agent_id, then Queue. */
+export const DEFAULT_PREFAGENT = { ringSec: 40, noAgentSnd: '' };
 export const KEYS = [...ARRAY_KEYS, ...OBJECT_KEYS] as string[];
 const LIVE: Record<string, string[]> = { exts: ['st'], vqs: ['waiting', 'sla'], trunks: ['reg', 'used'] };
 const ID: Record<string, string> = { exts: 'n', blist: 'num', holidays: 'date' };
@@ -129,11 +131,14 @@ export class ConfigStore {
         if (ARRAY_KEYS.includes(key as any) && Array.isArray(prefixed)) mergeArr(key, prefixed);
         else if (key === 'fmes' && typeof prefixed === 'object') mergeObj(key, prefixed);
         else if (key === 'prefagent' && prefixed && typeof prefixed === 'object') {
-          // Stamp ring timeout onto this tenant's queues so dialplan stays per-queue / per-tenant.
+          // Stamp ring timeout + no-agent announce onto this tenant's queues (per-tenant dialplan).
           const ringSec = Math.max(5, Math.min(120, Math.round(+(prefixed as any).ringSec || 40)));
+          const noAgentSnd = String((prefixed as any).noAgentSnd || '').trim();
           const tp = t.id;
           if (Array.isArray(base.vqs)) {
-            base.vqs = base.vqs.map((q: any) => (q && q.tenantId === tp ? { ...q, prefRingSec: ringSec } : q));
+            base.vqs = base.vqs.map((q: any) => (q && q.tenantId === tp
+              ? { ...q, prefRingSec: ringSec, prefNoAgentSnd: noAgentSnd }
+              : q));
           }
         }
       }
