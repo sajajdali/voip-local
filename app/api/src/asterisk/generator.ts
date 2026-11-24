@@ -894,10 +894,8 @@ function dialplan(cfg: VoipConfig, opts: { hookUrl: string; hookSecret: string }
     if (!cfg.trunks.some(t => t.id === synth.trunk && t.on)) continue;
     const L2: string[] = [];
     // Default CLI from AstDB (kept in sync with DID assign); channel may override via CC_OUTCLI.
-    pushOutPattern(L2, synth, {
-      tenantId: tid,
-      cliExpr: '${IF($["${DB(ccoutcli/' + sid(tid) + ')}"!=""]?${DB(ccoutcli/' + sid(tid) + ')}:' + cli + ')}',
-    });
+    // cliExpr here is a plain DID digits fallback (not a dialplan expression).
+    pushOutPattern(L2, synth, { tenantId: tid, cliExpr: cli });
     if (L2.length) {
       X(`cc-out-${sid(synth.id)}`, L2);
       internal.push(`include => cc-out-${sid(synth.id)}`);
