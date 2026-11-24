@@ -2772,6 +2772,63 @@ export default function AppView({ vm }) {
                     </>) : null}
                   </div>
                   {(vm.pf2?.ap?.has) ? (<>
+                    <div style={{background: "#fff", border: "1px solid #E3E8EF", borderRadius: "20px", padding: "18px 20px", display: "flex", flexDirection: "column", gap: "12px"}}>
+                      <div style={{display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap"}}>
+                        <div style={{fontWeight: "800", fontSize: "15px", flex: "1", minWidth: "120px"}}>{vm.pf2?.ap?.listTitle || "سوابق نوبت‌ها"}</div>
+                        {(vm.pf2?.ap?.tabs || []).map((t, __i12) => <React.Fragment key={__i12}>
+                          <button onClick={t?.pick} style={{border: `1px solid ${t?.bd}`, background: t?.bg, color: t?.fg, padding: "6px 12px", borderRadius: "999px", fontSize: "12px", fontWeight: "700", cursor: "pointer", fontFamily: "inherit"}}>{t?.label}</button>
+                        </React.Fragment>)}
+                      </div>
+                      {(vm.pf2?.ap?.hasOmitted) ? (<>
+                        <div style={{fontSize: "11px", color: "#7A889C"}}>{vm.pf2?.ap?.omitted}</div>
+                      </>) : null}
+                      {(vm.pf2?.ap?.hasRows) ? (<>
+                        <div style={{display: "flex", flexDirection: "column", gap: "8px"}}>
+                          {(vm.pf2?.ap?.rows || []).map((r, __i13) => <React.Fragment key={__i13}>
+                            <div style={{display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap", border: "1px solid #EEF1F5", background: r?.futBg, borderRadius: "14px", padding: "12px 14px", opacity: r?.op}}>
+                              <div style={{minWidth: "110px"}}>
+                                <div style={{fontSize: "15px", fontWeight: "800", fontFamily: "'Noto Kufi Arabic',sans-serif"}}>{r?.date}</div>
+                                <div style={{fontSize: "11px", color: "#7A889C", marginTop: "2px"}}>{"ساعت "}{r?.time}</div>
+                              </div>
+                              <div style={{flex: "1", minWidth: "160px"}}>
+                                <div style={{fontSize: "13px", fontWeight: "800"}}>{r?.part}</div>
+                                <div style={{fontSize: "11px", color: "#7A889C", marginTop: "3px"}}>
+                                  {r?.agent}{" · "}{r?.doctor}
+                                </div>
+                                <div style={{fontSize: "11px", color: "#9AA6B8", marginTop: "2px", direction: "ltr", textAlign: "right"}}>{"#"}{r?.id}{" · "}{r?.tracking}</div>
+                                {(r?.hasCreated) ? (<>
+                                  <div style={{fontSize: "10px", color: "#A9B4C4", marginTop: "2px"}}>{"ثبت: "}{r?.created}</div>
+                                </>) : null}
+                                {(r?.hasNote) ? (<>
+                                  <div style={{fontSize: "11px", color: "#5B6B82", marginTop: "3px", lineHeight: "1.7"}}>{r?.note}</div>
+                                </>) : null}
+                              </div>
+                              <div style={{display: "flex", gap: "6px", flexWrap: "wrap", alignItems: "center"}}>
+                                {(r?.hasId) ? (<>
+                                  <span style={{fontSize: "11px", fontWeight: "900", padding: "4px 10px", borderRadius: "999px", background: "linear-gradient(135deg,#F6C453,#E8A317)", color: "#1A1408"}}>{"کد معرف "}{r?.identifier}</span>
+                                </>) : null}
+                                {(r?.hasFirst) ? (<>
+                                  <span style={{fontSize: "11px", fontWeight: "800", padding: "3px 9px", borderRadius: "999px", background: "#fcf3e0", color: "#8a5a00"}}>{r?.first}</span>
+                                </>) : null}
+                                {(r?.hasCategory) ? (<>
+                                  <span style={{fontSize: "11px", fontWeight: "800", padding: "3px 9px", borderRadius: "999px", background: "#e5eff7", color: "#1d5a85"}}>{r?.category}</span>
+                                </>) : null}
+                                <span style={{fontSize: "11px", fontWeight: "800", padding: "3px 9px", borderRadius: "999px", background: r?.confBg, color: r?.confFg}}>{r?.confirmed}</span>
+                                <span style={{fontSize: "11px", fontWeight: "800", padding: "3px 9px", borderRadius: "999px", background: "#f0ebf8", color: "#6a4b9c"}}>{r?.kind}</span>
+                                <span style={{fontSize: "11px", fontWeight: "800", padding: "3px 9px", borderRadius: "999px", background: r?.stBg, color: r?.stFg}}>{r?.st}</span>
+                              </div>
+                            </div>
+                          </React.Fragment>)}
+                        </div>
+                      </>) : null}
+                      {(vm.pf2?.ap?.noRows) ? (<>
+                        <div style={{background: "#F7F9FC", borderRadius: "14px", padding: "16px", fontSize: "13px", color: "#5B6B82"}}>{vm.pf2?.ap?.noRowsText}</div>
+                      </>) : null}
+                      {(vm.pf2?.ap?.more) ? (<>
+                        <button onClick={vm.pf2?.ap?.togMore} style={{alignSelf: "center", border: "1px solid #E3E8EF", background: "#fff", color: "#1D4E89", padding: "7px 16px", borderRadius: "999px", fontSize: "12px", fontWeight: "800", cursor: "pointer", fontFamily: "inherit"}}>{vm.pf2?.ap?.moreText}</button>
+                      </>) : null}
+                    </div>
+                    
                     <div style={{display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(280px,1fr))", gap: "14px"}}>
                       <div style={{background: "#fff", border: "1px solid #E3E8EF", borderRadius: "20px", padding: "18px 20px", display: "flex", flexDirection: "column", gap: "12px"}}>
                         <div style={{fontWeight: "800", fontSize: "14px"}}>{"نوبت بعدی"}</div>
@@ -2810,53 +2867,7 @@ export default function AppView({ vm }) {
                           <div style={{background: "#F7F9FC", borderRadius: "14px", padding: "16px", fontSize: "13px", color: "#5B6B82"}}>{"نوبت گذشته‌ای ثبت نشده است."}</div>
                         </>) : null}
                       </div>
-                    </div>
-                    <div style={{background: "#fff", border: "1px solid #E3E8EF", borderRadius: "20px", padding: "18px 20px", display: "flex", flexDirection: "column", gap: "12px"}}>
-                      <div style={{display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap"}}>
-                        <div style={{fontWeight: "800", fontSize: "14px", flex: "1", minWidth: "120px"}}>{"سوابق نوبت‌ها"}</div>
-                        {(vm.pf2?.ap?.tabs || []).map((t, __i12) => <React.Fragment key={__i12}>
-                          <button onClick={t?.pick} style={{border: `1px solid ${t?.bd}`, background: t?.bg, color: t?.fg, padding: "6px 12px", borderRadius: "999px", fontSize: "12px", fontWeight: "700", cursor: "pointer", fontFamily: "inherit"}}>{t?.label}</button>
-                        </React.Fragment>)}
-                      </div>
-                      {(vm.pf2?.ap?.hasOmitted) ? (<>
-                        <div style={{fontSize: "11px", color: "#7A889C"}}>{vm.pf2?.ap?.omitted}</div>
-                      </>) : null}
-                      {(vm.pf2?.ap?.hasRows) ? (<>
-                        <div style={{display: "flex", flexDirection: "column", gap: "8px"}}>
-                          {(vm.pf2?.ap?.rows || []).map((r, __i13) => <React.Fragment key={__i13}>
-                            <div style={{display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap", border: "1px solid #EEF1F5", background: r?.futBg, borderRadius: "14px", padding: "12px 14px", opacity: r?.op}}>
-                              <div style={{minWidth: "110px"}}>
-                                <div style={{fontSize: "15px", fontWeight: "800", fontFamily: "'Noto Kufi Arabic',sans-serif"}}>{r?.date}</div>
-                                <div style={{fontSize: "11px", color: "#7A889C", marginTop: "2px"}}>{"ساعت "}{r?.time}</div>
-                              </div>
-                              <div style={{flex: "1", minWidth: "160px"}}>
-                                <div style={{fontSize: "13px", fontWeight: "800"}}>{r?.part}</div>
-                                <div style={{fontSize: "11px", color: "#7A889C", marginTop: "3px"}}>
-                                  {r?.agent}{" · "}{r?.doctor}
-                                  {(r?.hasId) ? (<>
-                                    {" · "}
-                                    <b style={{color: "#B47A00"}}>{"کد معرف: "}{r?.identifier}</b>
-                                  </>) : null}
-                                </div>
-                                <div style={{fontSize: "11px", color: "#9AA6B8", marginTop: "2px", direction: "ltr", textAlign: "right"}}>{"#"}{r?.id}{" · "}{r?.tracking}</div>
-                              </div>
-                              <div style={{display: "flex", gap: "6px", flexWrap: "wrap", alignItems: "center"}}>
-                                <span style={{fontSize: "11px", fontWeight: "800", padding: "3px 9px", borderRadius: "999px", background: r?.confBg, color: r?.confFg}}>{r?.confirmed}</span>
-                                <span style={{fontSize: "11px", fontWeight: "800", padding: "3px 9px", borderRadius: "999px", background: "#f0ebf8", color: "#6a4b9c"}}>{r?.kind}</span>
-                                <span style={{fontSize: "11px", fontWeight: "800", padding: "3px 9px", borderRadius: "999px", background: r?.stBg, color: r?.stFg}}>{r?.st}</span>
-                              </div>
-                            </div>
-                          </React.Fragment>)}
-                        </div>
-                      </>) : null}
-                      {(vm.pf2?.ap?.noRows) ? (<>
-                        <div style={{background: "#F7F9FC", borderRadius: "14px", padding: "16px", fontSize: "13px", color: "#5B6B82"}}>{vm.pf2?.ap?.noRowsText}</div>
-                      </>) : null}
-                      {(vm.pf2?.ap?.more) ? (<>
-                        <button onClick={vm.pf2?.ap?.togMore} style={{alignSelf: "center", border: "1px solid #E3E8EF", background: "#fff", color: "#1D4E89", padding: "7px 16px", borderRadius: "999px", fontSize: "12px", fontWeight: "800", cursor: "pointer", fontFamily: "inherit"}}>{vm.pf2?.ap?.moreText}</button>
-                      </>) : null}
-                    </div>
-                    <div style={{background: "#fff", border: "1px solid #E3E8EF", borderRadius: "20px", padding: "18px 20px"}}>
+                    </div><div style={{background: "#fff", border: "1px solid #E3E8EF", borderRadius: "20px", padding: "18px 20px"}}>
                       <div style={{fontWeight: "800", fontSize: "14px", marginBottom: "8px"}}>{"توضیحات پرونده"}</div>
                       <div style={{fontSize: "13px", color: "#3A4A63", lineHeight: "1.9", whiteSpace: "pre-wrap"}}>{vm.pf2?.ap?.notes}</div>
                     </div>
@@ -3522,6 +3533,63 @@ export default function AppView({ vm }) {
                     </>) : null}
                   </div>
                   {(vm.pf2?.ap?.has) ? (<>
+                    <div style={{background: "#fff", border: "1px solid #E3E8EF", borderRadius: "20px", padding: "18px 20px", display: "flex", flexDirection: "column", gap: "12px"}}>
+                      <div style={{display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap"}}>
+                        <div style={{fontWeight: "800", fontSize: "15px", flex: "1", minWidth: "120px"}}>{vm.pf2?.ap?.listTitle || "سوابق نوبت‌ها"}</div>
+                        {(vm.pf2?.ap?.tabs || []).map((t, __i12) => <React.Fragment key={__i12}>
+                          <button onClick={t?.pick} style={{border: `1px solid ${t?.bd}`, background: t?.bg, color: t?.fg, padding: "6px 12px", borderRadius: "999px", fontSize: "12px", fontWeight: "700", cursor: "pointer", fontFamily: "inherit"}}>{t?.label}</button>
+                        </React.Fragment>)}
+                      </div>
+                      {(vm.pf2?.ap?.hasOmitted) ? (<>
+                        <div style={{fontSize: "11px", color: "#7A889C"}}>{vm.pf2?.ap?.omitted}</div>
+                      </>) : null}
+                      {(vm.pf2?.ap?.hasRows) ? (<>
+                        <div style={{display: "flex", flexDirection: "column", gap: "8px"}}>
+                          {(vm.pf2?.ap?.rows || []).map((r, __i13) => <React.Fragment key={__i13}>
+                            <div style={{display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap", border: "1px solid #EEF1F5", background: r?.futBg, borderRadius: "14px", padding: "12px 14px", opacity: r?.op}}>
+                              <div style={{minWidth: "110px"}}>
+                                <div style={{fontSize: "15px", fontWeight: "800", fontFamily: "'Noto Kufi Arabic',sans-serif"}}>{r?.date}</div>
+                                <div style={{fontSize: "11px", color: "#7A889C", marginTop: "2px"}}>{"ساعت "}{r?.time}</div>
+                              </div>
+                              <div style={{flex: "1", minWidth: "160px"}}>
+                                <div style={{fontSize: "13px", fontWeight: "800"}}>{r?.part}</div>
+                                <div style={{fontSize: "11px", color: "#7A889C", marginTop: "3px"}}>
+                                  {r?.agent}{" · "}{r?.doctor}
+                                </div>
+                                <div style={{fontSize: "11px", color: "#9AA6B8", marginTop: "2px", direction: "ltr", textAlign: "right"}}>{"#"}{r?.id}{" · "}{r?.tracking}</div>
+                                {(r?.hasCreated) ? (<>
+                                  <div style={{fontSize: "10px", color: "#A9B4C4", marginTop: "2px"}}>{"ثبت: "}{r?.created}</div>
+                                </>) : null}
+                                {(r?.hasNote) ? (<>
+                                  <div style={{fontSize: "11px", color: "#5B6B82", marginTop: "3px", lineHeight: "1.7"}}>{r?.note}</div>
+                                </>) : null}
+                              </div>
+                              <div style={{display: "flex", gap: "6px", flexWrap: "wrap", alignItems: "center"}}>
+                                {(r?.hasId) ? (<>
+                                  <span style={{fontSize: "11px", fontWeight: "900", padding: "4px 10px", borderRadius: "999px", background: "linear-gradient(135deg,#F6C453,#E8A317)", color: "#1A1408"}}>{"کد معرف "}{r?.identifier}</span>
+                                </>) : null}
+                                {(r?.hasFirst) ? (<>
+                                  <span style={{fontSize: "11px", fontWeight: "800", padding: "3px 9px", borderRadius: "999px", background: "#fcf3e0", color: "#8a5a00"}}>{r?.first}</span>
+                                </>) : null}
+                                {(r?.hasCategory) ? (<>
+                                  <span style={{fontSize: "11px", fontWeight: "800", padding: "3px 9px", borderRadius: "999px", background: "#e5eff7", color: "#1d5a85"}}>{r?.category}</span>
+                                </>) : null}
+                                <span style={{fontSize: "11px", fontWeight: "800", padding: "3px 9px", borderRadius: "999px", background: r?.confBg, color: r?.confFg}}>{r?.confirmed}</span>
+                                <span style={{fontSize: "11px", fontWeight: "800", padding: "3px 9px", borderRadius: "999px", background: "#f0ebf8", color: "#6a4b9c"}}>{r?.kind}</span>
+                                <span style={{fontSize: "11px", fontWeight: "800", padding: "3px 9px", borderRadius: "999px", background: r?.stBg, color: r?.stFg}}>{r?.st}</span>
+                              </div>
+                            </div>
+                          </React.Fragment>)}
+                        </div>
+                      </>) : null}
+                      {(vm.pf2?.ap?.noRows) ? (<>
+                        <div style={{background: "#F7F9FC", borderRadius: "14px", padding: "16px", fontSize: "13px", color: "#5B6B82"}}>{vm.pf2?.ap?.noRowsText}</div>
+                      </>) : null}
+                      {(vm.pf2?.ap?.more) ? (<>
+                        <button onClick={vm.pf2?.ap?.togMore} style={{alignSelf: "center", border: "1px solid #E3E8EF", background: "#fff", color: "#1D4E89", padding: "7px 16px", borderRadius: "999px", fontSize: "12px", fontWeight: "800", cursor: "pointer", fontFamily: "inherit"}}>{vm.pf2?.ap?.moreText}</button>
+                      </>) : null}
+                    </div>
+                    
                     <div style={{display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(280px,1fr))", gap: "14px"}}>
                       <div style={{background: "#fff", border: "1px solid #E3E8EF", borderRadius: "20px", padding: "18px 20px", display: "flex", flexDirection: "column", gap: "12px"}}>
                         <div style={{fontWeight: "800", fontSize: "14px"}}>{"نوبت بعدی"}</div>
@@ -3560,53 +3628,7 @@ export default function AppView({ vm }) {
                           <div style={{background: "#F7F9FC", borderRadius: "14px", padding: "16px", fontSize: "13px", color: "#5B6B82"}}>{"نوبت گذشته‌ای ثبت نشده است."}</div>
                         </>) : null}
                       </div>
-                    </div>
-                    <div style={{background: "#fff", border: "1px solid #E3E8EF", borderRadius: "20px", padding: "18px 20px", display: "flex", flexDirection: "column", gap: "12px"}}>
-                      <div style={{display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap"}}>
-                        <div style={{fontWeight: "800", fontSize: "14px", flex: "1", minWidth: "120px"}}>{"سوابق نوبت‌ها"}</div>
-                        {(vm.pf2?.ap?.tabs || []).map((t, __i12) => <React.Fragment key={__i12}>
-                          <button onClick={t?.pick} style={{border: `1px solid ${t?.bd}`, background: t?.bg, color: t?.fg, padding: "6px 12px", borderRadius: "999px", fontSize: "12px", fontWeight: "700", cursor: "pointer", fontFamily: "inherit"}}>{t?.label}</button>
-                        </React.Fragment>)}
-                      </div>
-                      {(vm.pf2?.ap?.hasOmitted) ? (<>
-                        <div style={{fontSize: "11px", color: "#7A889C"}}>{vm.pf2?.ap?.omitted}</div>
-                      </>) : null}
-                      {(vm.pf2?.ap?.hasRows) ? (<>
-                        <div style={{display: "flex", flexDirection: "column", gap: "8px"}}>
-                          {(vm.pf2?.ap?.rows || []).map((r, __i13) => <React.Fragment key={__i13}>
-                            <div style={{display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap", border: "1px solid #EEF1F5", background: r?.futBg, borderRadius: "14px", padding: "12px 14px", opacity: r?.op}}>
-                              <div style={{minWidth: "110px"}}>
-                                <div style={{fontSize: "15px", fontWeight: "800", fontFamily: "'Noto Kufi Arabic',sans-serif"}}>{r?.date}</div>
-                                <div style={{fontSize: "11px", color: "#7A889C", marginTop: "2px"}}>{"ساعت "}{r?.time}</div>
-                              </div>
-                              <div style={{flex: "1", minWidth: "160px"}}>
-                                <div style={{fontSize: "13px", fontWeight: "800"}}>{r?.part}</div>
-                                <div style={{fontSize: "11px", color: "#7A889C", marginTop: "3px"}}>
-                                  {r?.agent}{" · "}{r?.doctor}
-                                  {(r?.hasId) ? (<>
-                                    {" · "}
-                                    <b style={{color: "#B47A00"}}>{"کد معرف: "}{r?.identifier}</b>
-                                  </>) : null}
-                                </div>
-                                <div style={{fontSize: "11px", color: "#9AA6B8", marginTop: "2px", direction: "ltr", textAlign: "right"}}>{"#"}{r?.id}{" · "}{r?.tracking}</div>
-                              </div>
-                              <div style={{display: "flex", gap: "6px", flexWrap: "wrap", alignItems: "center"}}>
-                                <span style={{fontSize: "11px", fontWeight: "800", padding: "3px 9px", borderRadius: "999px", background: r?.confBg, color: r?.confFg}}>{r?.confirmed}</span>
-                                <span style={{fontSize: "11px", fontWeight: "800", padding: "3px 9px", borderRadius: "999px", background: "#f0ebf8", color: "#6a4b9c"}}>{r?.kind}</span>
-                                <span style={{fontSize: "11px", fontWeight: "800", padding: "3px 9px", borderRadius: "999px", background: r?.stBg, color: r?.stFg}}>{r?.st}</span>
-                              </div>
-                            </div>
-                          </React.Fragment>)}
-                        </div>
-                      </>) : null}
-                      {(vm.pf2?.ap?.noRows) ? (<>
-                        <div style={{background: "#F7F9FC", borderRadius: "14px", padding: "16px", fontSize: "13px", color: "#5B6B82"}}>{vm.pf2?.ap?.noRowsText}</div>
-                      </>) : null}
-                      {(vm.pf2?.ap?.more) ? (<>
-                        <button onClick={vm.pf2?.ap?.togMore} style={{alignSelf: "center", border: "1px solid #E3E8EF", background: "#fff", color: "#1D4E89", padding: "7px 16px", borderRadius: "999px", fontSize: "12px", fontWeight: "800", cursor: "pointer", fontFamily: "inherit"}}>{vm.pf2?.ap?.moreText}</button>
-                      </>) : null}
-                    </div>
-                    <div style={{background: "#fff", border: "1px solid #E3E8EF", borderRadius: "20px", padding: "18px 20px"}}>
+                    </div><div style={{background: "#fff", border: "1px solid #E3E8EF", borderRadius: "20px", padding: "18px 20px"}}>
                       <div style={{fontWeight: "800", fontSize: "14px", marginBottom: "8px"}}>{"توضیحات پرونده"}</div>
                       <div style={{fontSize: "13px", color: "#3A4A63", lineHeight: "1.9", whiteSpace: "pre-wrap"}}>{vm.pf2?.ap?.notes}</div>
                     </div>

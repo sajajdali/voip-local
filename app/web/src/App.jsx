@@ -1916,6 +1916,14 @@ class LiveApp extends React.Component {
     };
   }
 
+  /** Merge rich + legacy appointment arrays (newest → oldest). */
+  apptListOf(A) {
+    const rich = Array.isArray(A && A.appointments) ? A.appointments.filter(Boolean) : [];
+    if (rich.length) return rich.slice();
+    const legacy = [...(A && A.inPersonList || []), ...(A && A.onlineList || [])].filter(Boolean);
+    return legacy.sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')) || String(b.time || '').localeCompare(String(a.time || '')));
+  }
+
   /** Rich Kamilo / appointment-CRM dossier for «مشاهده پرونده». */
   apptFileVals(s, d) {
     const fa = n => String(n ?? '').replace(/\d/g, x => '۰۱۲۳۴۵۶۷۸۹'[x]);
@@ -1925,8 +1933,19 @@ class LiveApp extends React.Component {
     const sum = A.summary || {};
     const dash = (v, fallback = '—') => (v === null || v === undefined || v === '' ? fallback : fa(v));
     const ini = (sum.fullName || A.name || '?').trim().split(/\s+/).slice(0, 2).map(w => w[0] || '').join('') || '؟';
+    const all = this.apptListOf(A);
     // Prefer summary identifier; else newest appointment that has one (کد معرف is the hero signal).
-    const idCode = sum.identifier || ((A.appointments || []).find(x => x && x.identifier) || {}).identifier || '';
+    const idCode = sum.identifier || (all.find(x => x && x.identifier) || {}).identifier || '';
+    // Counts say there are appointments but payload lists are empty → force one refresh.
+    const expected = Number(A.received ?? sum.received ?? A.total ?? 0) || 0;
+    if (expected > 0 && !all.length && d && d.phone && !s.cardBusy && this._apFixFor !== d.phone) {
+      this._apFixFor = d.phone;
+      setTimeout(() => {
+        api('/patients/' + encodeURIComponent(d.phone) + '/refresh', {}).then(r => {
+          this.setState(st => ({ popCards: { ...(st.popCards || {}), [d.phone]: r } }));
+        }).catch(() => {});
+      }, 60);
+    }
     const ST = { 0: ['#f2f3ef', '#55585c'], 1: ['#E3F2F1', '#0A5C5B'], 2: ['#fff4e5', '#b54708'], 3: ['#fdeceb', '#b42318'], 4: ['#eef5e3', '#3d6a0c'] };
     const stOf = (label, status) => { const c = ST[status] || ST[1]; return { st: label || '—', stBg: c[0], stFg: c[1] }; };
     const fmtWhen = (x) => (!x || (!x.date && !x.time) ? null : {
@@ -1940,30 +1959,34 @@ class LiveApp extends React.Component {
     const lastSrc = A.lastReceived || sum.lastAt;
     const next = fmtWhen(nextSrc);
     const last = fmtWhen(lastSrc);
-    const all = (A.appointments || []).slice();
     const tab = s.apTab || 'all';
+    const isCancel = x => x.status === 3 || /کنسل|لغو/i.test(x.statusLabel || '');
     const filtered = all.filter(x => {
-      if (tab === 'active') return !(x.status === 3 || /کنسل|لغو/i.test(x.statusLabel || ''));
-      if (tab === 'cancel') return x.status === 3 || /کنسل|لغو/i.test(x.statusLabel || '');
+      if (tab === 'active') return !isCancel(x);
+      if (tab === 'cancel') return isCancel(x);
       return true;
     });
-    const showN = s.apMore ? filtered.length : Math.min(8, filtered.length);
-    const rows = filtered.slice(0, showN).map((x, i) => {
+    // Always show the full filtered list (no silent 8-row cap).
+    const rows = filtered.map((x, i) => {
       const st = stOf(x.statusLabel, x.status);
-      const cancelled = x.status === 3 || /کنسل|لغو/i.test(x.statusLabel || '');
+      const cancelled = isCancel(x);
       return {
-        key: x.id || i, date: dash(x.date), time: dash(x.time), part: dash(x.part || x.service),
+        key: x.id || i, date: dash(x.date), time: dash(x.time || x.timeFrom), part: dash(x.part || x.service),
         agent: dash(x.agentName), doctor: dash(x.doctor && x.doctor.name),
-        kind: dash(x.kindLabel), tracking: dash(x.tracking), id: x.id != null ? fa(x.id) : '—',
+        kind: dash(x.kindLabel), category: dash(x.categoryLabel), hasCategory: !!x.categoryLabel,
+        tracking: dash(x.tracking), id: x.id != null ? fa(x.id) : '—',
         identifier: x.identifier || '', hasId: !!x.identifier,
         confirmed: x.confirmedLabel || (x.confirmed ? 'confirm شده' : 'confirm نشده'),
         confBg: x.confirmed ? '#E3F2F1' : '#f2f3ef', confFg: x.confirmed ? '#0A5C5B' : '#55585c',
+        first: x.first ? 'نوبت اولی' : '', hasFirst: !!x.first,
+        note: x.note || '', hasNote: !!x.note,
+        created: dash(x.createdAt), hasCreated: !!x.createdAt,
         ...st, op: cancelled ? 0.62 : 1, futBg: i === 0 ? '#F4FBFA' : '#fff',
       };
     });
-    const received = A.received ?? sum.received ?? A.total ?? 0;
-    const active = A.active ?? sum.active ?? 0;
-    const cancelled = A.cancelled ?? sum.cancelled ?? 0;
+    const received = A.received ?? sum.received ?? A.total ?? all.length;
+    const active = A.active ?? sum.active ?? all.filter(x => !isCancel(x)).length;
+    const cancelledN = A.cancelled ?? sum.cancelled ?? all.filter(isCancel).length;
     const city = sum.city || A.city || '';
     const province = sum.province || A.province || '';
     const loc = [city, province].filter(Boolean).join(' · ');
@@ -1971,14 +1994,14 @@ class LiveApp extends React.Component {
     const kpis = [
       { label: 'نوبت دریافتی', value: fa(received), bg: '#E3F2F1', fg: '#0A5C5B', hasSub: false },
       { label: 'نوبت فعال', value: fa(active), bg: '#e5eff7', fg: '#1d5a85', hasSub: false },
-      { label: 'کنسل‌شده', value: fa(cancelled), bg: cancelled ? '#fdeceb' : '#f2f3ef', fg: cancelled ? '#b42318' : '#55585c', hasSub: false },
+      { label: 'کنسل‌شده', value: fa(cancelledN), bg: cancelledN ? '#fdeceb' : '#f2f3ef', fg: cancelledN ? '#b42318' : '#55585c', hasSub: false },
       { label: 'نوبت اولی؟', value: sum.firstLabel || (sum.first ? 'بله' : 'خیر'), bg: '#fcf3e0', fg: '#8a5a00', hasSub: false },
     ];
     return {
       apMode: true, showClin: false, dgMode: false,
       ap: {
         has: true, dossier: true, name: sum.fullName || A.name || 'بیمار', ini: fa(ini),
-        first: dash(A.first || (sum.fullName || '').split(/\s+/)[0]), last: dash(A.last || (sum.fullName || '').split(/\s+/).slice(1).join(' ')),
+        first: dash(A.first || (sum.fullName || '').split(/\s+/)[0]), lastName: dash(A.last || (sum.fullName || '').split(/\s+/).slice(1).join(' ')),
         pid: A.id != null ? fa(A.id) : '—', phone: dash(sum.mobile || A.phone),
         hasSecond: !!(sum.secondMobile || A.secondMobile), second: dash(sum.secondMobile || A.secondMobile),
         agent: dash(sum.agentName), part: dash(sum.part), doctor: dash(sum.doctor && sum.doctor.name),
@@ -1992,22 +2015,23 @@ class LiveApp extends React.Component {
         firstVisit: sum.firstLabel || (sum.first ? 'بله' : 'خیر'),
         lastCreated: dash(A.lastReceivedCreatedAt || sum.lastCreatedAt),
         notes: notes || 'توضیحی ثبت نشده', hasNotes: !!notes,
+        listCount: fa(filtered.length), listTitle: 'سوابق نوبت‌ها · ' + fa(filtered.length) + ' مورد',
         kpis,
         hasNext: !!next, noNext: !next, next: next || {},
         hasLast: !!last, noLast: !last, last: last || {},
-        rows, hasRows: rows.length > 0, noRows: !rows.length, noRowsText: 'نوبتی برای این بیمار ثبت نشده است.',
-        more: filtered.length > 8, moreText: s.apMore ? 'نمایش کمتر' : 'نمایش همه ' + fa(filtered.length) + ' نوبت',
-        togMore: () => this.setState({ apMore: !s.apMore }),
+        rows, hasRows: rows.length > 0, noRows: !rows.length,
+        noRowsText: expected > 0 ? 'فهرست نوبت‌ها هنوز نرسیده؛ در حال دریافت مجدد…' : 'نوبتی برای این بیمار ثبت نشده است.',
+        more: false, moreText: '', togMore: () => {},
         omitted: A.appointmentsOmitted ? '· ' + fa(A.appointmentsOmitted) + ' نوبت قدیمی‌تر در پاسخ کامل نیست' : '',
         hasOmitted: !!A.appointmentsOmitted,
         tabs: [['all', 'همه'], ['active', 'فعال'], ['cancel', 'کنسل']].map(([k, label]) => {
-          const n = k === 'all' ? all.length : all.filter(x => (k === 'cancel') === (x.status === 3 || /کنسل|لغو/i.test(x.statusLabel || ''))).length;
+          const n = k === 'all' ? all.length : all.filter(x => (k === 'cancel') === isCancel(x)).length;
           const on = tab === k;
-          return { label: label + ' ' + fa(n), bg: on ? '#0B2545' : '#fff', fg: on ? '#fff' : '#3A4A63', bd: on ? '#0B2545' : '#E3E8EF', pick: () => this.setState({ apTab: k, apMore: false }) };
+          return { label: label + ' ' + fa(n), bg: on ? '#0B2545' : '#fff', fg: on ? '#fff' : '#3A4A63', bd: on ? '#0B2545' : '#E3E8EF', pick: () => this.setState({ apTab: k }) };
         }),
         // legacy AppView keys kept harmless
         hasFile: false, file: '', hasNid: false, nid: '—', nidBtn: '', togNid: () => {},
-        hasChat: false, noChat: true, chat: {},
+        hasChat: false, noChat: false, chat: {},
       },
     };
   }
@@ -3655,7 +3679,7 @@ export default class App extends LiveApp {
   return {vr,vtm,vrg,vf,vb};
  }
  toast(t){clearTimeout(this.toT);this.setState({toast:t});this.toT=setTimeout(()=>this.setState({toast:null}),3400);}
- openFile(c){this.setState(s=>({page:'file',fileKey:c.phoneRaw,prevPage:s.page==='file'?s.prevPage:s.page}));try{window.scrollTo(0,0);}catch(e){}}
+ openFile(c){const phone=c&&c.phoneRaw;this.setState(s=>({page:'file',fileKey:phone,prevPage:s.page==='file'?s.prevPage:s.page}));if(phone)this.loadCard(phone);try{window.scrollTo(0,0);}catch(e){}}
  playUrl(c){if(this.recA){this.recA.pause();this.recA=null;}if(this.state.recPlay===c.id){this.setState({recPlay:null});return;}this.recA=new Audio(c.url);this.recA.play();this.recA.onended=()=>this.setState({recPlay:null});this.setState({recPlay:c.id,paused:true});}
  startCall(p){this.originate(p);}
  connect(){}
