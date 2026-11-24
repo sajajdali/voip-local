@@ -1,12 +1,33 @@
 import { io } from 'socket.io-client';
 
 const KEY = 'cc.token';
+/** Platform-admin token saved only while «ورود با این مستأجر» is active. */
+const ADMIN_KEY = 'cc.token.admin';
 const getToken = () => { try { return localStorage.getItem(KEY) || ''; } catch (e) { return ''; } };
 
 export const auth = {
   token: getToken,
   set(t) { try { localStorage.setItem(KEY, t); } catch (e) { /* private mode */ } },
-  logout() { try { localStorage.removeItem(KEY); } catch (e) { /* ignore */ } location.reload(); },
+  /** Start tenant session: keep the current admin JWT so «بازگشت به مدیریت» can restore it. */
+  beginImpersonate(tenantToken) {
+    try {
+      const cur = localStorage.getItem(KEY) || '';
+      if (cur) localStorage.setItem(ADMIN_KEY, cur);
+      localStorage.setItem(KEY, tenantToken);
+    } catch (e) { /* private mode */ }
+  },
+  /** Restore platform-admin JWT (or fall back to a freshly issued admin token). */
+  endImpersonate(adminToken) {
+    try {
+      const saved = localStorage.getItem(ADMIN_KEY) || '';
+      localStorage.removeItem(ADMIN_KEY);
+      localStorage.setItem(KEY, adminToken || saved || '');
+    } catch (e) { /* private mode */ }
+  },
+  logout() {
+    try { localStorage.removeItem(KEY); localStorage.removeItem(ADMIN_KEY); } catch (e) { /* ignore */ }
+    location.reload();
+  },
 };
 
 export async function api(path, body, method) {

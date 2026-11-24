@@ -2,7 +2,7 @@
 import { ConnectedSocket, MessageBody, OnGatewayConnection, OnGatewayDisconnect, SubscribeMessage, WebSocketGateway, WebSocketServer } from '@nestjs/websockets';
 import type { Server, Socket } from 'socket.io';
 import { AsteriskService } from './asterisk/asterisk.service';
-import { currentUser, isSuperAdmin, verifyToken } from './auth';
+import { currentUser, isSuperAdmin, resolveMe, verifyToken } from './auth';
 import { CONFIG_SECTION, can } from './perms';
 import { PrismaService } from './prisma.service';
 import { Bus } from './bus';
@@ -40,7 +40,7 @@ export class LiveGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   async handleConnection(s: Socket) {
     const tok = verifyToken(String(s.handshake.auth?.token || ''));
-    const me = tok && (await currentUser(this.db, tok.id));
+    const me = tok && (await resolveMe(this.db, tok));
     if (!me) { s.disconnect(true); return; }
     s.join('user:' + me.id);
     s.join('role:' + me.role);
@@ -51,6 +51,8 @@ export class LiveGateway implements OnGatewayConnection, OnGatewayDisconnect {
     if (can(me, 'refer')) s.join('perm:refer');
     if (Object.values(CONFIG_SECTION).some(sec => can(me, sec))) s.join('cfg');
     s.data.me = me;
+    // Keep raw claims so listen handlers can re-resolve impersonation after cache refresh.
+    s.data.tok = tok;
     s.emit('live', this.ast.live);
     if (can(me, 'live')) { s.join('perm:live'); s.emit('livecalls', this.live.calls); }
     if (can(me, 'calls')) { s.join('perm:calls'); s.emit('callpop', this.live.pops); }
@@ -60,7 +62,7 @@ export class LiveGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   @SubscribeMessage('listen')
   async listen(@ConnectedSocket() s: Socket, @MessageBody() b: { id?: string }) {
-    const me = s.data.me && (await currentUser(this.db, s.data.me.id));
+    const me = s.data.tok ? await resolveMe(this.db, s.data.tok) : (s.data.me && (await currentUser(this.db, s.data.me.id)));
     if (!me || !can(me, 'live', 'edit')) return { ok: false, error: 'اجازه گوش دادن به تماس‌ها را ندارید' };
     try { const r = await this.live.listen(s, me, String(b?.id || '')); return { ok: true, uuid: r.uuid }; }
     catch (e) { return { ok: false, error: (e as Error).message }; }

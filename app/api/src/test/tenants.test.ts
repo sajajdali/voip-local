@@ -45,6 +45,18 @@ describe('super-admin vs tenant scoping', () => {
     for (const s of PLATFORM_SECTIONS) assert.equal(can(me, s, 'view'), false);
     assert.equal(can(me, 'calls', 'view'), true);
   });
+  it('impersonating platform admin is scoped like a tenant, not super-admin', () => {
+    const me = {
+      id: '1', name: 'a', role: 'admin', ext: null, username: 'admin',
+      tenantId: 'ten1', impersonating: true, impersonateTenantId: 'ten1',
+      perms: tenantAdminPerms(),
+    };
+    assert.equal(isSuperAdmin(me), false);
+    assert.equal(can(me, 'tenants', 'view'), false);
+    assert.equal(can(me, 'vtrunk', 'view'), false);
+    assert.equal(can(me, 'calls', 'view'), true);
+    assert.equal(can(me, 'vext', 'view'), true);
+  });
 });
 
 describe('feature flags + id prefix', () => {

@@ -9,10 +9,26 @@ import { Action, Perms, can, permsOf } from './perms';
 import { PrismaService } from './prisma.service';
 import { tenantAccess } from './tenant-scope';
 
-export interface Me { id: string; name: string; role: string; ext: string | null; username: string; title?: string | null; perms?: Perms; tenantId?: string | null }
+export interface Me {
+  id: string;
+  name: string;
+  role: string;
+  ext: string | null;
+  username: string;
+  title?: string | null;
+  perms?: Perms;
+  tenantId?: string | null;
+  /** True only when a platform admin entered via «ورود با این مستأجر». */
+  impersonating?: boolean;
+  impersonateTenantId?: string | null;
+  impersonateTenantName?: string | null;
+}
+
+/** Claims we put in the JWT. AuthGuard always reloads the live user by `id`. */
+export type TokenClaims = { id: string; impTenantId?: string };
 
 export function isSuperAdmin(me: Me | null | undefined) {
-  return !!me && me.role === 'admin' && !me.tenantId;
+  return !!me && me.role === 'admin' && !me.tenantId && !me.impersonating;
 }
 
 export const Roles = (...r: string[]) => SetMetadata('roles', r);
@@ -29,6 +45,7 @@ const PAYWALL_PATH_OK = [
   { m: 'GET', re: /^\/bootstrap\/?$/ },
   { m: 'GET', re: /^\/tenants\/me\/?$/ },
   { m: 'POST', re: /^\/tenants\/me\/pay\/simulate\/?$/ },
+  { m: 'POST', re: /^\/auth\/stop-impersonate\/?$/ },
 ];
 
 function paywallPathOk(method: string, url: string) {
@@ -37,8 +54,36 @@ function paywallPathOk(method: string, url: string) {
   return PAYWALL_PATH_OK.some(x => x.m === m && x.re.test(path));
 }
 
-export function verifyToken(t: string): Me | null {
-  try { return jwt.verify(t, env.jwtSecret) as Me; } catch { return null; }
+export function verifyToken(t: string): TokenClaims | null {
+  try {
+    const raw = jwt.verify(t, env.jwtSecret) as any;
+    if (!raw || !raw.id) return null;
+    const claims: TokenClaims = { id: String(raw.id) };
+    if (raw.impTenantId) claims.impTenantId = String(raw.impTenantId);
+    return claims;
+  } catch { return null; }
+}
+
+/** Live user for a token, including optional admin→tenant impersonation overlay. */
+export async function resolveMe(db: PrismaService, tok: TokenClaims | null | undefined): Promise<Me | null> {
+  if (!tok?.id) return null;
+  const base = await currentUser(db, tok.id);
+  if (!base) return null;
+  if (!tok.impTenantId) return base;
+  // Impersonation is only valid while the signed-in account is still a platform admin.
+  if (!(base.role === 'admin' && !base.tenantId)) return null;
+  const t = await db.tenant.findUnique({ where: { id: tok.impTenantId } });
+  if (!t) return null;
+  const { tenantAdminPerms } = await import('./tenants');
+  const { cleanFeatures } = await import('./tenant-scope');
+  return {
+    ...base,
+    tenantId: t.id,
+    impersonating: true,
+    impersonateTenantId: t.id,
+    impersonateTenantName: t.name,
+    perms: tenantAdminPerms(cleanFeatures(t.features)),
+  };
 }
 
 @Injectable()
@@ -52,8 +97,8 @@ export class AuthGuard implements CanActivate {
     const raw = (req.headers.authorization || '').replace(/^Bearer /, '') || req.query.token || '';
     const tok = raw && verifyToken(String(raw));
     if (!tok) throw new UnauthorizedException('ابتدا وارد شوید');
-    // the token only says who; role, permissions and «active» are read fresh so changes apply at once
-    const me = await currentUser(this.db, tok.id);
+    // the token only says who (+ optional impTenantId); role/perms/active come from DB (+ impersonation overlay)
+    const me = await resolveMe(this.db, tok);
     if (!me) throw new UnauthorizedException('حساب کاربری شما غیرفعال یا حذف شده است');
     req.user = me;
 
@@ -208,11 +253,51 @@ export class AuthController {
     const me: Me = { id: u.id, name: u.name, role: u.role, ext: u.ext, username: u.username, tenantId: u.tenantId || null };
     forgetUser(u.id);
     await this.db.auditLog.create({ data: { userId: u.id, userName: u.name, action: 'login', target: 'auth', detail: { tenantId: me.tenantId, paywall: !!paywall } as any } });
-    return { token: jwt.sign(me, env.jwtSecret, { expiresIn: '12h' }), me: { ...me, title: u.title, perms: permsOf(u) }, paywall };
+    const claims: TokenClaims = { id: me.id };
+    return { token: jwt.sign(claims, env.jwtSecret, { expiresIn: '12h' }), me: { ...me, title: u.title, perms: permsOf(u) }, paywall };
   }
 
   @Get('me')
   me(@CurrentUser() me: Me) { return me; }
+
+  /** Platform admin only: enter a tenant session (JWT gains impTenantId). */
+  @Post('impersonate')
+  async impersonate(@Body() b: { tenantId?: string }, @CurrentUser() me: Me) {
+    if (!isSuperAdmin(me)) throw new ForbiddenException('فقط مدیر سامانه می‌تواند با مستأجر وارد شود');
+    const tenantId = String(b?.tenantId || '').trim();
+    if (!tenantId) throw new BadRequestException('شناسه مستأجر لازم است');
+    const t = await this.db.tenant.findUnique({ where: { id: tenantId } });
+    if (!t) throw new BadRequestException('مستأجر یافت نشد');
+    const claims: TokenClaims = { id: me.id, impTenantId: t.id };
+    const token = jwt.sign(claims, env.jwtSecret, { expiresIn: '12h' });
+    const next = await resolveMe(this.db, claims);
+    await this.db.auditLog.create({
+      data: { userId: me.id, userName: me.name, action: 'auth.impersonate', target: t.slug, detail: { tenantId: t.id, tenantName: t.name } as any },
+    }).catch(() => {});
+    return { token, me: next, tenant: { id: t.id, name: t.name, slug: t.slug } };
+  }
+
+  /** Restore platform-admin session after «ورود با این مستأجر». */
+  @AllowPaywall()
+  @Post('stop-impersonate')
+  async stopImpersonate(@CurrentUser() me: Me, @Req() req: Request) {
+    if (!me.impersonating) throw new BadRequestException('در حال حاضر در نشست مستأجر نیستید');
+    const raw = (req.headers.authorization || '').replace(/^Bearer /, '');
+    const tok = raw && verifyToken(String(raw));
+    // Confirm the underlying account is still a platform admin (no tenantId in DB).
+    const base = tok && (await currentUser(this.db, tok.id));
+    if (!base || base.role !== 'admin' || base.tenantId) throw new ForbiddenException('بازگشت به مدیریت مجاز نیست');
+    const claims: TokenClaims = { id: base.id };
+    const token = jwt.sign(claims, env.jwtSecret, { expiresIn: '12h' });
+    await this.db.auditLog.create({
+      data: {
+        userId: base.id, userName: base.name, action: 'auth.stop-impersonate',
+        target: me.impersonateTenantId || 'tenant',
+        detail: { tenantId: me.impersonateTenantId, tenantName: me.impersonateTenantName } as any,
+      },
+    }).catch(() => {});
+    return { token, me: { ...base, title: base.title, perms: permsOf(base) } };
+  }
 }
 
 export { UseGuards };

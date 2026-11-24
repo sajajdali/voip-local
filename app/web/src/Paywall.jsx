@@ -14,11 +14,25 @@ function faNum(n) {
 export default function Paywall({ boot, onUnlocked }) {
   const t = (boot && boot.tenant) || {};
   const access = (boot && boot.access) || {};
+  const me = (boot && boot.me) || {};
+  const impersonating = !!me.impersonating;
   const [busy, setBusy] = React.useState(false);
   const [msg, setMsg] = React.useState('');
   const reason = REASON[access.reason] || REASON.locked;
   const price = t.priceToman || 0;
   const exp = t.expiresAt ? new Date(t.expiresAt).toLocaleString('fa-IR') : '—';
+
+  const returnToAdmin = async () => {
+    setBusy(true); setMsg('');
+    try {
+      const r = await api('/auth/stop-impersonate', {});
+      auth.endImpersonate(r.token);
+      location.reload();
+    } catch (e) {
+      try { auth.endImpersonate(''); location.reload(); }
+      catch (_) { setMsg(e.message || 'بازگشت ناموفق بود'); setBusy(false); }
+    }
+  };
 
   const pay = async (success) => {
     setBusy(true); setMsg('');
@@ -59,6 +73,11 @@ export default function Paywall({ boot, onUnlocked }) {
           <button type="button" disabled={busy} onClick={() => pay(false)} style={{ border: '1px solid #E3E8EF', background: '#fff', color: '#5B6B82', padding: '10px 16px', borderRadius: 12, cursor: busy ? 'wait' : 'pointer', fontFamily: 'inherit', fontSize: 13 }}>
             پرداخت ناموفق (شبیه‌ساز)
           </button>
+          {impersonating ? (
+            <button type="button" disabled={busy} onClick={returnToAdmin} style={{ border: 'none', background: '#B45309', color: '#fff', padding: '10px 16px', borderRadius: 12, cursor: busy ? 'wait' : 'pointer', fontFamily: 'inherit', fontWeight: 700, fontSize: 13 }}>
+              بازگشت به مدیریت
+            </button>
+          ) : null}
           <button type="button" onClick={() => auth.logout()} style={{ border: 'none', background: 'transparent', color: '#7A889C', padding: '8px', cursor: 'pointer', fontFamily: 'inherit', fontSize: 12 }}>
             خروج از حساب
           </button>

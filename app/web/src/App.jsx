@@ -2562,16 +2562,47 @@ class LiveApp extends React.Component {
     } };
   }
 
+  async enterTenant(t) {
+    try {
+      const r = await api('/auth/impersonate', { tenantId: t.id });
+      auth.beginImpersonate(r.token);
+      this.toast('وارد پنل «' + (t.name || '') + '» شدید');
+      location.reload();
+    } catch (e) { this.toast(e.message); }
+  }
+
+  async returnToAdmin() {
+    try {
+      const r = await api('/auth/stop-impersonate', {});
+      auth.endImpersonate(r.token);
+      this.toast('بازگشت به مدیریت');
+      location.reload();
+    } catch (e) {
+      // Fallback: restore the saved admin JWT even if the API call failed
+      try { auth.endImpersonate(''); location.reload(); }
+      catch (_) { this.toast(e.message); }
+    }
+  }
+
   meVals() {
     const self = (this.state.exts || []).find(e => e.n === ME.ext);
     const goAccount = ME.tenantId ? () => this.setState({ page: 'account', voipOpen: false, repOpen: false, aiOpen: false }) : null;
+    const impersonating = !!ME.impersonating;
+    const tenantLabel = ME.impersonateTenantName || (this.tenantInfo && this.tenantInfo.name) || '';
     return {
       // a title set on the users page replaces «role · extension»
-      name: ME.name, ini: ini(ME.name), roleLabel: ME.title || ROLE_LABEL[ME.role] || ME.role, extText: ME.title ? '' : ME.ext ? ' · داخلی ' + ME.ext : '',
-      dot: self && self.st !== 'offline' ? '#8DC63F' : '#b9bbb6', isAdmin: ME.role === 'admin',
+      name: ME.name, ini: ini(ME.name),
+      roleLabel: impersonating
+        ? ('ورود به‌جای مستأجر' + (tenantLabel ? ' · ' + tenantLabel : ''))
+        : (ME.title || ROLE_LABEL[ME.role] || ME.role),
+      extText: impersonating ? '' : (ME.title ? '' : ME.ext ? ' · داخلی ' + ME.ext : ''),
+      dot: self && self.st !== 'offline' ? '#8DC63F' : '#b9bbb6', isAdmin: ME.role === 'admin' && !ME.tenantId,
       hasAlert: this.calls.some(c => c.st === 'voicemail' && (this.state.follow[c.id] || c.follow) === 'new'),
       logout: () => auth.logout(),
       goAccount,
+      impersonating,
+      tenantLabel,
+      returnToAdmin: impersonating ? () => this.returnToAdmin() : null,
     };
   }
 
@@ -2918,6 +2949,7 @@ class LiveApp extends React.Component {
                     </div>
                   </div>
                   <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                    <button type="button" onClick={() => this.enterTenant(t)} title="ورود به پنل این مستأجر با دسترسی مدیر سامانه" style={{ border: 'none', background: 'linear-gradient(135deg,#1D4E89,#0E7C7B)', color: '#fff', padding: '8px 12px', borderRadius: 10, cursor: 'pointer', fontFamily: 'inherit', fontWeight: 700 }}>ورود با این مستأجر</button>
                     <button type="button" onClick={() => openEdit(t)} style={{ border: '1px solid #E3E8EF', background: '#fff', padding: '8px 12px', borderRadius: 10, cursor: 'pointer', fontFamily: 'inherit' }}>ویرایش</button>
                     <button type="button" onClick={async () => {
                       try {
@@ -3085,10 +3117,33 @@ class LiveApp extends React.Component {
     );
   }
 
+  renderImpersonationBar() {
+    if (!ME.impersonating) return null;
+    const name = ME.impersonateTenantName || (this.tenantInfo && this.tenantInfo.name) || 'مستأجر';
+    return (
+      <div dir="rtl" style={{ position: 'sticky', top: 0, zIndex: 80, background: 'linear-gradient(90deg,#7A3E0C,#B45309)', color: '#fff', padding: '10px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', boxShadow: '0 8px 20px -14px rgba(0,0,0,.5)', fontFamily: "'IRANSansX',Tahoma,sans-serif" }}>
+        <div style={{ fontSize: 13, fontWeight: 600, lineHeight: 1.6 }}>
+          در حال مشاهده پنل مستأجر «{name}» هستید — تغییرات در محدوده همین مستأجر اعمال می‌شود.
+        </div>
+        <button type="button" onClick={() => this.returnToAdmin()} style={{ border: 'none', background: '#fff', color: '#7A3E0C', padding: '8px 14px', borderRadius: 10, cursor: 'pointer', fontFamily: 'inherit', fontWeight: 800, fontSize: 13 }}>
+          بازگشت به مدیریت
+        </button>
+      </div>
+    );
+  }
+
   render() {
-    if (this.state.page === 'tenants' && CAN('tenants')) return this.renderTenantsPage();
-    if (this.state.page === 'account' && ME.tenantId) return this.renderAccountPage();
-    return <AppView vm={this.renderVals()} />;
+    const body = (this.state.page === 'tenants' && CAN('tenants'))
+      ? this.renderTenantsPage()
+      : (this.state.page === 'account' && ME.tenantId)
+        ? this.renderAccountPage()
+        : <AppView vm={this.renderVals()} />;
+    return (
+      <>
+        {this.renderImpersonationBar()}
+        {body}
+      </>
+    );
   }
 }
 
