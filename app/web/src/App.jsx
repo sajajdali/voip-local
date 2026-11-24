@@ -1916,7 +1916,8 @@ class LiveApp extends React.Component {
     const sum = A.summary || {};
     const dash = (v, fallback = '—') => (v === null || v === undefined || v === '' ? fallback : fa(v));
     const ini = (sum.fullName || A.name || '?').trim().split(/\s+/).slice(0, 2).map(w => w[0] || '').join('') || '؟';
-    const idCode = sum.identifier || '';
+    // Prefer summary identifier; else newest appointment that has one (کد معرف is the hero signal).
+    const idCode = sum.identifier || ((A.appointments || []).find(x => x && x.identifier) || {}).identifier || '';
     const ST = { 0: ['#f2f3ef', '#55585c'], 1: ['#E3F2F1', '#0A5C5B'], 2: ['#fff4e5', '#b54708'], 3: ['#fdeceb', '#b42318'], 4: ['#eef5e3', '#3d6a0c'] };
     const stOf = (label, status) => { const c = ST[status] || ST[1]; return { st: label || '—', stBg: c[0], stFg: c[1] }; };
     const fmtWhen = (x) => (!x || (!x.date && !x.time) ? null : {
