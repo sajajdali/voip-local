@@ -8898,9 +8898,9 @@ export default function AppView({ vm }) {
                 </svg>
               </span>
               <div style={{flex: "1 1 220px", minWidth: "0"}}>
-                <div style={{fontWeight: "700", fontSize: "14px", color: "#0B2545"}}>{"IP رجیستر کردن خطوط"}</div>
+                <div style={{fontWeight: "700", fontSize: "14px", color: "#0B2545"}}>{"آدرس سرور برای ثبت SIP"}</div>
                 <div style={{fontSize: "11.5px", color: "#5B6B82", marginTop: "2px", lineHeight: "1.8"}}>
-                  {"در Zoiper یا گوشی SIP به‌عنوان سرور (Domain) بزنید؛ داخل مطب آدرس لوکال، بیرون مطب آدرس عمومی. نام کاربری همان شماره داخلی است."}
+                  {vm.vx?.regNote || "در Zoiper/گوشی، Domain را یکی از این آدرس‌ها بگذارید. نام کاربری و رمز هر داخلی در کادر زیر همان ردیف آمده است."}
                 </div>
               </div>
               <div style={{display: "flex", gap: "10px", flexWrap: "wrap"}}>
@@ -8989,18 +8989,42 @@ export default function AppView({ vm }) {
                     {(vm.vx?.rows || []).map((row, __i10) => <React.Fragment key={__i10}>
                       <tr>
                         <td data-label="داخلی" style={{padding: "10px 14px", borderBottom: "1px solid #EEF1F5", fontSize: "13px", verticalAlign: "middle"}}>
-                          <div style={{display: "flex", alignItems: "center", gap: "12px"}}>
-                            <span style={{fontFamily: "'Noto Kufi Arabic',sans-serif", fontSize: "16px", fontWeight: "700", color: "#0E7C7B", minWidth: "38px"}}>{row?.n}</span>
-                            <span style={{fontWeight: "600", color: "#0B2545"}}>
+                          <div style={{display: "flex", alignItems: "flex-start", gap: "12px"}}>
+                            <span style={{fontFamily: "'Noto Kufi Arabic',sans-serif", fontSize: "16px", fontWeight: "700", color: "#0E7C7B", minWidth: "38px", paddingTop: "2px"}}>{row?.n}</span>
+                            <span style={{fontWeight: "600", color: "#0B2545", flex: "1", minWidth: "0"}}>
                               {row?.name}
-                              {(row?.sipHint) ? (<>
-                                <div style={{fontSize: "11px", color: "#0E7C7B", direction: "ltr", textAlign: "right", marginTop: "2px", fontWeight: "600"}} title="همین نام کاربری را در گوشی/سافت‌فون وارد کنید">{row?.sipHint}</div>
-                              </>) : null}
-                              <div style={{display: "flex", alignItems: "center", gap: "6px", marginTop: "2px", flexWrap: "wrap"}}>
-                                <span onClick={row?.revealSecret} title="نمایش رمز SIP" style={{fontSize: "11px", color: "#7A889C", direction: "ltr", cursor: "pointer"}}>{row?.secretText}</span>
-                                {(row?.secretShown) ? (<>
-                                  <button onClick={row?.copySecret} title="کپی رمز" style={{border: "1px solid #C7E6E3", background: "#E3F2F1", color: "#0A5C5B", padding: "2px 9px", borderRadius: "7px", fontSize: "11px", fontWeight: "700", cursor: "pointer", fontFamily: "inherit"}}>{"کپی"}</button>
-                                </>) : null}
+                              <div style={{marginTop: "8px", background: "#F3FAF9", border: "1px solid #C7E6E3", borderRadius: "12px", padding: "10px 12px", direction: "ltr", textAlign: "left"}}>
+                                <div style={{fontSize: "11px", fontWeight: "800", color: "#0A5C5B", marginBottom: "8px", direction: "rtl", textAlign: "right"}}>{row?.sipRegTitle || "ثبت SIP این داخلی"}</div>
+                                <div style={{display: "grid", gap: "6px", fontSize: "12px", color: "#16213A", fontFamily: "'Readex Pro',ui-monospace,monospace"}}>
+                                  <div style={{display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap"}}>
+                                    <span style={{fontSize: "10px", color: "#5B6B82", fontFamily: "inherit", minWidth: "88px", direction: "rtl", textAlign: "right"}}>{"سرور (LAN)"}</span>
+                                    <b style={{fontWeight: "700"}}>{row?.sipHostLan}</b>
+                                    <button type="button" onClick={row?.copyHostLan} style={{border: "1px solid #C7E6E3", background: "#fff", color: "#0A5C5B", padding: "2px 8px", borderRadius: "7px", fontSize: "11px", fontWeight: "700", cursor: "pointer", fontFamily: "inherit"}}>{"کپی"}</button>
+                                  </div>
+                                  <div style={{display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap"}}>
+                                    <span style={{fontSize: "10px", color: "#5B6B82", fontFamily: "inherit", minWidth: "88px", direction: "rtl", textAlign: "right"}}>{"یا IP لوکال"}</span>
+                                    <b style={{fontWeight: "700"}}>{row?.sipHostIp}</b>
+                                    <button type="button" onClick={row?.copyHostIp} style={{border: "1px solid #C7E6E3", background: "#fff", color: "#0A5C5B", padding: "2px 8px", borderRadius: "7px", fontSize: "11px", fontWeight: "700", cursor: "pointer", fontFamily: "inherit"}}>{"کپی"}</button>
+                                  </div>
+                                  <div style={{display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap"}}>
+                                    <span style={{fontSize: "10px", color: "#5B6B82", fontFamily: "inherit", minWidth: "88px", direction: "rtl", textAlign: "right"}}>{"از اینترنت"}</span>
+                                    <b style={{fontWeight: "700"}}>{row?.sipHostRemote}</b>
+                                    <button type="button" onClick={row?.copyHostRemote} style={{border: "1px solid #C7E6E3", background: "#fff", color: "#0A5C5B", padding: "2px 8px", borderRadius: "7px", fontSize: "11px", fontWeight: "700", cursor: "pointer", fontFamily: "inherit"}}>{"کپی"}</button>
+                                  </div>
+                                  <div style={{display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap", marginTop: "2px", paddingTop: "6px", borderTop: "1px dashed #C7E6E3"}}>
+                                    <span style={{fontSize: "10px", color: "#5B6B82", fontFamily: "inherit", minWidth: "88px", direction: "rtl", textAlign: "right"}}>{row?.sipUserLabel || "نام کاربری"}</span>
+                                    <b style={{fontWeight: "800", color: "#0E7C7B"}}>{row?.sipUser}</b>
+                                    <button type="button" onClick={row?.copyUser} style={{border: "1px solid #C7E6E3", background: "#E3F2F1", color: "#0A5C5B", padding: "2px 8px", borderRadius: "7px", fontSize: "11px", fontWeight: "700", cursor: "pointer", fontFamily: "inherit"}}>{"کپی"}</button>
+                                  </div>
+                                  <div style={{display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap"}}>
+                                    <span style={{fontSize: "10px", color: "#5B6B82", fontFamily: "inherit", minWidth: "88px", direction: "rtl", textAlign: "right"}}>{row?.sipPassLabel || "رمز"}</span>
+                                    <span onClick={row?.revealSecret} title="نمایش / مخفی کردن رمز" style={{fontWeight: "700", cursor: "pointer", userSelect: "all"}}>{row?.secretText}</span>
+                                    <button type="button" onClick={row?.revealSecret} style={{border: "1px solid #DDE2EA", background: "#fff", color: "#3A4A63", padding: "2px 8px", borderRadius: "7px", fontSize: "11px", fontWeight: "700", cursor: "pointer", fontFamily: "inherit"}}>{(row?.secretShown) ? "مخفی" : "نمایش"}</button>
+                                    {(row?.secretShown) ? (<>
+                                      <button type="button" onClick={row?.copySecret} style={{border: "1px solid #C7E6E3", background: "#E3F2F1", color: "#0A5C5B", padding: "2px 8px", borderRadius: "7px", fontSize: "11px", fontWeight: "700", cursor: "pointer", fontFamily: "inherit"}}>{"کپی رمز"}</button>
+                                    </>) : null}
+                                  </div>
+                                </div>
                               </div>
                               {(row?.editing) ? (<>
                                 <div style={{display: "flex", gap: "6px", alignItems: "center", marginTop: "6px", flexWrap: "wrap"}}>
