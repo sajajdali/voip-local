@@ -2552,11 +2552,15 @@ class LiveApp extends React.Component {
     const quick = [
       { id: 'today', label: 'امروز', from: TODAY, to: TODAY },
       { id: 'yesterday', label: 'دیروز', from: jAdd(-1), to: jAdd(-1) },
-      { id: 'week', label: '۷ روز', from: jAdd(-6), to: TODAY },
-      { id: 'month', label: '۳۰ روز', from: jAdd(-29), to: TODAY },
+      { id: 'week', label: '۷ روز اخیر', from: jAdd(-6), to: TODAY },
+      { id: 'month', label: '۳۰ روز اخیر', from: jAdd(-29), to: TODAY },
+      { id: 'thismonth', label: 'این ماه', from: MONTH_START, to: TODAY },
     ].map(q => {
       const on = f.from === q.from && f.to === q.to;
-      return { ...q, pick: () => setF({ from: q.from, to: q.to }), bd: on ? '#0E7C7B' : '#E3E8EF', bg: on ? '#E3F2F1' : '#fff', fg: on ? '#0A5C5B' : '#3A4A63' };
+      return {
+        ...q, pick: () => { setF({ from: q.from, to: q.to }); setTimeout(() => this.loadOpconn(), 0); },
+        bd: on ? '#0E7C7B' : '#E3E8EF', bg: on ? '#E3F2F1' : '#fff', fg: on ? '#0A5C5B' : '#3A4A63',
+      };
     });
     const d = s.ocData;
     const sum = d && d.summary;
@@ -2565,6 +2569,7 @@ class LiveApp extends React.Component {
       const tot = list.reduce((n, x) => n + (x.n || 0), 0) || 1;
       return list.map((x, i) => ({
         ...x, label: x.label, nText: fa(x.n), pctText: fa(x.pct) + '٪',
+        tip: x.label + ': ' + fa(x.n) + ' مورد · ' + fa(x.pct) + '٪',
         w: Math.max(x.n ? 4 : 0, Math.round((x.n / tot) * 100)) + '%',
         color: colors[i % colors.length],
       }));
@@ -2572,9 +2577,11 @@ class LiveApp extends React.Component {
     const prefBars = bar(d && d.charts && d.charts.preferred, ['#0E7C7B', '#B42318']);
     const queueBars = bar(d && d.charts && d.charts.queue, ['#1D4E89', '#8A5A00']);
     const dossierBars = bar(d && d.charts && d.charts.dossier, ['#0E7C7B', '#8A5A00', '#5B4B8A', '#7A889C']);
-    const ops = [{ v: 'all', label: 'همه اپراتورها' }, ...((d && d.ops) || []).map(o => ({ v: o.ext, label: (o.name || '') + ' · ' + o.ext }))];
+    const ops = [{ v: 'all', label: 'همه اپراتورها' }, ...((d && d.ops) || []).map(o => ({
+      v: o.ext, label: (o.name || ('داخلی ' + fa(o.ext))) + ' · داخلی ' + fa(o.ext),
+    }))];
     const rows = ((d && d.operators) || []).map((o, i) => ({
-      rank: fa(i + 1), ext: fa(o.ext), name: o.name || ('داخلی ' + o.ext),
+      rank: fa(i + 1), ext: fa(o.ext), name: o.name || ('داخلی ' + fa(o.ext)),
       prefAttempts: fa(o.prefAttempts), prefAnswered: fa(o.prefAnswered), prefMissed: fa(o.prefMissed),
       prefRate: fa(o.prefAnswerRate) + '٪',
       queueConnect: fa(o.queueConnect), queueAbandon: fa(o.queueAbandon),
@@ -2583,18 +2590,23 @@ class LiveApp extends React.Component {
       noAppt: fa(o.noAppt), noApptPct: fa(o.noApptPct) + '٪',
       priorVip: fa(o.priorVip), priorVipPct: fa(o.priorVipPct) + '٪',
       dossierBars: [
-        { w: (o.answered ? Math.round(o.newNumbers / o.answered * 100) : 0) + '%', color: '#0E7C7B', title: 'جدید' },
-        { w: (o.answered ? Math.round(o.noAppt / o.answered * 100) : 0) + '%', color: '#8A5A00', title: 'بدون نوبت' },
-        { w: (o.answered ? Math.round(o.priorVip / o.answered * 100) : 0) + '%', color: '#5B4B8A', title: 'نوبت/VIP' },
+        { w: (o.answered ? Math.round(o.newNumbers / o.answered * 100) : 0) + '%', color: '#0E7C7B', title: 'شمارهٔ جدید: ' + fa(o.newNumbers) },
+        { w: (o.answered ? Math.round(o.noAppt / o.answered * 100) : 0) + '%', color: '#8A5A00', title: 'بدون نوبت: ' + fa(o.noAppt) },
+        { w: (o.answered ? Math.round(o.priorVip / o.answered * 100) : 0) + '%', color: '#5B4B8A', title: 'نوبت قبلی / ویژه: ' + fa(o.priorVip) },
       ],
     }));
     const kpis = sum ? [
       { label: 'تلاش زنگ ترجیحی', value: fa(sum.prefAttempts), sub: 'پاسخ ' + fa(sum.prefAnswered) + ' · بی‌پاسخ ' + fa(sum.prefMissed) + ' · نرخ ' + fa(sum.prefAnswerRate) + '٪', color: '#0B2545' },
-      { label: 'وصل از صف', value: fa(sum.queueConnect), sub: 'رها ' + fa(sum.queueAbandon) + ' · نرخ وصل ' + fa(sum.queueAnswerRate) + '٪', color: '#1D4E89' },
-      { label: 'پاسخ‌ها · شماره جدید', value: fa(sum.newNumbers), sub: fa(sum.newPct) + '٪ از ' + fa(sum.answeredTotal) + ' پاسخ', color: '#0E7C7B' },
-      { label: 'پاسخ · بدون نوبت', value: fa(sum.noAppt), sub: fa(sum.noApptPct) + '٪', color: '#8A5A00' },
-      { label: 'پاسخ · نوبت قبلی / VIP', value: fa(sum.priorVip), sub: fa(sum.priorVipPct) + '٪ از پرونده کامیلو', color: '#5B4B8A' },
+      { label: 'وصل از صف', value: fa(sum.queueConnect), sub: 'رهاشده ' + fa(sum.queueAbandon) + ' · نرخ وصل ' + fa(sum.queueAnswerRate) + '٪', color: '#1D4E89' },
+      { label: 'شمارهٔ جدید (پاسخ‌شده)', value: fa(sum.newNumbers), sub: fa(sum.newPct) + '٪ از ' + fa(sum.answeredTotal) + ' پاسخ', color: '#0E7C7B' },
+      { label: 'بدون نوبت (پاسخ‌شده)', value: fa(sum.noAppt), sub: fa(sum.noApptPct) + '٪ از پاسخ‌ها', color: '#8A5A00' },
+      { label: 'نوبت قبلی / ویژه', value: fa(sum.priorVip), sub: fa(sum.priorVipPct) + '٪ از پروندهٔ سامانه بیماران', color: '#5B4B8A' },
     ] : [];
+    const chartCards = [
+      { title: 'زنگ ترجیحی عامل', hint: 'بر اساس شناسهٔ عامل در پرونده', bars: prefBars },
+      { title: 'صف انتظار', hint: 'وصل شدن به اپراتور در برابر رها کردن صف', bars: queueBars },
+      { title: 'ترکیب پاسخ‌ها', hint: 'بر اساس پروندهٔ بیمار در سامانه', bars: dossierBars },
+    ];
     return {
       oc: {
         ready: true,
@@ -2602,10 +2614,12 @@ class LiveApp extends React.Component {
         pick: { from: v => setF({ from: v }), to: v => setF({ to: v }) },
         ops, op: f.op || 'all', setOp: e => setF({ op: e.target.value }),
         apply: () => this.loadOpconn(),
-        busy: !!s.ocBusy, loading: !!s.ocBusy && !d, empty: !s.ocBusy && d && !(sum && (sum.prefAttempts || sum.queueConnect || sum.queueAbandon || sum.answeredTotal)),
+        busy: !!s.ocBusy, loading: !!s.ocBusy && !d,
+        empty: !s.ocBusy && !!d && !(sum && (sum.prefAttempts || sum.queueConnect || sum.queueAbandon || sum.answeredTotal)),
         has: !!(sum && (sum.prefAttempts || sum.queueConnect || sum.queueAbandon || sum.answeredTotal)),
-        err: s.ocErr, period: d ? ('بازه ' + fa(d.from) + ' تا ' + fa(d.to)) : '',
-        kpis, prefBars, queueBars, dossierBars, rows, hasRows: rows.length > 0,
+        err: s.ocErr,
+        period: d ? ('بازهٔ ' + fa(d.from) + ' تا ' + fa(d.to) + (f.op && f.op !== 'all' ? ' · داخلی ' + fa(f.op) : '')) : 'بازه را انتخاب کنید و «اعمال فیلتر» را بزنید',
+        kpis, chartCards, prefBars, queueBars, dossierBars, rows, hasRows: rows.length > 0,
       },
     };
   }

@@ -257,14 +257,14 @@ export class OpConnController {
           { key: 'missed', label: 'بی‌پاسخ زنگ ترجیحی', n: prefMissed, pct: pct(prefMissed, prefAttempts) },
         ],
         queue: [
-          { key: 'connect', label: 'وصل به صف / اپراتور', n: queueConnect, pct: pct(queueConnect, queueConnect + queueAbandon) },
+          { key: 'connect', label: 'وصل به اپراتور از صف', n: queueConnect, pct: pct(queueConnect, queueConnect + queueAbandon) },
           { key: 'abandon', label: 'رها کردن صف', n: queueAbandon, pct: pct(queueAbandon, queueConnect + queueAbandon) },
         ],
         dossier: [
-          { key: 'new', label: 'شماره جدید', n: newNumbers, pct: pct(newNumbers, answeredTotal) },
+          { key: 'new', label: 'شمارهٔ جدید', n: newNumbers, pct: pct(newNumbers, answeredTotal) },
           { key: 'noAppt', label: 'بدون نوبت', n: noAppt, pct: pct(noAppt, answeredTotal) },
-          { key: 'priorVip', label: 'نوبت قبلی / VIP', n: priorVip, pct: pct(priorVip, answeredTotal) },
-          ...(unknownDossier ? [{ key: 'unknown', label: 'نامشخص', n: unknownDossier, pct: pct(unknownDossier, answeredTotal) }] : []),
+          { key: 'priorVip', label: 'نوبت قبلی / ویژه', n: priorVip, pct: pct(priorVip, answeredTotal) },
+          ...(unknownDossier ? [{ key: 'unknown', label: 'پرونده نامشخص', n: unknownDossier, pct: pct(unknownDossier, answeredTotal) }] : []),
         ],
         dossierBase: dossierAnswered,
       },
