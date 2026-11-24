@@ -128,8 +128,13 @@ export class ConfigStore {
         const prefixed = prefixTenantCollection(t.id, key, data);
         if (ARRAY_KEYS.includes(key as any) && Array.isArray(prefixed)) mergeArr(key, prefixed);
         else if (key === 'fmes' && typeof prefixed === 'object') mergeObj(key, prefixed);
-        else if (OBJECT_KEYS.includes(key as any) && key !== 'bset' && key !== 'survey' && key !== 'vmbox') {
-          // keep platform object defaults; tenant object keys only matter if we add per-tenant later
+        else if (key === 'prefagent' && prefixed && typeof prefixed === 'object') {
+          // Stamp ring timeout onto this tenant's queues so dialplan stays per-queue / per-tenant.
+          const ringSec = Math.max(5, Math.min(120, Math.round(+(prefixed as any).ringSec || 40)));
+          const tp = t.id;
+          if (Array.isArray(base.vqs)) {
+            base.vqs = base.vqs.map((q: any) => (q && q.tenantId === tp ? { ...q, prefRingSec: ringSec } : q));
+          }
         }
       }
 

@@ -429,30 +429,35 @@ function dialplan(cfg: VoipConfig, opts: { hookUrl: string; hookSecret: string }
   // --- queues
   // Preferred agent (Kamilo زیبایار agent_id → User.apiId): announce + ring that ext first;
   // unavailable / no-answer → optional queue-fallback announce, then Queue as today.
-  const prefRing = Math.max(5, Math.min(120, Math.round(+(cfg.prefagent?.ringSec ?? 40) || 40)));
-  const prefagent = [
-    ` same => n,Set(CC_PREF=\${CURL(${opts.hookUrl}/prefagent?s=${opts.hookSecret},num=\${CC_NUM}&did=\${CC_DID})})`,
-    ' same => n,GotoIf($["${CC_PREF}"=""]?prefskip)',
-    ' same => n,Set(CC_PREFEXT=${CUT(CC_PREF,|,1)})',
-    ' same => n,Set(CC_PREFSND=${CUT(CC_PREF,|,2)})',
-    ' same => n,Set(CC_PREFQSND=${CUT(CC_PREF,|,3)})',
-    ' same => n,GotoIf($["${CC_PREFEXT}"=""]?prefskip)',
-    // Busy / offline: skip Dial, still play queue-fallback announce before Queue.
-    ' same => n,GotoIf($["${DEVICE_STATE(PJSIP/${CC_PREFEXT})}"!="NOT_INUSE"]?preffall)',
-    ' same => n,ExecIf($["${CC_PREFSND}"!=""]?Playback(${CC_PREFSND}))',
-    ` same => n,${ccEvent('call.ringing', 'Target: preferred,Ext: ${CC_PREFEXT}')}`,
-    ` same => n,Dial(PJSIP/\${CC_PREFEXT},${prefRing},trgU(cc-agent-answer^0))`,
-    ' same => n,GotoIf($["${DIALSTATUS}"="ANSWER"]?cc-survey,s,1)',
-    ' same => n(preffall),ExecIf($["${CC_PREFQSND}"!=""]?Playback(${CC_PREFQSND}))',
-    ' same => n(prefskip),NoOp(preferred agent done)',
-  ];
+  // Ring timeout is per-queue (tenant stamp prefRingSec) with platform prefagent.ringSec fallback (default 40).
+  const prefBlock = (ringSec: number) => {
+    const sec = Math.max(5, Math.min(120, Math.round(+ringSec || 40)));
+    return [
+      ` same => n,Set(CC_PREF=\${CURL(${opts.hookUrl}/prefagent?s=${opts.hookSecret},num=\${CC_NUM}&did=\${CC_DID})})`,
+      ' same => n,GotoIf($["${CC_PREF}"=""]?prefskip)',
+      ' same => n,Set(CC_PREFEXT=${CUT(CC_PREF,|,1)})',
+      ' same => n,Set(CC_PREFSND=${CUT(CC_PREF,|,2)})',
+      ' same => n,Set(CC_PREFQSND=${CUT(CC_PREF,|,3)})',
+      ' same => n,GotoIf($["${CC_PREFEXT}"=""]?prefskip)',
+      // Busy / offline: skip Dial, still play queue-fallback announce before Queue.
+      ' same => n,GotoIf($["${DEVICE_STATE(PJSIP/${CC_PREFEXT})}"!="NOT_INUSE"]?preffall)',
+      ' same => n,ExecIf($["${CC_PREFSND}"!=""]?Playback(${CC_PREFSND}))',
+      ` same => n,${ccEvent('call.ringing', 'Target: preferred,Ext: ${CC_PREFEXT}')}`,
+      ` same => n,Dial(PJSIP/\${CC_PREFEXT},${sec},trgU(cc-agent-answer^0))`,
+      ' same => n,GotoIf($["${DIALSTATUS}"="ANSWER"]?cc-survey,s,1)',
+      ' same => n(preffall),ExecIf($["${CC_PREFQSND}"!=""]?Playback(${CC_PREFQSND}))',
+      ' same => n(prefskip),NoOp(preferred agent done)',
+    ];
+  };
+  const defaultPrefRing = Math.max(5, Math.min(120, Math.round(+(cfg.prefagent?.ringSec ?? 40) || 40)));
   for (const q of cfg.vqs) {
+    const ring = q.prefRingSec != null ? +q.prefRingSec : defaultPrefRing;
     X(`cc-queue-${sid(q.id)}`, [
       'exten => s,1,Answer()',
       ` same => n,Set(__CC_QUEUE=${safe(q.name)})`,
       ` same => n,${ccEvent('call.queued', `Queue: ${evText(q.name)}`)}`,
       ...cname,
-      ...prefagent,
+      ...prefBlock(ring),
       ...(q.moh && cfg.snds.some(s => s.id === q.moh) ? [` same => n,Set(CHANNEL(musicclass)=snd-${sid(q.moh)})`] : []),
       ` same => n,Queue(cc-${sid(q.id)},tc,,,${+q.maxWait > 0 ? Math.max(10, +q.maxWait) : ''},,cc-agent-answer)`,
       ' same => n,GotoIf($["${CC_ANSEXT}"!=""]?cc-survey,s,1)',
@@ -548,9 +553,21 @@ function dialplan(cfg: VoipConfig, opts: { hookUrl: string; hookSecret: string }
   }
 
   // --- external legs (ring groups / follow-me to mobiles)
-  X('cc-outext', trunk ? [
-    `exten => _X.,1,Dial(PJSIP/\${EXTEN}@trunk-${sid(trunk.id)},60)`, ' same => n,Hangup()',
-  ] : ['exten => _X.,1,NoOp(no active trunk)', ' same => n,Congestion(5)']);
+  // Tenant phones must use the 31985 pool trunk + their own CLI (AstDB ccoutcli/<tenantId>).
+  X('cc-outext', [
+    'exten => _X.,1,GotoIf($["${CC_TENANT}"=""]?plat)',
+    ' same => n,Set(CC_OUTCLI=${DB(ccoutcli/${CC_TENANT})})',
+    ' same => n,GotoIf($["${CC_OUTCLI}"=""]?deny)',
+    ' same => n,Dial(PJSIP/${EXTEN}@trunk-t31985,60,b(cc-trunk-cid^s^1(${CC_OUTCLI})))',
+    ' same => n,Hangup()',
+    ' same => n(deny),Congestion(5)',
+    ' same => n,Hangup()',
+    ...(trunk ? [
+      ` same => n(plat),Dial(PJSIP/\${EXTEN}@trunk-${sid(trunk.id)},60)`, ' same => n,Hangup()',
+    ] : [
+      ' same => n(plat),NoOp(no active trunk)', ' same => n,Congestion(5)',
+    ]),
+  ]);
 
   // --- answer hooks (run on the answering channel)
   X('cc-agent-answer', [
@@ -791,18 +808,18 @@ function dialplan(cfg: VoipConfig, opts: { hookUrl: string; hookSecret: string }
     ' same => n,Playback(beep)',
     ' same => n,Echo()',
   ]);
-  const outs = (cfg.oroutes || []).filter(r => r.on && cfg.trunks.some(t => t.id === r.trunk && t.on && t.type !== 'PRI / E1'));
+  const outs = (cfg.oroutes || []).filter(r => r.on && r.trunk && cfg.trunks.some(t => t.id === r.trunk && t.on && t.type !== 'PRI / E1'));
   if (!(cfg.oroutes || []).length && trunk) outs.push({ id: 'default', pats: '0X.', trunk: trunk.id, prepend: '' });
   // the provider shows whatever number we send (an extension came out as +9821102): send the line's own number.
   // PJSIP builds Remote-Party-ID from the outgoing channel's connected line, which Dial copies from the extension,
   // so that is set too ('i': only on this channel, no update sent to the extension)
   X('cc-trunk-cid', ['exten => s,1,Set(CALLERID(num)=${ARG1})', ' same => n,Set(CALLERID(name)=${ARG1})',
     ' same => n,Set(CONNECTEDLINE(num,i)=${ARG1})', ' same => n,Set(CONNECTEDLINE(name,i)=${ARG1})', ' same => n,Return()']);
-  for (const r of outs) {
-    const L2: string[] = [];
-    const rt = cfg.trunks.find(t => t.id === r.trunk);
-    const lineNum = digits(rt?.did) || digits(rt?.user);
-    const cidOpt = lineNum ? `b(cc-trunk-cid^s^1(${lineNum}))` : '';
+
+  const pushOutPattern = (L2: string[], r: any, opts: {
+    tenantId?: string; cliExpr: string; denyOtherTenants?: boolean;
+  }) => {
+    const cidOpt = opts.cliExpr ? `b(cc-trunk-cid^s^1(${opts.cliExpr}))` : '';
     for (const raw of String(r.pats || '').split(/[,،\s]+/).filter(Boolean)) {
       const [pre, pat] = raw.includes('|') ? raw.split('|') : ['', raw];
       const p = (pre + pat).toUpperCase().replace(/[^0-9XNZ.*#+\[\]-]/g, '');
@@ -810,13 +827,87 @@ function dialplan(cfg: VoipConfig, opts: { hookUrl: string; hookSecret: string }
       const ext = p === '.' ? '_X.' : '_' + p;
       const strip = pre.replace(/[^0-9*#+]/g, '').length;
       const num = `${String(r.prepend || '').replace(/[^0-9*#+]/g, '')}\${EXTEN${strip ? ':' + strip : ''}}`;
-      // a click-to-call (cc-callback) arrives here already initialised: keep its direction/queue/handler
-      L2.push(`exten => ${ext},1,GotoIf($["\${CC_DIR}"!=""]?dial)`, ' same => n,Set(__CC_DIR=out)', ' same => n,Set(__CC_START=${EPOCH})',
+      L2.push(
+        `exten => ${ext},1,GotoIf($["\${CC_DIR}"!=""]?dial)`,
+        ' same => n,Set(__CC_DIR=out)', ' same => n,Set(__CC_START=${EPOCH})',
         ' same => n,Set(__CC_OPEXT=${FILTER(0-9,${CALLERID(num)})})', ' same => n,Set(__CC_QUEUE=تماس خروجی)',
-        ' same => n,Set(CHANNEL(hangup_handler_push)=cc-hangup,s,1)', ` same => n(dial),Set(__CC_NUM=${num})`,
+        ' same => n,Set(CHANNEL(hangup_handler_push)=cc-hangup,s,1)',
+        ' same => n(dial),NoOp()',
+      );
+      // Tenant phones must never place calls on platform/shared trunks or other tenants' CLIs.
+      if (opts.denyOtherTenants) {
+        L2.push(' same => n,GotoIf($["${CC_TENANT}"!=""]?skiptenant)');
+      }
+      if (opts.tenantId) {
+        const tid = sid(opts.tenantId);
+        const fallback = digits(opts.cliExpr) || '';
+        L2.push(` same => n,GotoIf($["\${CC_TENANT}"!="${tid}"]?skip)`);
+        // CLI: channel override CC_OUTCLI → AstDB primary → compile-time fallback. Must be an assigned DID.
+        L2.push(
+          ' same => n,Set(CC_USECLI=${CC_OUTCLI})',
+          ` same => n,ExecIf($["\${CC_USECLI}"=""]?Set(CC_USECLI=\${DB(ccoutcli/${tid})}))`,
+          ...(fallback ? [` same => n,ExecIf($["\${CC_USECLI}"=""]?Set(CC_USECLI=${fallback}))`] : []),
+          ' same => n,GotoIf($["${CC_USECLI}"=""]?deny)',
+          ` same => n,GotoIf($[\${DB_EXISTS(ccoutdid/${tid}_\${CC_USECLI})}]?clidok:deny)`,
+          ' same => n(clidok),NoOp()',
+        );
+      }
+      const cliForDial = opts.tenantId ? '${CC_USECLI}' : opts.cliExpr;
+      const cid = cliForDial ? `b(cc-trunk-cid^s^1(${cliForDial}))` : cidOpt;
+      L2.push(
+        ` same => n,Set(__CC_NUM=${num})`,
         ` same => n,${ccEvent('call.started', 'Uid: ${UNIQUEID},Dir: out,Num: ${URIENCODE(${CC_NUM})},Opext: ${CC_OPEXT},Callback: ${IF($["${CC_ORIG}"!=""]?1:0)}')}`,
-        ` same => n,Dial(PJSIP/\${CC_NUM}@trunk-${sid(r.trunk)},60,TU(cc-callee-answer)${cidOpt})`, ' same => n,Hangup()');
+        ` same => n,Dial(PJSIP/\${CC_NUM}@trunk-${sid(r.trunk)},60,TU(cc-callee-answer)${cid})`,
+        ' same => n,Hangup()',
+      );
+      if (opts.tenantId) {
+        L2.push(' same => n(deny),Congestion(5)', ' same => n,Hangup()', ' same => n(skip),Return()');
+      }
+      if (opts.denyOtherTenants) {
+        L2.push(' same => n(skiptenant),Return()');
+      }
     }
+  };
+
+  // Tenant outbound first (own DID CLI + pool trunk only), then platform (blocked when CC_TENANT set).
+  const tenantOuts = outs.filter(r => r.tenantId);
+  const platformOuts = outs.filter(r => !r.tenantId);
+  // One dialplan context per tenant: collapse auto DIDs so the same pats do not collide.
+  const byTenant = new Map<string, any[]>();
+  for (const r of tenantOuts) {
+    const tid = String(r.tenantId);
+    const list = byTenant.get(tid) || [];
+    list.push(r);
+    byTenant.set(tid, list);
+  }
+  for (const [tid, list] of byTenant) {
+    // Prefer the first auto DID as default CLI; fall back to first route's cli/trunk.did.
+    const primary = list.find(r => r.auto && r.cli) || list.find(r => r.cli) || list[0];
+    const cli = digits(primary?.cli || primary?.did) || '';
+    // Use a representative route (pats + trunk from primary); CLI validated against AstDB list.
+    const synth = {
+      id: 'tout-' + tid,
+      pats: primary?.pats || '8|.,0X.,9X.',
+      trunk: primary?.trunk || 't31985',
+      prepend: primary?.prepend || '',
+    };
+    if (!cfg.trunks.some(t => t.id === synth.trunk && t.on)) continue;
+    const L2: string[] = [];
+    // Default CLI from AstDB (kept in sync with DID assign); channel may override via CC_OUTCLI.
+    pushOutPattern(L2, synth, {
+      tenantId: tid,
+      cliExpr: '${IF($["${DB(ccoutcli/' + sid(tid) + ')}"!=""]?${DB(ccoutcli/' + sid(tid) + ')}:' + cli + ')}',
+    });
+    if (L2.length) {
+      X(`cc-out-${sid(synth.id)}`, L2);
+      internal.push(`include => cc-out-${sid(synth.id)}`);
+    }
+  }
+  for (const r of platformOuts) {
+    const L2: string[] = [];
+    const rt = cfg.trunks.find(t => t.id === r.trunk);
+    const lineNum = digits(r.cli) || digits(rt?.did) || digits(rt?.user);
+    pushOutPattern(L2, r, { cliExpr: lineNum || '', denyOtherTenants: true });
     if (L2.length) { X(`cc-out-${sid(r.id)}`, L2); internal.push(`include => cc-out-${sid(r.id)}`); }
   }
   X('cc-internal', internal);
@@ -827,7 +918,7 @@ function dialplan(cfg: VoipConfig, opts: { hookUrl: string; hookSecret: string }
 export function generate(cfg: VoipConfig, opts: { hookUrl: string; hookSecret: string; mohDir: string }): Generated {
   const warnings: string[] = [];
   const m = moh(cfg, opts.mohDir);
-  const astdb: Generated['astdb'] = { ccbl: {}, ccset: {}, cctc: {}, ccholiday: {}, ccrec: {} };
+  const astdb: Generated['astdb'] = { ccbl: {}, ccset: {}, cctc: {}, ccholiday: {}, ccrec: {}, ccoutcli: {}, ccoutdid: {} };
   for (const b of cfg.blist) if (digits(b.num)) astdb.ccbl[digits(b.num)] = String(b.reason || 'other');
   astdb.ccset.anon = cfg.bset && cfg.bset.anon ? '1' : '0';
   for (const t of cfg.tconds) astdb.cctc[sid(t.id)] = t.ovr && t.ovr !== 'none' ? t.ovr : 'none';
@@ -835,6 +926,28 @@ export function generate(cfg: VoipConfig, opts: { hookUrl: string; hookSecret: s
   for (const e of cfg.exts) {
     const sip = sipOf(e);
     if (sip) astdb.ccrec[sip] = e.rec ? '1' : '0';
+  }
+  // Per-tenant outbound CLI allow-list (from DID assignments / auto oroutes).
+  const didsByTenant = new Map<string, string[]>();
+  for (const d of cfg.didRoutes || []) {
+    const did = digits(d.did), tid = sid(d.tenantId);
+    if (!did || !tid) continue;
+    const list = didsByTenant.get(tid) || [];
+    if (!list.includes(did)) list.push(did);
+    didsByTenant.set(tid, list);
+  }
+  for (const r of cfg.oroutes || []) {
+    if (!r?.tenantId || !r.auto) continue;
+    const did = digits(r.cli || r.did), tid = sid(r.tenantId);
+    if (!did || !tid) continue;
+    const list = didsByTenant.get(tid) || [];
+    if (!list.includes(did)) list.push(did);
+    didsByTenant.set(tid, list);
+  }
+  for (const [tid, dids] of didsByTenant) {
+    if (!dids.length) continue;
+    astdb.ccoutcli[tid] = dids[0];
+    for (const did of dids) astdb.ccoutdid[`${tid}_${did}`] = '1';
   }
   return {
     files: { 'pjsip.conf': pjsip(cfg, warnings), 'extensions.conf': dialplan(cfg, opts), 'queues.conf': queues(cfg), 'musiconhold.conf': m.text },

@@ -7,7 +7,7 @@ export const DID_POOL_PREFIX = '31985';
 
 export const TENANT_CONFIG_KEYS = [
   'exts', 'vqs', 'ivrs', 'snds', 'routes', 'oroutes', 'tgroups', 'tconds', 'holidays',
-  'rgroups', 'blist', 'fmes', 'bset', 'survey', 'vmbox', 'booking',
+  'rgroups', 'blist', 'fmes', 'bset', 'survey', 'vmbox', 'booking', 'prefagent',
 ] as const;
 export type TenantConfigKey = (typeof TENANT_CONFIG_KEYS)[number];
 
@@ -244,9 +244,13 @@ export function prefixTenantCollection(tenantId: string, key: string, data: any)
       if (y.open) y.open = prefixDest(tenantId, String(y.open));
       if (y.closed) y.closed = prefixDest(tenantId, String(y.closed));
       if (y.na) y.na = prefixDest(tenantId, String(y.na));
-      if (y.trunk) delete y.trunk; // tenants never own trunks in dialplan outbound via platform chain only
+      // Keep trunk id when present — tenants pick a shared platform trunk; dialplan gates by CC_TENANT.
       if (Array.isArray(y.members)) y.members = y.members.map(String);
       // MOH / announcement refs point at snd ids which are not prefixed
+      // IVR menu options (opts) and legacy keys both carry destinations
+      if (Array.isArray(y.opts)) {
+        y.opts = y.opts.map((o: any) => (o && o.dest ? { ...o, dest: prefixDest(tenantId, String(o.dest)) } : o));
+      }
       if (Array.isArray(y.keys)) {
         y.keys = y.keys.map((k: any) => (k && k.dest ? { ...k, dest: prefixDest(tenantId, String(k.dest)) } : k));
       }
@@ -263,7 +267,8 @@ export function prefixTenantCollection(tenantId: string, key: string, data: any)
       }
       return out;
     }
-    return { ...data };
+    // prefagent / other object blobs stay tenant-owned as-is
+    return { ...data, tenantId };
   }
   return data;
 }

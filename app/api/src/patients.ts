@@ -396,11 +396,11 @@ export class PatientsService {
       const p = await this.db.patient.findUnique({ where: { phone } });
       const agentKey = pickCrmAgentId(p?.crm);
       if (!agentKey) return null;
+      // Prefer tenant-scoped users for tenant DIDs; never leak another tenant's agent.
       const where: any = { apiId: agentKey, active: true, ext: { not: null } };
       if (tenantId) where.tenantId = tenantId;
-      let u = await this.db.user.findFirst({ where });
-      // Platform users (tenantId null) can also match when the DID is tenant-scoped
-      if (!u && tenantId) u = await this.db.user.findFirst({ where: { apiId: agentKey, active: true, ext: { not: null }, tenantId: null } });
+      else where.tenantId = null;
+      const u = await this.db.user.findFirst({ where });
       if (!u || !u.ext || !/^\d{2,6}$/.test(u.ext)) return null;
       return {
         ext: u.ext,

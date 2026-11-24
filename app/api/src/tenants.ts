@@ -10,6 +10,7 @@ import {
   cleanFeatures, cleanPlanPeriod, didFromSuffix, extendExpiry, isPoolDid, normalizePoolDid, planLabel, tenantAccess, type TenantFeatures,
 } from './tenant-scope';
 import { DEFAULT_STORAGE_MB, storageSnapshot, tenantUsedBytes } from './tenant-storage';
+import { resyncTenantOutbound, syncDidOutbound } from './tenant-outbound';
 
 export { DID_POOL_MIN, DID_POOL_MAX, DID_POOL_PREFIX, isPoolDid, normalizePoolDid };
 
@@ -88,6 +89,29 @@ export class TenantsService {
 
   async reapply() {
     return this.store.applyAll();
+  }
+
+  /** Invalidate cached tenant VoIP collections after DID/outbound sync. */
+  resetTenantCache(tenantId: string) {
+    this.store.resetTenant(tenantId);
+  }
+
+  async syncOutboundAdd(tenantId: string, did: string, by?: string | null) {
+    const list = await syncDidOutbound(this.db, tenantId, did, 'add', by);
+    this.store.resetTenant(tenantId);
+    return list;
+  }
+
+  async syncOutboundRemove(tenantId: string, did: string, by?: string | null) {
+    const list = await syncDidOutbound(this.db, tenantId, did, 'remove', by);
+    this.store.resetTenant(tenantId);
+    return list;
+  }
+
+  async resyncOutbound(tenantId: string, by?: string | null) {
+    const list = await resyncTenantOutbound(this.db, tenantId, by);
+    this.store.resetTenant(tenantId);
+    return list;
   }
 
   async list() {
@@ -481,6 +505,8 @@ export class TenantsController {
     for (const did of dids) {
       await this.db.didAssignment.create({ data: { did, tenantId: t.id, userId: u.id } });
     }
+    // Auto outbound/CLI rows for every assigned DID (31985 pool trunk only).
+    await this.tenants.resyncOutbound(t.id, me.id).catch(() => null);
     await this.db.auditLog.create({
       data: {
         userId: me.id, userName: me.name, action: 'tenant.create', target: t.slug,
@@ -644,6 +670,7 @@ export class TenantsController {
         note: String(b.note || '').trim().slice(0, 120) || null,
       },
     });
+    await this.tenants.syncOutboundAdd(id, did, me.id).catch(() => null);
     await this.db.auditLog.create({
       data: {
         userId: me.id, userName: me.name, action: 'did.assign', target: did,
@@ -729,6 +756,7 @@ export class TenantsController {
     const row = await this.db.didAssignment.findUnique({ where: { did } });
     if (!row || row.tenantId !== id) throw new BadRequestException('این شماره برای این مستأجر ثبت نشده');
     await this.db.didAssignment.delete({ where: { did } });
+    await this.tenants.syncOutboundRemove(id, did, me.id).catch(() => null);
     await this.db.auditLog.create({ data: { userId: me.id, userName: me.name, action: 'did.unassign', target: did, detail: { tenantId: id } as any } });
     await this.tenants.reapply().catch(() => null);
     return { ok: true, message: `شماره ${faDid(did)} آزاد شد` };
