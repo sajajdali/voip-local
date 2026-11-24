@@ -70,9 +70,13 @@ export class AsteriskService extends EventEmitter implements OnModuleInit {
     const ua: Record<string, string> = {};
     for (const c of contacts.events || []) { const n = String(c.Endpoint || c.ObjectName || '').split('/')[0]; if (n && c.UserAgent) ua[n] = c.UserAgent; }
     for (const e of cfg.exts) {
-      const s = devState[e.n] || 'UNAVAILABLE';
+      const sip = String(e.sip || e.n);
+      const s = devState[sip] || 'UNAVAILABLE';
       const st = /INUSE|BUSY|RINGINUSE|ONHOLD/.test(s) && s !== 'NOT_INUSE' ? 'busy' : s === 'NOT_INUSE' || s === 'RINGING' ? 'online' : 'offline';
-      exts[e.n] = { st, ring: /RINGING|RINGINUSE/.test(s), ...(ua[e.n] ? { dev: ua[e.n].slice(0, 40) } : {}) };
+      const info = { st, ring: /RINGING|RINGINUSE/.test(s), ...(ua[sip] ? { dev: ua[sip].slice(0, 40) } : {}) };
+      exts[sip] = info;
+      // Alias by dial number when unique so older UI lookups by e.n still work
+      if (!e.sip || !exts[e.n]) exts[e.n] = info;
     }
     const queues: Live['queues'] = {};
     const qs = await this.ami.action({ Action: 'QueueStatus' }, true).catch(() => ({ events: [] }));

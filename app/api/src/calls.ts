@@ -76,7 +76,7 @@ export async function audioInfo(file: string) {
   } catch { return { dur: 0, wave: [] as number[] }; }
 }
 
-interface Orig { opExt: string; number: string; name: string; vmId: string | null; userId: string; at: number; note?: string; callId?: string }
+interface Orig { opExt: string; number: string; name: string; vmId: string | null; userId: string; at: number; note?: string; callId?: string; sip?: string }
 
 @Injectable()
 export class CallsService {
@@ -325,7 +325,11 @@ export class CallsController {
       }) : Promise.resolve(null),
     ]);
     const live = this.ast.live;
-    config.exts = config.exts.map((e: any) => ({ ...e, st: live.exts[e.n]?.st || 'offline', dev: live.exts[e.n]?.dev || e.dev }));
+    config.exts = config.exts.map((e: any) => {
+      const key = e.sip || e.n;
+      const L = live.exts[key] || live.exts[e.n];
+      return { ...e, st: L?.st || 'offline', dev: L?.dev || e.dev };
+    });
     const operators = users.filter(u => u.ext).map(u => ({ id: u.id, name: u.name, ext: u.ext }));
     return { me, sections: SECTIONS, operators, config, workflow, calls, tenant: mine, paywall: false };
   }
@@ -344,8 +348,10 @@ export class CallsController {
     const live = this.ast.live.exts;
     return {
       mine: me.ext || null,
-      exts: (cfg.exts || []).map((e: any) => ({ n: e.n, name: e.name || '', st: live[e.n]?.st || 'offline', dev: live[e.n]?.dev || '' }))
-        .sort((a: any, z: any) => String(a.n).localeCompare(String(z.n), undefined, { numeric: true })),
+      exts: (cfg.exts || []).map((e: any) => {
+        const key = e.sip || e.n;
+        return { n: e.n, name: e.name || '', st: live[key]?.st || live[e.n]?.st || 'offline', dev: live[key]?.dev || live[e.n]?.dev || '' };
+      }).sort((a: any, z: any) => String(a.n).localeCompare(String(z.n), undefined, { numeric: true })),
     };
   }
 
@@ -357,14 +363,17 @@ export class CallsController {
     const ext = b.ext ? String(b.ext) : me.ext;
     if (!ext) throw new BadRequestException('یک داخلی برای برقراری تماس انتخاب کنید');
     const cfg = await this.store.forUser(me);
-    if (!(cfg.exts || []).some((e: any) => e.n === ext)) throw new BadRequestException('داخلی ' + ext + ' تعریف نشده است');
-    if (this.ast.live.exts[ext]?.st === 'offline') throw new BadRequestException('گوشی داخلی ' + ext + ' خاموش یا ثبت‌نشده است');
+    const row = (cfg.exts || []).find((e: any) => e.n === ext || e.sip === ext);
+    if (!row) throw new BadRequestException('داخلی ' + ext + ' تعریف نشده است');
+    const sip = String(row.sip || row.n);
+    if ((this.ast.live.exts[sip] || this.ast.live.exts[row.n])?.st === 'offline') throw new BadRequestException('گوشی داخلی ' + ext + ' خاموش یا ثبت‌نشده است');
     if (number.length < 3) throw new BadRequestException('شماره نامعتبر است');
     if (!this.ast.ami.connected) throw new BadRequestException('اتصال به مرکز تلفن برقرار نیست');
     const origId = 'O' + Date.now() + Math.floor(Math.random() * 1000);
-    this.calls.origs.set(origId, { opExt: ext, number, name: String(b.name || number), vmId: b.vmId || null, userId: me.id, at: Date.now() });
-    await this.ast.originate(ext, number, origId, String(b.name || number), b.vmId || null);
-    await this.db.auditLog.create({ data: { userId: me.id, userName: me.name, action: 'call.originate', target: number, detail: { vmId: b.vmId || null, ext, tenantId: me.tenantId || null } } });
+    // opExt stays the dial number for CDR/UI; AMI uses sip channel name
+    this.calls.origs.set(origId, { opExt: String(row.n), number, name: String(b.name || number), vmId: b.vmId || null, userId: me.id, at: Date.now(), sip });
+    await this.ast.originate(sip, number, origId, String(b.name || number), b.vmId || null);
+    await this.db.auditLog.create({ data: { userId: me.id, userName: me.name, action: 'call.originate', target: number, detail: { vmId: b.vmId || null, ext: row.n, sip, tenantId: me.tenantId || null } } });
     return { origId };
   }
 
@@ -374,7 +383,7 @@ export class CallsController {
     if (!o) return { ok: true };
     if (o.userId !== me.id && me.role !== 'admin') throw new ForbiddenException();
     if (b.note) o.note = b.note;
-    await this.ast.hangupExt(o.opExt);
+    await this.ast.hangupExt((o as any).sip || o.opExt);
     return { ok: true };
   }
 
@@ -716,8 +725,9 @@ export class HooksController {
   }
 
   /**
-   * Preferred agent before a queue: body `ext|announcePath` (path empty if no voice).
+   * Preferred agent before a queue: body `sipOrExt|announcePath` (path empty if no voice).
    * Empty string = no match → dialplan continues to the normal queue.
+   * Returns the PJSIP endpoint name (tenant-prefixed sip when applicable) so Dial() hits the right phone.
    */
   @Public()
   @Post('prefagent')
@@ -729,9 +739,20 @@ export class HooksController {
     if (!phone) return '';
     const pref = await this.patients.preferredAgent(phone, tenantId);
     if (!pref) return '';
+    // Resolve dial number → unique SIP endpoint (same dial may exist on another tenant).
+    let sip = pref.ext;
+    try {
+      const merged = await this.store.withDidRoutes();
+      const hit = (merged.exts || []).find((e: any) =>
+        tenantId
+          ? e.tenantId === tenantId && (e.n === pref.ext || e.sip === pref.ext)
+          : (!e.tenantId && (e.n === pref.ext || e.sip === pref.ext)) || e.n === pref.ext || e.sip === pref.ext,
+      ) || (merged.exts || []).find((e: any) => e.n === pref.ext || e.sip === pref.ext);
+      if (hit?.sip || hit?.n) sip = String(hit.sip || hit.n);
+    } catch { /* keep dial number */ }
     // Dialplan Playback() expects custom/<id> (see generator sound()).
     const snd = pref.announceSnd ? `custom/${String(pref.announceSnd).replace(/[^A-Za-z0-9_-]/g, '')}` : '';
-    return `${pref.ext}|${snd}`;
+    return `${sip}|${snd}`;
   }
 
   @Public()

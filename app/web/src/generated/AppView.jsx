@@ -8993,6 +8993,9 @@ export default function AppView({ vm }) {
                             <span style={{fontFamily: "'Noto Kufi Arabic',sans-serif", fontSize: "16px", fontWeight: "700", color: "#0E7C7B", minWidth: "38px"}}>{row?.n}</span>
                             <span style={{fontWeight: "600", color: "#0B2545"}}>
                               {row?.name}
+                              {(row?.sipHint) ? (<>
+                                <div style={{fontSize: "11px", color: "#0E7C7B", direction: "ltr", textAlign: "right", marginTop: "2px", fontWeight: "600"}} title="همین نام کاربری را در گوشی/سافت‌فون وارد کنید">{row?.sipHint}</div>
+                              </>) : null}
                               <div style={{display: "flex", alignItems: "center", gap: "6px", marginTop: "2px", flexWrap: "wrap"}}>
                                 <span onClick={row?.revealSecret} title="نمایش رمز SIP" style={{fontSize: "11px", color: "#7A889C", direction: "ltr", cursor: "pointer"}}>{row?.secretText}</span>
                                 {(row?.secretShown) ? (<>

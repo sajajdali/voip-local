@@ -126,7 +126,11 @@ class LiveApp extends React.Component {
   applyLive(l) {
     this.remote = true;
     this.setState(st => ({
-      exts: st.exts.map(e => l.exts && l.exts[e.n] ? { ...e, ...l.exts[e.n] } : { ...e, st: 'offline' }),
+      exts: st.exts.map(e => {
+        const key = e.sip || e.n;
+        const live = l.exts && (l.exts[key] || l.exts[e.n]);
+        return live ? { ...e, ...live } : { ...e, st: 'offline' };
+      }),
       vqs: st.vqs.map(q => l.queues && l.queues[q.id] ? { ...q, ...l.queues[q.id] } : q),
       trunks: st.trunks.map(t => l.trunks && l.trunks[t.id] ? { ...t, ...l.trunks[t.id] } : t),
     }), () => { this.remote = false; });
@@ -3785,8 +3789,8 @@ export default class App extends LiveApp {
   const vx={q:s.xq,setQ:e=>set({xq:e.target.value}),kpis:[{label:'کل داخلی‌ها',value:s.exts.length,dot:'#2E2F31'},{label:'آنلاین',value:cnt('online'),dot:'#8DC63F'},{label:'در حال مکالمه',value:cnt('busy'),dot:'#e0a83a'},{label:'آفلاین',value:cnt('offline'),dot:'#b9bbb6'}],
    formOpen:fm.kind==='ext',f:fm,set:setFm,cancel,add:openF('ext',{n:String(Math.max(200,...s.exts.map(e=>+e.n))+1),name:'',type:'SIP',q:'پذیرش'}),
    save:()=>{if(!fm.n||!fm.name)return;upd('exts',l=>[...l,{n:fm.n,name:fm.name,type:fm.type,dev:fm.type==='WebRTC'?'مرورگر':'تعریف نشده',st:'offline',rec:true,vm:true,q:fm.q}]);set({form:null});},
-   rows:ex.map(e=>({...e,stO:EXST[e.st]||EXST.offline,secretText:s.showSecret===e.n?'SIP: '+(e.secret||'—'):'رمز SIP: ••••••',revealSecret:()=>set({showSecret:s.showSecret===e.n?null:e.n}),editing:!!s.pwEdit&&s.pwEdit.n===e.n,pwVal:s.pwEdit&&s.pwEdit.n===e.n?s.pwEdit.val:'',editPw:()=>set({pwEdit:{n:e.n,val:''}}),setPw:ev=>set({pwEdit:{n:e.n,val:ev.target.value}}),cancelPw:()=>set({pwEdit:null}),savePw:()=>{const v=(s.pwEdit&&s.pwEdit.val||'').trim();if(v.length<4||/[\s;"]/.test(v)){this.toast('رمز باید حداقل ۴ کاراکتر و بدون فاصله باشد');return;}upd('exts',l=>l.map(x=>x.n===e.n?{...x,newSecret:v}:x));set({pwEdit:null,showSecret:e.n});this.toast('رمز SIP داخلی '+e.n+' تغییر کرد؛ همین رمز را در گوشی وارد کنید');},ini:e.name.split(' ').slice(0,2).map(w=>w[0]).join(' '),recT:tg(e.rec),vmT:tg(e.vm),
-    togRec:()=>upd('exts',l=>l.map(x=>x.n===e.n?{...x,rec:!x.rec}:x)),togVm:()=>upd('exts',l=>l.map(x=>x.n===e.n?{...x,vm:!x.vm}:x)),del:()=>upd('exts',l=>l.filter(x=>x.n!==e.n))}))};
+   rows:ex.map(e=>{const sipUser=e.sip&&e.sip!==e.n?e.sip:e.n;return {...e,stO:EXST[e.st]||EXST.offline,sipUser,sipHint:e.sip&&e.sip!==e.n?'نام کاربری SIP: '+e.sip:null,secretText:s.showSecret===e.n?'SIP: '+(e.secret||'—'):'رمز SIP: ••••••',secretShown:s.showSecret===e.n,revealSecret:()=>set({showSecret:s.showSecret===e.n?null:e.n}),copySecret:()=>{const t=e.secret||'';if(t&&navigator.clipboard)navigator.clipboard.writeText(t).then(()=>this.toast('رمز کپی شد')).catch(()=>{});},editing:!!s.pwEdit&&s.pwEdit.n===e.n,pwVal:s.pwEdit&&s.pwEdit.n===e.n?s.pwEdit.val:'',editPw:()=>set({pwEdit:{n:e.n,val:''}}),setPw:ev=>set({pwEdit:{n:e.n,val:ev.target.value}}),cancelPw:()=>set({pwEdit:null}),savePw:()=>{const v=(s.pwEdit&&s.pwEdit.val||'').trim();if(v.length<4||/[\s;"]/.test(v)){this.toast('رمز باید حداقل ۴ کاراکتر و بدون فاصله باشد');return;}upd('exts',l=>l.map(x=>x.n===e.n?{...x,newSecret:v}:x));set({pwEdit:null,showSecret:e.n});this.toast('رمز SIP داخلی '+e.n+' تغییر کرد؛ در گوشی نام کاربری «'+(e.sip||e.n)+'» و همین رمز را وارد کنید');},ini:e.name.split(' ').slice(0,2).map(w=>w[0]).join(' '),recT:tg(e.rec),vmT:tg(e.vm),
+    togRec:()=>upd('exts',l=>l.map(x=>x.n===e.n?{...x,rec:!x.rec}:x)),togVm:()=>upd('exts',l=>l.map(x=>x.n===e.n?{...x,vm:!x.vm}:x)),del:()=>upd('exts',l=>l.filter(x=>x.n!==e.n))};})};
   const vt={formOpen:fm.kind==='trunk',f:fm,set:setFm,cancel,add:openF('trunk',{name:'',prov:'',host:'',ch:'8',did:''}),
    save:()=>{if(!fm.name)return;upd('trunks',l=>[...l,{id:'t'+Date.now(),name:fm.name,prov:fm.prov||'—',type:'SIP',host:fm.host||'—',did:fm.did||'—',used:0,ch:+fm.ch||8,codec:fm.codec||'ulaw,alaw',user:fm.user||'',pass:fm.pass||'',dtmf:fm.dtmf||'rfc4733',on:true,reg:false}]);set({form:null});},
    kpis:[{label:'ترانک فعال',value:s.trunks.filter(t=>t.on).length+' از '+s.trunks.length},{label:'کانال در حال استفاده',value:s.trunks.reduce((a,t)=>a+(t.on?t.used:0),0)},{label:'ظرفیت کل کانال',value:s.trunks.reduce((a,t)=>a+(t.on?t.ch:0),0)}],

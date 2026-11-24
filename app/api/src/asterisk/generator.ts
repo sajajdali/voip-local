@@ -2,6 +2,7 @@
 // Pure functions only: input = the ConfigEntry rows, output = file contents + AstDB entries.
 // The panel replaces Issabel/FreePBX, so everything a call needs is generated here.
 import { jalaliToGregorianCompact } from '../jalali';
+import { tenantPrefix } from '../tenant-scope';
 
 export interface VoipConfig {
   exts: any[]; trunks: any[]; vqs: any[]; ivrs: any[]; snds: any[]; routes: any[];
@@ -24,8 +25,28 @@ const digits = (s: any) => String(s ?? '').replace(/\D/g, '');
 const safe = (s: any) => String(s ?? '').replace(/[\r\n;,()|\\$\[\]{}"]/g, ' ').trim();
 const sid = (s: any) => String(s ?? '').replace(/[^A-Za-z0-9_-]/g, '');
 
-export function isExternal(n: string, cfg: VoipConfig) {
-  return !cfg.exts.some(e => e.n === n);
+/** Unique PJSIP endpoint name: tenant exts use e.sip (tn…_102); platform exts use dial digits. */
+export function sipOf(e: { n?: any; sip?: any } | null | undefined) {
+  if (!e) return '';
+  if (e.sip) return sid(e.sip);
+  return digits(e.n);
+}
+
+/** Resolve a queue/ring-group member (dial digits or sip id) within an optional tenant. */
+export function findExt(cfg: VoipConfig, member: string, tenantId?: string | null) {
+  const m = String(member ?? '');
+  if (!m) return undefined;
+  if (tenantId) {
+    const hit = cfg.exts.find(e => e.tenantId === tenantId && (e.n === m || digits(e.n) === digits(m) || e.sip === m));
+    if (hit) return hit;
+  }
+  return cfg.exts.find(e => e.sip === m)
+    || cfg.exts.find(e => !e.tenantId && (e.n === m || digits(e.n) === digits(m)))
+    || cfg.exts.find(e => e.n === m || digits(e.n) === digits(m));
+}
+
+export function isExternal(n: string, cfg: VoipConfig, tenantId?: string | null) {
+  return !findExt(cfg, n, tenantId);
 }
 
 export function codecs(text: string) {
@@ -60,7 +81,10 @@ export function destTarget(dest: string, cfg: VoipConfig): string {
     case 'rg': return cfg.rgroups.some(g => g.id === id) ? `cc-rg-${sid(id)},s,1` : 'cc-hang,s,1';
     case 'ivr': return cfg.ivrs.some(i => i.id === id) ? `cc-ivr-${sid(id)},s,1` : 'cc-hang,s,1';
     case 'tc': return cfg.tconds.some(t => t.id === id) ? `cc-tc-${sid(id)},s,1` : 'cc-hang,s,1';
-    case 'e': return cfg.exts.some(e => e.n === id) ? `cc-ext,${digits(id)},1` : 'cc-hang,s,1';
+    case 'e': {
+      const hit = findExt(cfg, id) || cfg.exts.find(e => sipOf(e) === sid(id));
+      return hit ? `cc-ext,${sipOf(hit)},1` : 'cc-hang,s,1';
+    }
     case 'vm': return 'cc-vm,s,1';
     case 'busy': return 'cc-busy,s,1';
     case 'ann': return cfg.snds.some(x => x.id === id) ? `cc-ann,${sid(id)},1` : 'cc-hang,s,1';
@@ -85,8 +109,10 @@ function firstTrunk(cfg: VoipConfig) {
   return cfg.trunks.find(t => t.on && t.type !== 'PRI / E1' && t.host && t.host !== '—');
 }
 
-function dialString(n: string, cfg: VoipConfig) {
-  return isExternal(n, cfg) ? `Local/${digits(n)}@cc-outext/n` : `PJSIP/${digits(n)}`;
+function dialString(n: string, cfg: VoipConfig, tenantId?: string | null) {
+  const e = findExt(cfg, n, tenantId);
+  if (!e) return `Local/${digits(n)}@cc-outext/n`;
+  return `PJSIP/${sipOf(e)}`;
 }
 
 function minusMinute(hm: string) {
@@ -102,15 +128,21 @@ function pjsip(cfg: VoipConfig, warnings: string[]) {
   const remoteSite = cfg.exts.some(e => e.remote);
   for (const e of cfg.exts) {
     const n = digits(e.n);
-    if (!n) continue;
+    const sip = sipOf(e);
+    if (!n || !sip) continue;
     const webrtc = e.type === 'WebRTC';
-    L.push(`[${n}]`, 'type=endpoint', 'context=cc-internal', 'disallow=all', `allow=${webrtc ? 'opus,alaw,ulaw' : 'alaw,ulaw,gsm,g722'}`,
-      `auth=${n}`, `aors=${n}`, `callerid="${safe(e.name)}" <${n}>`, 'direct_media=no', 'rtp_symmetric=yes', 'force_rport=yes',
+    L.push(`[${sip}]`, 'type=endpoint', 'context=cc-internal', 'disallow=all', `allow=${webrtc ? 'opus,alaw,ulaw' : 'alaw,ulaw,gsm,g722'}`,
+      `auth=${sip}`, `aors=${sip}`, `callerid="${safe(e.name)}" <${n}>`, 'direct_media=no', 'rtp_symmetric=yes', 'force_rport=yes',
       'rewrite_contact=yes', 'device_state_busy_at=1', `transport=${webrtc ? 'transport-wss' : 'transport-udp'}`);
+    // Dial number + tenant scope for answer hooks / short-dial (phones register as sip, dial peers as n)
+    L.push(`set_var=CC_EXTNUM=${n}`);
+    if (e.tenantId) {
+      L.push(`set_var=CC_TENANT=${sid(e.tenantId)}`, `set_var=CC_TNPREFIX=${sid(tenantPrefix(e.tenantId))}`);
+    }
     if (webrtc) L.push('webrtc=yes', 'dtls_auto_generate_cert=yes');
     if (remoteSite && !e.remote) L.push('deny=0.0.0.0/0.0.0.0', 'permit=127.0.0.0/8,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16');
-    L.push('', `[${n}]`, 'type=auth', 'auth_type=userpass', `username=${n}`, `password=${e.secret || ''}`, '',
-      `[${n}]`, 'type=aor', 'max_contacts=3', 'remove_existing=yes', 'qualify_frequency=30', '');
+    L.push('', `[${sip}]`, 'type=auth', 'auth_type=userpass', `username=${sip}`, `password=${e.secret || ''}`, '',
+      `[${sip}]`, 'type=aor', 'max_contacts=3', 'remove_existing=yes', 'qualify_frequency=30', '');
     if (e.type === 'IAX2') warnings.push(`داخلی ${n} از نوع IAX2 به‌صورت SIP (PJSIP) ساخته شد.`);
   }
   for (const t of cfg.trunks) {
@@ -155,8 +187,8 @@ function queues(cfg: VoipConfig) {
       // a caller waiting in the queue leaves it with the voicemail key (one digit, looked up in this context)
       ...(vmboxKey(cfg, 'queue', q) ? [`context=cc-qkey-${sid(q.id)}`] : []));
     for (const m of q.members || []) {
-      const e = cfg.exts.find(x => x.n === m);
-      if (e) L.push(`member => PJSIP/${digits(m)},0,${safe(e.name) || m},PJSIP/${digits(m)}`);
+      const e = findExt(cfg, String(m), q.tenantId);
+      if (e) L.push(`member => PJSIP/${sipOf(e)},0,${safe(e.name) || digits(e.n) || m},PJSIP/${sipOf(e)}`);
     }
     L.push('');
   }
@@ -427,7 +459,8 @@ function dialplan(cfg: VoipConfig, opts: { hookUrl: string; hookSecret: string }
   // --- ring groups
   for (const g of cfg.rgroups) {
     const ring = Math.max(5, +g.ring || 20);
-    const members = [...(g.members || []).filter((m: string) => !isExternal(m, cfg)), ...(g.ext || [])];
+    const tid = g.tenantId || null;
+    const members = [...(g.members || []).filter((m: string) => !isExternal(m, cfg, tid)), ...(g.ext || [])];
     const mopt = g.moh && g.moh !== 'ring' && cfg.snds.some(s => s.id === g.moh) ? `m(snd-${sid(g.moh)})` : 'r';
     const U = `U(cc-agent-answer^${g.confirm ? 1 : 0})`;
     const lines = [
@@ -436,13 +469,16 @@ function dialplan(cfg: VoipConfig, opts: { hookUrl: string; hookSecret: string }
       ...(g.prefix ? [` same => n,Set(CALLERID(name)=${safe(g.prefix)}\${CALLERID(name)})`] : []),
       ...(g.rec && g.rec !== 'dontcare' ? [` same => n,Set(__CC_RECMODE=${sid(g.rec)})`] : []),
     ];
-    const avail = (m: string) => `$["\${DEVICE_STATE(PJSIP/${digits(m)})}"="NOT_INUSE"]`;
+    const avail = (m: string) => {
+      const e = findExt(cfg, m, tid);
+      return `$["\${DEVICE_STATE(PJSIP/${e ? sipOf(e) : digits(m)})}"="NOT_INUSE"]`;
+    };
     if (!members.length) lines.push(' same => n,Goto(na)');
     else if (g.strat === 'ringall') {
       lines.push(' same => n,Set(CC_DS=)');
       for (const m of members) {
-        const ds = dialString(m, cfg);
-        if (g.skipBusy && !isExternal(m, cfg)) lines.push(` same => n,ExecIf(${avail(m)}?Set(CC_DS=\${CC_DS}&${ds}))`);
+        const ds = dialString(m, cfg, tid);
+        if (g.skipBusy && !isExternal(m, cfg, tid)) lines.push(` same => n,ExecIf(${avail(m)}?Set(CC_DS=\${CC_DS}&${ds}))`);
         else lines.push(` same => n,Set(CC_DS=\${CC_DS}&${ds})`);
       }
       lines.push(' same => n,GotoIf($["${CC_DS}"=""]?na)', ` same => n,Dial(\${CC_DS:1},${ring},${mopt}tg${U})`, ' same => n,GotoIf($["${DIALSTATUS}"="ANSWER"]?cc-survey,s,1)');
@@ -452,10 +488,13 @@ function dialplan(cfg: VoipConfig, opts: { hookUrl: string; hookSecret: string }
       if (g.strat === 'random') lines.push(' same => n,NoOp(random order is applied per call by rotation)');
       const acc: string[] = [];
       order.forEach((m, i) => {
-        const ds = dialString(m, cfg);
+        const ds = dialString(m, cfg, tid);
         acc.push(ds);
         const target = g.strat === 'memoryhunt' ? acc.join('&') : ds;
-        if ((g.skipBusy || g.strat === 'firstavailable') && !isExternal(m, cfg)) lines.push(` same => n,GotoIf($["\${DEVICE_STATE(PJSIP/${digits(m)})}"!="NOT_INUSE"]?m${i + 1})`);
+        const e = findExt(cfg, m, tid);
+        if ((g.skipBusy || g.strat === 'firstavailable') && !isExternal(m, cfg, tid)) {
+          lines.push(` same => n,GotoIf($["\${DEVICE_STATE(PJSIP/${e ? sipOf(e) : digits(m)})}"!="NOT_INUSE"]?m${i + 1})`);
+        }
         lines.push(` same => n,Dial(${target},${ring},${mopt}tg${U})`, ' same => n,GotoIf($["${DIALSTATUS}"="ANSWER"]?cc-survey,s,1)', ` same => n(m${i + 1}),NoOp()`);
       });
       if (g.strat === 'random') {
@@ -468,15 +507,17 @@ function dialplan(cfg: VoipConfig, opts: { hookUrl: string; hookSecret: string }
     X(`cc-rg-${sid(g.id)}`, lines);
   }
 
-  // --- extensions (direct), follow-me, voicemail fallback
+  // --- extensions (direct), follow-me, voicemail fallback — dialplan exten = sip id (unique across tenants)
   const extLines: string[] = [];
   for (const e of cfg.exts) {
     const n = digits(e.n);
-    const fm = cfg.fmes[e.n];
-    extLines.push(`exten => ${n},1,ExecIf($["\${CC_QUEUE}"=""]?Set(__CC_QUEUE=داخلی ${n}))`, ...cname);
-    if (fm && fm.on) extLines.push(` same => n,Goto(cc-fm-${n},s,1)`);
+    const sip = sipOf(e);
+    if (!sip) continue;
+    const fm = cfg.fmes[sip] || cfg.fmes[e.n] || cfg.fmes[n];
+    extLines.push(`exten => ${sip},1,ExecIf($["\${CC_QUEUE}"=""]?Set(__CC_QUEUE=داخلی ${n}))`, ...cname);
+    if (fm && fm.on) extLines.push(` same => n,Goto(cc-fm-${sip},s,1)`);
     else {
-      extLines.push(` same => n,Dial(PJSIP/${n},15,trgU(cc-agent-answer^0))`,
+      extLines.push(` same => n,Dial(PJSIP/${sip},15,trgU(cc-agent-answer^0))`,
         ' same => n,GotoIf($["${DIALSTATUS}"="ANSWER"]?cc-survey,s,1)',
         e.vm ? ` same => n,Goto(cc-vm,${n},1)` : ' same => n,Hangup()');
     }
@@ -484,18 +525,20 @@ function dialplan(cfg: VoipConfig, opts: { hookUrl: string; hookSecret: string }
   X('cc-ext', extLines.length ? extLines : ['exten => _X.,1,Hangup()']);
 
   for (const e of cfg.exts) {
-    const fm = cfg.fmes[e.n];
-    if (!fm || !fm.on) continue;
-    const n = digits(e.n), U = `U(cc-agent-answer^${fm.confirm ? 1 : 0})`;
-    const lines = [`exten => s,1,Dial(PJSIP/${n},${Math.max(1, +fm.init || 8)},trg${U})`, ' same => n,GotoIf($["${DIALSTATUS}"="ANSWER"]?cc-survey,s,1)'];
-    const list = (fm.list || []).map((x: string) => digits(x)).filter(Boolean);
+    const sip = sipOf(e);
+    const n = digits(e.n);
+    const fm = cfg.fmes[sip] || cfg.fmes[e.n] || cfg.fmes[n];
+    if (!fm || !fm.on || !sip) continue;
+    const U = `U(cc-agent-answer^${fm.confirm ? 1 : 0})`;
+    const lines = [`exten => s,1,Dial(PJSIP/${sip},${Math.max(1, +fm.init || 8)},trg${U})`, ' same => n,GotoIf($["${DIALSTATUS}"="ANSWER"]?cc-survey,s,1)'];
+    const list = (fm.list || []).map((x: string) => String(x)).filter(Boolean);
     if (fm.strat === 'ringall' && list.length) {
-      lines.push(` same => n,Dial(${list.map((x: string) => dialString(x, cfg)).join('&')},${Math.max(5, +fm.ring || 20)},trg${U})`, ' same => n,GotoIf($["${DIALSTATUS}"="ANSWER"]?cc-survey,s,1)');
+      lines.push(` same => n,Dial(${list.map((x: string) => dialString(x, cfg, e.tenantId)).join('&')},${Math.max(5, +fm.ring || 20)},trg${U})`, ' same => n,GotoIf($["${DIALSTATUS}"="ANSWER"]?cc-survey,s,1)');
     } else {
-      for (const x of list) lines.push(` same => n,Dial(${dialString(x, cfg)},${Math.max(5, +fm.ring || 20)},trg${U})`, ' same => n,GotoIf($["${DIALSTATUS}"="ANSWER"]?cc-survey,s,1)');
+      for (const x of list) lines.push(` same => n,Dial(${dialString(x, cfg, e.tenantId)},${Math.max(5, +fm.ring || 20)},trg${U})`, ' same => n,GotoIf($["${DIALSTATUS}"="ANSWER"]?cc-survey,s,1)');
     }
     lines.push(` same => n,Goto(${destTarget(fm.na, cfg)})`);
-    X(`cc-fm-${n}`, lines);
+    X(`cc-fm-${sip}`, lines);
   }
 
   // --- external legs (ring groups / follow-me to mobiles)
@@ -506,7 +549,9 @@ function dialplan(cfg: VoipConfig, opts: { hookUrl: string; hookSecret: string }
   // --- answer hooks (run on the answering channel)
   X('cc-agent-answer', [
     // ARG1 = 1 -> external member must press 1 to accept (avoids landing in a mobile voicemail)
-    'exten => s,1,Set(CC_AEXT=${FILTER(0-9,${CUT(CUT(CHANNEL,/,2),-,1)})})',
+    // CC_EXTNUM (endpoint set_var) is the dialled number; CHANNEL endpoint may be tn…_102 (SIP id).
+    'exten => s,1,Set(CC_ASIP=${CUT(CUT(CHANNEL,/,2),-,1)})',
+    ' same => n,Set(CC_AEXT=${IF($["${CC_EXTNUM}"!=""]?${CC_EXTNUM}:${FILTER(0-9,${CC_ASIP})})})',
     ' same => n,GotoIf($["${ARG1}"!="1"|"${CUT(CHANNEL,/,1)}"!="Local"]?ok)',
     ' same => n,Read(CC_CONF,beep,1,,1,10)',
     ' same => n,GotoIf($["${CC_CONF}"="1"]?ok)',
@@ -518,7 +563,7 @@ function dialplan(cfg: VoipConfig, opts: { hookUrl: string; hookSecret: string }
     ' same => n,' + hook('answer', 'orig=${CC_ORIG}&ext=${CC_AEXT}'),
     ' same => n,GotoIf($["${CC_RECMODE}"="never"]?done)',
     ' same => n,GotoIf($["${CC_RECMODE}"="always"]?rec)',
-    ' same => n,GotoIf($["${DB(ccrec/${CC_AEXT})}"="1"]?rec:done)',
+    ' same => n,GotoIf($["${DB(ccrec/${CC_ASIP})}"="1"]?rec:done)',
     ' same => n(rec),Set(CC_RECF=cc/${STRFTIME(${EPOCH},,%Y%m%d)}-${FILTER(0-9.,${CHANNEL(linkedid)})}.wav)',
     // besides the mixed file, one track per side so the transcript knows who spoke
     ' same => n,MixMonitor(${CC_RECF},br(${ASTSPOOLDIR}/monitor/${CC_RECF:0:-4}-op.wav)t(${ASTSPOOLDIR}/monitor/${CC_RECF:0:-4}-pt.wav))',
@@ -551,7 +596,13 @@ function dialplan(cfg: VoipConfig, opts: { hookUrl: string; hookSecret: string }
   X('cc-busy', ['exten => s,1,Busy(10)']);
   // announcements: play a recording, then hang up
   X('cc-ann', cfg.snds.length ? cfg.snds.flatMap(x => [`exten => ${sid(x.id)},1,Answer()`, ` same => n,Playback(custom/${sid(x.id)})`, ' same => n,Hangup()']) : ['exten => _X.,1,Hangup()']);
-  X('cc-ivr-direct', cfg.exts.length ? cfg.exts.map(e => `exten => ${digits(e.n)},1,Goto(cc-ext,${digits(e.n)},1)`) : ['exten => _X.,1,Hangup()']);
+  // IVR direct-dial: same short-number rules as internal (tenant prefix when CC_TNPREFIX is set)
+  X('cc-ivr-direct', [
+    'exten => _X.,1,GotoIf($["${CC_TNPREFIX}"=""]?plat)',
+    ' same => n,GotoIf(${DIALPLAN_EXISTS(cc-ext,${CC_TNPREFIX}_${EXTEN},1)}?tn)',
+    ' same => n(plat),Goto(cc-ext,${EXTEN},1)',
+    ' same => n(tn),Goto(cc-ext,${CC_TNPREFIX}_${EXTEN},1)',
+  ]);
   X('cc-hang', ['exten => s,1,Hangup()']);
 
   // --- AI receptionist: audio goes to the local bridge over AudioSocket; it may ask for a transfer by
@@ -581,8 +632,9 @@ function dialplan(cfg: VoipConfig, opts: { hookUrl: string; hookSecret: string }
     ...(ai.record !== false ? [' same => n,Set(__CC_RECMODE=never)'] : []),
   ];
   const tExt = digits(ai.transferExt || ''), tMob = digits(ai.transferMobile || '');
-  if (tExt && cfg.exts.some(e => e.n === tExt)) aiLines.push(` same => n,Dial(PJSIP/${tExt},${Math.max(5, +ai.transferRing || 10)},tU(cc-agent-answer^0))`, ' same => n,GotoIf($["${DIALSTATUS}"="ANSWER"]?end)');
-  if (tMob) aiLines.push(` same => n,Dial(${dialString(tMob, cfg)},45,t)`);
+  const tHit = tExt ? findExt(cfg, tExt, ai.tenantId) : undefined;
+  if (tHit) aiLines.push(` same => n,Dial(PJSIP/${sipOf(tHit)},${Math.max(5, +ai.transferRing || 10)},tU(cc-agent-answer^0))`, ' same => n,GotoIf($["${DIALSTATUS}"="ANSWER"]?end)');
+  if (tMob) aiLines.push(` same => n,Dial(${dialString(tMob, cfg, ai.tenantId)},45,t)`);
   aiLines.push(' same => n,Hangup()');
   X('cc-ai', aiLines);
   X('cc-ai-session', ['exten => ai,1,Answer()', ` same => n,AudioSocket(\${AI_CALL_UUID},127.0.0.1:9019)`, ' same => n,Hangup()']);
@@ -621,8 +673,22 @@ function dialplan(cfg: VoipConfig, opts: { hookUrl: string; hookSecret: string }
     ' same => n(done),Return()',
   ]);
 
-  // --- click-to-call: AMI Originate rings the operator, then this dials the patient
-  const dialout = cfg.exts.map(e => `exten => ${digits(e.n)},1,Dial(PJSIP/${digits(e.n)},45,U(cc-callee-answer))`);
+  // --- click-to-call: AMI Originate rings the operator (Channel=PJSIP/<sip>), then this dials the patient
+  const dialout: string[] = [];
+  const seenDialOut = new Set<string>();
+  for (const e of cfg.exts) {
+    const sip = sipOf(e), n = digits(e.n);
+    if (!sip) continue;
+    if (!seenDialOut.has(sip)) {
+      seenDialOut.add(sip);
+      dialout.push(`exten => ${sip},1,Dial(PJSIP/${sip},45,U(cc-callee-answer))`);
+    }
+    // Keep dial-number alias once (platform first) for legacy Exten values
+    if (n && !seenDialOut.has(n)) {
+      seenDialOut.add(n);
+      dialout.push(`exten => ${n},1,Dial(PJSIP/${sip},45,U(cc-callee-answer))`);
+    }
+  }
   X('cc-callback', [
     'exten => _X.,1,Set(__CC_DIR=out)',
     ' same => n,Set(__CC_START=${EPOCH})',
@@ -636,12 +702,76 @@ function dialplan(cfg: VoipConfig, opts: { hookUrl: string; hookSecret: string }
     'exten => h,1,NoOp()',
   ]);
 
-  // --- what extensions can dial
+  // --- what extensions can dial (short numbers resolve via CC_TNPREFIX for tenant phones)
   const internal: string[] = ['include => cc-internal-ext'];
+  // Per-dial-number GotoIf chain when several tenants share the same n (plus platform)
+  const byDial = new Map<string, { tenantId?: string; sip: string }[]>();
+  for (const e of cfg.exts) {
+    const n = digits(e.n), sip = sipOf(e);
+    if (!n || !sip) continue;
+    const list = byDial.get(n) || [];
+    list.push({ tenantId: e.tenantId, sip });
+    byDial.set(n, list);
+  }
+  const shortDial: string[] = [];
+  for (const [n, list] of [...byDial.entries()].sort((a, b) => a[0].localeCompare(b[0], undefined, { numeric: true }))) {
+    if (list.length === 1 && !list[0].tenantId) {
+      shortDial.push(`exten => ${n},1,Goto(cc-ext,${list[0].sip},1)`);
+      continue;
+    }
+    // Prefer same-tenant peer; fall back to platform (no tenantId) then first match
+    const lines = [`exten => ${n},1,NoOp(short dial ${n})`];
+    for (const x of list.filter(x => x.tenantId)) {
+      lines.push(` same => n,GotoIf($["\${CC_TENANT}"="${sid(x.tenantId)}"]?cc-ext,${x.sip},1)`);
+    }
+    const plat = list.find(x => !x.tenantId);
+    if (plat) lines.push(` same => n,Goto(cc-ext,${plat.sip},1)`);
+    else lines.push(' same => n,Hangup()');
+    shortDial.push(...lines);
+  }
+  // Queue/ring access codes: tenant-scoped when CC_TENANT matches, else first unique num
+  const qByNum = new Map<string, { id: string; tenantId?: string }[]>();
+  for (const q of cfg.vqs) {
+    const num = digits(q.num);
+    if (!num) continue;
+    const list = qByNum.get(num) || [];
+    list.push({ id: q.id, tenantId: q.tenantId });
+    qByNum.set(num, list);
+  }
+  const qDial: string[] = [];
+  for (const [num, list] of qByNum) {
+    if (list.length === 1) qDial.push(`exten => ${num},1,Goto(cc-queue-${sid(list[0].id)},s,1)`);
+    else {
+      const lines = [`exten => ${num},1,NoOp(queue ${num})`];
+      for (const x of list.filter(x => x.tenantId)) lines.push(` same => n,GotoIf($["\${CC_TENANT}"="${sid(x.tenantId)}"]?cc-queue-${sid(x.id)},s,1)`);
+      const plat = list.find(x => !x.tenantId);
+      lines.push(plat ? ` same => n,Goto(cc-queue-${sid(plat.id)},s,1)` : ' same => n,Hangup()');
+      qDial.push(...lines);
+    }
+  }
+  const rgByNum = new Map<string, { id: string; tenantId?: string }[]>();
+  for (const g of cfg.rgroups) {
+    const num = digits(g.num);
+    if (!num) continue;
+    const list = rgByNum.get(num) || [];
+    list.push({ id: g.id, tenantId: g.tenantId });
+    rgByNum.set(num, list);
+  }
+  const rgDial: string[] = [];
+  for (const [num, list] of rgByNum) {
+    if (list.length === 1) rgDial.push(`exten => ${num},1,Goto(cc-rg-${sid(list[0].id)},s,1)`);
+    else {
+      const lines = [`exten => ${num},1,NoOp(rg ${num})`];
+      for (const x of list.filter(x => x.tenantId)) lines.push(` same => n,GotoIf($["\${CC_TENANT}"="${sid(x.tenantId)}"]?cc-rg-${sid(x.id)},s,1)`);
+      const plat = list.find(x => !x.tenantId);
+      lines.push(plat ? ` same => n,Goto(cc-rg-${sid(plat.id)},s,1)` : ' same => n,Hangup()');
+      rgDial.push(...lines);
+    }
+  }
   X('cc-internal-ext', [
-    ...cfg.exts.map(e => `exten => ${digits(e.n)},1,Goto(cc-ext,${digits(e.n)},1)`),
-    ...cfg.vqs.filter(q => digits(q.num)).map(q => `exten => ${digits(q.num)},1,Goto(cc-queue-${sid(q.id)},s,1)`),
-    ...cfg.rgroups.filter(g => digits(g.num)).map(g => `exten => ${digits(g.num)},1,Goto(cc-rg-${sid(g.id)},s,1)`),
+    ...shortDial,
+    ...qDial,
+    ...rgDial,
     'exten => *77,1,Goto(cc-survey-test,s,1)',
     ...(cfg.aiagent?.enabled && cfg.aiagent.code ? [`exten => ${cfg.aiagent.code},1,Goto(cc-ai,s,1)`] : []),
     // the booking line's own codes, for desk-phone tests (booking menu / follow-up)
@@ -696,7 +826,10 @@ export function generate(cfg: VoipConfig, opts: { hookUrl: string; hookSecret: s
   astdb.ccset.anon = cfg.bset && cfg.bset.anon ? '1' : '0';
   for (const t of cfg.tconds) astdb.cctc[sid(t.id)] = t.ovr && t.ovr !== 'none' ? t.ovr : 'none';
   for (const h of cfg.holidays) { const g = jalaliToGregorianCompact(h.date); if (g) astdb.ccholiday[g] = safe(h.name) || '1'; }
-  for (const e of cfg.exts) astdb.ccrec[digits(e.n)] = e.rec ? '1' : '0';
+  for (const e of cfg.exts) {
+    const sip = sipOf(e);
+    if (sip) astdb.ccrec[sip] = e.rec ? '1' : '0';
+  }
   return {
     files: { 'pjsip.conf': pjsip(cfg, warnings), 'extensions.conf': dialplan(cfg, opts), 'queues.conf': queues(cfg), 'musiconhold.conf': m.text },
     astdb, moh: m.map, warnings,

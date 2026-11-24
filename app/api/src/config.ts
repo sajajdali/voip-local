@@ -9,7 +9,7 @@ import { Bus } from './bus';
 import { PrismaService } from './prisma.service';
 import {
   DEFAULT_TENANT_FEATURES, TENANT_CONFIG_KEYS, cleanFeatures, featureAllows,
-  normalizeInboundDid, prefixDestIfOwned, prefixTenantCollection,
+  extSipId, normalizeInboundDid, prefixDestIfOwned, prefixTenantCollection,
 } from './tenant-scope';
 
 export const ARRAY_KEYS = ['exts', 'trunks', 'vqs', 'ivrs', 'snds', 'routes', 'oroutes', 'tgroups', 'tconds', 'holidays', 'rgroups', 'blist'] as const;
@@ -193,19 +193,9 @@ export class ConfigStore {
       const old = cfg[key];
       const merged = this.merge(key, data, old);
       if (key === 'exts') {
+        // Same dial number across tenants is OK — PJSIP identity is tenant-prefixed (sip).
         const seen = new Set<string>();
         for (const e of merged) { if (!e.n || seen.has(e.n)) throw new BadRequestException('شماره داخلی تکراری یا خالی است: ' + e.n); seen.add(e.n); }
-        // Extension numbers are global on Asterisk — reject collisions with platform / other tenants
-        const platform = await this.all();
-        for (const e of platform.exts || []) {
-          if (seen.has(String(e.n))) throw new BadRequestException('داخلی ' + e.n + ' قبلاً در پیکربندی سامانه ثبت شده است');
-        }
-        const others = await this.db.tenantConfig.findMany({ where: { key: 'exts', tenantId: { not: me.tenantId } } });
-        for (const row of others) {
-          for (const e of (row.data as any[]) || []) {
-            if (e?.n && seen.has(String(e.n))) throw new BadRequestException('داخلی ' + e.n + ' متعلق به مستأجر دیگری است');
-          }
-        }
       }
       await this.db.tenantConfig.upsert({
         where: { tenantId_key: { tenantId: me.tenantId, key } },
@@ -268,6 +258,10 @@ export class ConfigStore {
           continue;
         }
         out[k] = this.publicView(k, c[k], me);
+      }
+      // Expose SIP username (tn…_102) so phones register with the unique identity while UI keeps dial n.
+      if (Array.isArray(out.exts)) {
+        out.exts = out.exts.map((e: any) => ({ ...e, sip: e.sip || extSipId(me.tenantId!, e.n), tenantId: me.tenantId }));
       }
       return out;
     }

@@ -89,14 +89,19 @@ describe('feature flags + id prefix', () => {
     assert.notEqual(a, b);
     assert.equal(prefixDest('tenantAAA', 'q:q1'), 'q:' + a);
     assert.equal(prefixDest('tenantAAA', 'book'), 'book');
-    assert.equal(prefixDest('tenantAAA', 'e:101'), 'e:101');
+    assert.equal(prefixDest('tenantAAA', 'e:101'), 'e:' + prefixEntityId('tenantAAA', '101'));
     assert.ok(tenantPrefix('cuid12345678').startsWith('tn'));
   });
-  it('does not rewrite sound or extension ids', () => {
+  it('keeps dial number, adds unique sip per tenant', () => {
     const snds = prefixTenantCollection('ten1', 'snds', [{ id: 's99', name: 'hi' }]);
     assert.equal(snds[0].id, 's99');
-    const exts = prefixTenantCollection('ten1', 'exts', [{ n: '401', name: 'a' }]);
-    assert.equal(exts[0].n, '401');
+    const a = prefixTenantCollection('tenantAAA', 'exts', [{ n: '102', name: 'a' }]);
+    const b = prefixTenantCollection('tenantBBB', 'exts', [{ n: '102', name: 'b' }]);
+    assert.equal(a[0].n, '102');
+    assert.equal(b[0].n, '102');
+    assert.notEqual(a[0].sip, b[0].sip);
+    assert.equal(a[0].sip, prefixEntityId('tenantAAA', '102'));
+    assert.equal(a[0].tenantId, 'tenantAAA');
   });
   it('keeps platform defaultDest unprefixed when tenant does not own the queue', () => {
     assert.equal(prefixDestIfOwned('ten1', 'q:q400', { vqs: [] }), 'q:q400');
@@ -148,5 +153,44 @@ describe('dialplan DID → tenant', () => {
     assert.match(ext, /\[cc-queue-tnB_q1\]/);
     assert.match(ext, /Goto\(cc-queue-tnA_q1,s,1\)/);
     assert.match(ext, /Goto\(cc-queue-tnB_q1,s,1\)/);
+  });
+
+  it('same dial number on two tenants gets distinct PJSIP endpoints and queue members', () => {
+    const sipA = prefixEntityId('tenantAAA', '102');
+    const sipB = prefixEntityId('tenantBBB', '102');
+    const cfg: any = {
+      exts: [
+        { n: '102', name: 'A', sip: sipA, tenantId: 'tenantAAA', secret: 'x' },
+        { n: '102', name: 'B', sip: sipB, tenantId: 'tenantBBB', secret: 'y' },
+      ],
+      trunks: [],
+      vqs: [
+        { id: prefixEntityId('tenantAAA', 'q1'), name: 'QA', members: ['102'], tenantId: 'tenantAAA' },
+        { id: prefixEntityId('tenantBBB', 'q1'), name: 'QB', members: ['102'], tenantId: 'tenantBBB' },
+      ],
+      ivrs: [], snds: [], routes: [], tgroups: [], tconds: [], holidays: [], rgroups: [], fmes: {}, blist: [], bset: {},
+      didRoutes: [
+        { did: '31985001', tenantId: 'tenantAAA', dest: 'e:' + sipA, name: 'A' },
+        { did: '31985002', tenantId: 'tenantBBB', dest: 'q:' + prefixEntityId('tenantBBB', 'q1'), name: 'B' },
+      ],
+    };
+    const g = generate(cfg, { hookUrl: 'http://127.0.0.1/h', hookSecret: 's', mohDir: '/tmp' });
+    const pj = g.files['pjsip.conf'];
+    const ext = g.files['extensions.conf'];
+    const qs = g.files['queues.conf'];
+    assert.match(pj, new RegExp('\\[' + sipA + '\\]'));
+    assert.match(pj, new RegExp('\\[' + sipB + '\\]'));
+    assert.match(pj, new RegExp('username=' + sipA));
+    assert.match(pj, new RegExp('username=' + sipB));
+    assert.match(pj, /set_var=CC_EXTNUM=102/);
+    assert.match(pj, /set_var=CC_TENANT=tenantAAA/);
+    assert.match(ext, new RegExp('exten => ' + sipA + ',1,'));
+    assert.match(ext, new RegExp('exten => ' + sipB + ',1,'));
+    assert.match(ext, new RegExp('Goto\\(cc-ext,' + sipA + ',1\\)'));
+    assert.match(qs, new RegExp('member => PJSIP/' + sipA));
+    assert.match(qs, new RegExp('member => PJSIP/' + sipB));
+    // short dial 102 branches by CC_TENANT
+    assert.match(ext, /exten => 102,1,NoOp\(short dial 102\)/);
+    assert.match(ext, new RegExp('GotoIf\\(\\$\\["\\$\\{CC_TENANT\\}"="tenantAAA"\\]\\?cc-ext,' + sipA + ',1\\)'));
   });
 });

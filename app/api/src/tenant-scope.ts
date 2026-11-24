@@ -85,12 +85,22 @@ export function prefixEntityId(tenantId: string, id: any) {
   return raw.startsWith(p + '_') ? raw : `${p}_${raw}`;
 }
 
-/** Rewrite dest like q:q1 / ivr:i2 / e:101 for a tenant's prefixed entities. Extensions keep digits; ids get prefix. */
+/** Unique PJSIP endpoint/auth/aor name for a dialled extension inside a tenant (e.g. tnxxxxxxxx_102). */
+export function extSipId(tenantId: string, dial: any) {
+  const n = digits(dial);
+  return n ? prefixEntityId(tenantId, n) : '';
+}
+
+/** Rewrite dest like q:q1 / ivr:i2 / e:101 for a tenant's prefixed entities. Extension dests become e:<sipId>. */
 export function prefixDest(tenantId: string, dest: string) {
   if (!dest || !dest.includes(':')) return dest;
   const [kind, id] = dest.split(':');
   if (!id) return dest;
-  if (kind === 'e' || kind === 'busy' || kind === 'vm' || kind === 'hang' || kind === 'book' || kind === 'booktrack' || kind === 'ai') return dest;
+  if (kind === 'busy' || kind === 'vm' || kind === 'hang' || kind === 'book' || kind === 'booktrack' || kind === 'ai') return dest;
+  if (kind === 'e') {
+    const sip = extSipId(tenantId, id);
+    return sip ? `e:${sip}` : dest;
+  }
   return `${kind}:${prefixEntityId(tenantId, id)}`;
 }
 
@@ -104,7 +114,13 @@ export function prefixDestIfOwned(tenantId: string, dest: string, tenantRaw: Rec
   if (!dest || !dest.includes(':')) return dest;
   const [kind, id] = dest.split(':');
   if (!id) return dest;
-  if (kind === 'e' || kind === 'busy' || kind === 'vm' || kind === 'hang' || kind === 'book' || kind === 'booktrack' || kind === 'ai') return dest;
+  if (kind === 'busy' || kind === 'vm' || kind === 'hang' || kind === 'book' || kind === 'booktrack' || kind === 'ai') return dest;
+  if (kind === 'e') {
+    const owns = Array.isArray(tenantRaw?.exts) && tenantRaw.exts.some((x: any) => String(x?.n) === String(id) || digits(x?.n) === digits(id));
+    if (!owns) return dest; // platform extension
+    const sip = extSipId(tenantId, id);
+    return sip ? `e:${sip}` : dest;
+  }
   const key = DEST_COLLECTION[kind];
   if (!key || !tenantRaw) return dest;
   const rows = tenantRaw[key];
@@ -205,25 +221,29 @@ export function prefixTenantCollection(tenantId: string, key: string, data: any)
   if (data == null) return data;
   const p = (id: any) => prefixEntityId(tenantId, id);
   if (key === 'exts' && Array.isArray(data)) {
-    // extension numbers stay as dialled; uniqueness is enforced on save against other tenants
-    return data.map((e: any) => ({ ...e }));
+    // Dialled number (n) stays human-facing; sip is the unique PJSIP identity so two tenants may both use 102.
+    return data.map((e: any) => {
+      const n = digits(e?.n) || String(e?.n || '');
+      return { ...e, n, sip: extSipId(tenantId, n), tenantId };
+    });
   }
   if (key === 'snds' && Array.isArray(data)) {
     // sound file names on disk are the raw id (s123.wav) — do not rewrite
-    return data.map((s: any) => ({ ...s }));
+    return data.map((s: any) => ({ ...s, tenantId }));
   }
   if (key === 'blist' && Array.isArray(data)) {
     // blacklist is by phone number; keep numbers as-is
-    return data.map((x: any) => ({ ...x }));
+    return data.map((x: any) => ({ ...x, tenantId }));
   }
   if (Array.isArray(data)) {
     return data.map((row: any) => {
-      const y = { ...row };
+      const y = { ...row, tenantId };
       if (y.id != null) y.id = p(y.id);
       if (y.dest) y.dest = prefixDest(tenantId, String(y.dest));
       if (y.fail) y.fail = prefixDest(tenantId, String(y.fail));
       if (y.open) y.open = prefixDest(tenantId, String(y.open));
       if (y.closed) y.closed = prefixDest(tenantId, String(y.closed));
+      if (y.na) y.na = prefixDest(tenantId, String(y.na));
       if (y.trunk) delete y.trunk; // tenants never own trunks in dialplan outbound via platform chain only
       if (Array.isArray(y.members)) y.members = y.members.map(String);
       // MOH / announcement refs point at snd ids which are not prefixed
@@ -234,10 +254,13 @@ export function prefixTenantCollection(tenantId: string, key: string, data: any)
     });
   }
   if (typeof data === 'object') {
-    // fmes keyed by extension number
+    // follow-me keyed by dial number → rekey by sip so tenants with the same n do not collide
     if (key === 'fmes') {
       const out: any = {};
-      for (const [k, v] of Object.entries(data)) out[k] = v;
+      for (const [k, v] of Object.entries(data)) {
+        const sip = extSipId(tenantId, k);
+        if (sip) out[sip] = v;
+      }
       return out;
     }
     return { ...data };

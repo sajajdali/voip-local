@@ -18,7 +18,8 @@ interface Tracked {
 /** What is on the other end of a dialled channel. */
 export function dialTarget(chan: string): { target: 'extension' | 'external' | 'mobile' | 'ai' | 'other'; extension?: string; number?: string } {
   if (/^PJSIP\/trunk-/.test(chan)) return { target: 'external' };
-  let m = /^PJSIP\/(\d+)-/.exec(chan);
+  // Platform: PJSIP/105-0001 · Tenant: PJSIP/tnxxxxxxxx_105-0001 → report dial number 105
+  let m = /^PJSIP\/(?:[A-Za-z0-9]+_)?(\d+)-/.exec(chan);
   if (m) return { target: 'extension', extension: m[1] };
   m = /^Local\/(\d+)@cc-outext/.exec(chan);
   if (m) return { target: 'mobile', number: m[1] };
@@ -43,9 +44,10 @@ export class CallEventsService implements OnModuleInit {
   /** Operator name for an extension: the panel user on it, else the extension's own label. */
   private async operator(ext: string) {
     if (Date.now() - this.names.at > 60e3) {
-      const [users, cfg] = await Promise.all([this.db.user.findMany({ where: { ext: { not: null }, active: true }, select: { ext: true, name: true } }), this.store.all()]);
+      const cfgP = typeof (this.store as any).withDidRoutes === 'function' ? (this.store as any).withDidRoutes() : this.store.all();
+      const [users, cfg] = await Promise.all([this.db.user.findMany({ where: { ext: { not: null }, active: true }, select: { ext: true, name: true } }), cfgP]);
       const ops = new Map<string, string>();
-      for (const e of cfg.exts) if (e.name) ops.set(String(e.n), e.name);
+      for (const e of cfg.exts || []) if (e.name) ops.set(String(e.n), e.name);
       for (const u of users) if (u.ext) ops.set(u.ext, u.name);
       this.names = { at: Date.now(), ops };
     }

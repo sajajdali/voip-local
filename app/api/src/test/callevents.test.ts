@@ -192,6 +192,7 @@ describe('AMI → call events', () => {
   it('reads dialled channels', () => {
     assert.deepEqual(dialTarget('PJSIP/trunk-t1-00000a'), { target: 'external' });
     assert.deepEqual(dialTarget('PJSIP/105-00000b'), { target: 'extension', extension: '105' });
+    assert.deepEqual(dialTarget('PJSIP/tnabc12345_105-00000c'), { target: 'extension', extension: '105' });
     assert.deepEqual(dialTarget('Local/09121234567@cc-outext-0001;1'), { target: 'mobile', number: '09121234567' });
     assert.deepEqual(dialTarget('Local/ai@cc-ai-session-01;1'), { target: 'ai' });
   });
