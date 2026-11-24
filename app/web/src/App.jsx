@@ -82,6 +82,15 @@ class LiveApp extends React.Component {
     // live timers on the live-calls page
     this.liveTick = setInterval(() => { if (this.state.page === 'live') this.forceUpdate(); }, 1000);
     window.addEventListener('beforeunload', this.flush);
+    // Deep-link / automation: ?file=09… opens مشاهده پرونده after boot.
+    try {
+      window.__ccOpenFile = (phone) => this.openFileByPhone(String(phone || '').replace(/\D/g, ''));
+      const fileQ = new URLSearchParams(location.search).get('file');
+      if (fileQ && /^0\d{6,}$/.test(fileQ.replace(/\D/g, ''))) {
+        const phone = fileQ.replace(/\D/g, '');
+        setTimeout(() => this.openFileByPhone(phone), 80);
+      }
+    } catch (e) { /* ignore */ }
   }
 
   teardown() {
