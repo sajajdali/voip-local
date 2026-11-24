@@ -137,8 +137,10 @@ describe('dialplan CRM lookup passes DID', () => {
       prefagent: { ringSec: 40, noAgentSnd: 'sPLAT' },
     };
     const ext = generate(cfg, { hookUrl: 'http://127.0.0.1/h', hookSecret: 's', mohDir: '/tmp' }).files['extensions.conf'];
-    const block = ext.slice(ext.indexOf('[cc-queue-tn_q1]'), ext.indexOf('[cc-queue-tn_q1]') + 1200);
+    const start = ext.indexOf('[cc-queue-tn_q1]');
+    const block = ext.slice(start, start + 2200);
     assert.match(block, /prefnone\),Playback\(custom\/sTEN\)/);
+    assert.match(block, /preferred\.missed/);
     assert.doesNotMatch(block, /Playback\(custom\/sPLAT\)/);
   });
 });

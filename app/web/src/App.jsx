@@ -12,7 +12,7 @@ let ME = { id: '', name: '', ext: '', role: 'operator', perms: {} };
 const REF_TOPICS_FA = { appt: 'نوبت‌دهی / تغییر نوبت', postop: 'پیگیری بعد از عمل', medical: 'سؤال پزشکی', finance: 'امور مالی و پرداخت', complaint: 'شکایت / نارضایتی', doctor: 'درخواست تماس با پزشک', docs: 'مدارک و پرونده', urgent: 'موضوع فوری / اورژانسی', other: 'سایر' };
 let SECTIONS = [];
 // page → the permission section that guards it
-const PAGE_SECTION = { calls: 'calls', file: 'calls', inbound: 'inbound', live: 'live', voice: 'voice', unreached: 'unreached', reports: 'reports', days: 'reports', creports: 'calls', bookings: 'bookings', breport: 'reports', bsurvey: 'bsurvey', aiops: 'coach', vvm: 'vvm', vsms: 'vsms', refs: 'refer', survey: 'survey', ai: 'ai', aiconv: 'aiconv', sys: 'sys', usage: 'usage', users: 'users', tenants: 'tenants', dids: 'tenants', vai: 'vai', vagent: 'vagent', vbook: 'vbook', vcrm: 'vcrm', vapi: 'vapi', billing: 'billing', vbackup: 'vbackup', vsurvey: 'vsurvey', vext: 'vext', vtrunk: 'vtrunk', vqueue: 'vqueue', vivr: 'vivr', vsound: 'vsound', vroute: 'vroute', vout: 'vout', vtime: 'vtime', vring: 'vring', vfollow: 'vfollow', vblack: 'vblack' };
+const PAGE_SECTION = { calls: 'calls', file: 'calls', inbound: 'inbound', live: 'live', voice: 'voice', unreached: 'unreached', reports: 'reports', days: 'reports', opconn: 'reports', creports: 'calls', bookings: 'bookings', breport: 'reports', bsurvey: 'bsurvey', aiops: 'coach', vvm: 'vvm', vsms: 'vsms', refs: 'refer', survey: 'survey', ai: 'ai', aiconv: 'aiconv', sys: 'sys', usage: 'usage', users: 'users', tenants: 'tenants', dids: 'tenants', vai: 'vai', vagent: 'vagent', vbook: 'vbook', vcrm: 'vcrm', vapi: 'vapi', billing: 'billing', vbackup: 'vbackup', vsurvey: 'vsurvey', vext: 'vext', vtrunk: 'vtrunk', vqueue: 'vqueue', vivr: 'vivr', vsound: 'vsound', vroute: 'vroute', vout: 'vout', vtime: 'vtime', vring: 'vring', vfollow: 'vfollow', vblack: 'vblack' };
 const VOIP_SECTIONS = ['vext', 'vtrunk', 'vqueue', 'vivr', 'vsound', 'vroute', 'vout', 'vtime', 'vring', 'vfollow', 'vblack', 'vsurvey', 'vvm'];
 const SETTING_SECTIONS = [...VOIP_SECTIONS, 'vai', 'vbook', 'vcrm', 'vapi', 'vsms', 'billing', 'usage', 'vbackup', 'sys', 'users', 'tenants'];
 const PLATFORM_SECTIONS = new Set(['vtrunk', 'tenants', 'vbackup', 'billing', 'usage', 'sys']);
@@ -165,6 +165,7 @@ class LiveApp extends React.Component {
     if (s.page === 'dids' && (prev.page !== 'dids' || prev.didInvStatus !== s.didInvStatus || prev.didInvPage !== s.didInvPage || prev.didInvTick !== s.didInvTick)) this.loadDidInventory();
     if (s.page === 'account' && prev.page !== 'account') this.loadAccount();
     if (s.page === 'creports' && prev.page !== 'creports') this.loadCReports();
+    if (s.page === 'opconn' && (prev.page !== 'opconn' || prev.ocF !== s.ocF)) this.loadOpconn();
     if (s.page === 'vsms' && prev.page !== 'vsms') this.loadSmsSettings();
     if (s.page === 'refs' && (prev.page !== 'refs' || prev.rfF !== s.rfF)) this.loadRefs();
     if (s.cvId && s.cvId !== prev.cvId) this.loadCallReports(s.cvId);
@@ -1484,7 +1485,7 @@ class LiveApp extends React.Component {
     c.anyAi = CAN('ai') || CAN('bsurvey');
     c.vagent = false;
     c.aiconv = false;
-    c.anyReports = canPage('reports') || canPage('creports') || canPage('aiops') || canPage('breport');
+    c.anyReports = canPage('reports') || canPage('creports') || canPage('aiops') || canPage('breport') || canPage('opconn');
     c.account = !!ME.tenantId;
     return { can: c };
   }
@@ -2530,6 +2531,83 @@ class LiveApp extends React.Component {
     this.setState({ crpLoading: true });
     try { const d = await api('/call-reports?from=' + encodeURIComponent(f.from) + '&to=' + encodeURIComponent(f.to)); this.setState({ crpData: d, crpLoading: false }); }
     catch (e) { this.setState({ crpLoading: false }); this.toast('دریافت گزارش‌ها ناموفق بود: ' + e.message); }
+  }
+
+  async loadOpconn() {
+    const f = { from: TODAY, to: TODAY, op: 'all', ...(this.state.ocF || {}) };
+    this.setState({ ocBusy: true, ocErr: null });
+    try {
+      const q = '?from=' + encodeURIComponent(f.from) + '&to=' + encodeURIComponent(f.to) + '&op=' + encodeURIComponent(f.op || 'all');
+      const d = await api('/reports/opconn' + q);
+      this.setState({ ocData: d, ocBusy: false, ocF: f });
+    } catch (e) {
+      this.setState({ ocBusy: false, ocErr: e.message || 'خطا' });
+    }
+  }
+
+  opconnVals(s) {
+    const fa = n => String(n ?? '').replace(/\d/g, d => '۰۱۲۳۴۵۶۷۸۹'[d]);
+    const f = { from: TODAY, to: TODAY, op: 'all', ...(s.ocF || {}) };
+    const setF = o => this.setState({ ocF: { ...f, ...o } });
+    const quick = [
+      { id: 'today', label: 'امروز', from: TODAY, to: TODAY },
+      { id: 'yesterday', label: 'دیروز', from: jAdd(-1), to: jAdd(-1) },
+      { id: 'week', label: '۷ روز', from: jAdd(-6), to: TODAY },
+      { id: 'month', label: '۳۰ روز', from: jAdd(-29), to: TODAY },
+    ].map(q => {
+      const on = f.from === q.from && f.to === q.to;
+      return { ...q, pick: () => setF({ from: q.from, to: q.to }), bd: on ? '#0E7C7B' : '#E3E8EF', bg: on ? '#E3F2F1' : '#fff', fg: on ? '#0A5C5B' : '#3A4A63' };
+    });
+    const d = s.ocData;
+    const sum = d && d.summary;
+    const bar = (items, colors) => {
+      const list = items || [];
+      const tot = list.reduce((n, x) => n + (x.n || 0), 0) || 1;
+      return list.map((x, i) => ({
+        ...x, label: x.label, nText: fa(x.n), pctText: fa(x.pct) + '٪',
+        w: Math.max(x.n ? 4 : 0, Math.round((x.n / tot) * 100)) + '%',
+        color: colors[i % colors.length],
+      }));
+    };
+    const prefBars = bar(d && d.charts && d.charts.preferred, ['#0E7C7B', '#B42318']);
+    const queueBars = bar(d && d.charts && d.charts.queue, ['#1D4E89', '#8A5A00']);
+    const dossierBars = bar(d && d.charts && d.charts.dossier, ['#0E7C7B', '#8A5A00', '#5B4B8A', '#7A889C']);
+    const ops = [{ v: 'all', label: 'همه اپراتورها' }, ...((d && d.ops) || []).map(o => ({ v: o.ext, label: (o.name || '') + ' · ' + o.ext }))];
+    const rows = ((d && d.operators) || []).map((o, i) => ({
+      rank: fa(i + 1), ext: fa(o.ext), name: o.name || ('داخلی ' + o.ext),
+      prefAttempts: fa(o.prefAttempts), prefAnswered: fa(o.prefAnswered), prefMissed: fa(o.prefMissed),
+      prefRate: fa(o.prefAnswerRate) + '٪',
+      queueConnect: fa(o.queueConnect), queueAbandon: fa(o.queueAbandon),
+      answered: fa(o.answered),
+      newNumbers: fa(o.newNumbers), newPct: fa(o.newPct) + '٪',
+      noAppt: fa(o.noAppt), noApptPct: fa(o.noApptPct) + '٪',
+      priorVip: fa(o.priorVip), priorVipPct: fa(o.priorVipPct) + '٪',
+      dossierBars: [
+        { w: (o.answered ? Math.round(o.newNumbers / o.answered * 100) : 0) + '%', color: '#0E7C7B', title: 'جدید' },
+        { w: (o.answered ? Math.round(o.noAppt / o.answered * 100) : 0) + '%', color: '#8A5A00', title: 'بدون نوبت' },
+        { w: (o.answered ? Math.round(o.priorVip / o.answered * 100) : 0) + '%', color: '#5B4B8A', title: 'نوبت/VIP' },
+      ],
+    }));
+    const kpis = sum ? [
+      { label: 'تلاش زنگ ترجیحی', value: fa(sum.prefAttempts), sub: 'پاسخ ' + fa(sum.prefAnswered) + ' · بی‌پاسخ ' + fa(sum.prefMissed) + ' · نرخ ' + fa(sum.prefAnswerRate) + '٪', color: '#0B2545' },
+      { label: 'وصل از صف', value: fa(sum.queueConnect), sub: 'رها ' + fa(sum.queueAbandon) + ' · نرخ وصل ' + fa(sum.queueAnswerRate) + '٪', color: '#1D4E89' },
+      { label: 'پاسخ‌ها · شماره جدید', value: fa(sum.newNumbers), sub: fa(sum.newPct) + '٪ از ' + fa(sum.answeredTotal) + ' پاسخ', color: '#0E7C7B' },
+      { label: 'پاسخ · بدون نوبت', value: fa(sum.noAppt), sub: fa(sum.noApptPct) + '٪', color: '#8A5A00' },
+      { label: 'پاسخ · نوبت قبلی / VIP', value: fa(sum.priorVip), sub: fa(sum.priorVipPct) + '٪ از پرونده کامیلو', color: '#5B4B8A' },
+    ] : [];
+    return {
+      oc: {
+        ready: true,
+        f, quick,
+        pick: { from: v => setF({ from: v }), to: v => setF({ to: v }) },
+        ops, op: f.op || 'all', setOp: e => setF({ op: e.target.value }),
+        apply: () => this.loadOpconn(),
+        busy: !!s.ocBusy, loading: !!s.ocBusy && !d, empty: !s.ocBusy && d && !(sum && (sum.prefAttempts || sum.queueConnect || sum.queueAbandon || sum.answeredTotal)),
+        has: !!(sum && (sum.prefAttempts || sum.queueConnect || sum.queueAbandon || sum.answeredTotal)),
+        err: s.ocErr, period: d ? ('بازه ' + fa(d.from) + ' تا ' + fa(d.to)) : '',
+        kpis, prefBars, queueBars, dossierBars, rows, hasRows: rows.length > 0,
+      },
+    };
   }
 
   creportsVals(s) {
@@ -3892,18 +3970,18 @@ export default class App extends LiveApp {
   const vms=C.filter(c=>c.st==='voicemail'&&this.deptOk(c,s));const AI=C.filter(c=>c.ai&&!c.ai.pending);
   // Mega-menu nav (AppView dropdowns): voipMenu / repMenu / aiMenu must be set for تنظیمات، گزارش‌ها، هوش مصنوعی to open.
   const nv=(p,count)=>({go:()=>{this.setState({page:p,voipOpen:false,repOpen:false,aiOpen:false});window.scrollTo(0,0);},mfg:s.page===p?'#0E7C7B':'#7A889C',mbg:s.page===p?'#E3F2F1':'transparent',tbg:s.page===p?'#E3F2F1':'#fff',tbd:s.page===p?'#0E7C7B':'#E3E8EF',hasCount:!!count,bg:s.page===p?'#F3F5F8':'transparent',fg:s.page===p?'#0B2545':'#C9D3E3',count,cbg:s.page===p?'#0B2545':'rgba(255,255,255,.14)',cfg:s.page===p?'#FFFFFF':'#E6ECF5',ul:s.page===p?'#0E7C7B':'transparent',sfg:s.page===p?'#0B2545':'#5B6B82',sbg:s.page===p?'#E3F2F1':'transparent'});
-  const nav={calls:nv('calls',C.length),inbound:nv('inbound',C.filter(c=>c.dir==='in').length),voice:nv('voice',vms.filter(c=>fol(c)==='new').length),reports:nv('reports',''),survey:nv('survey',C.filter(c=>c.survey).length),ai:nv('ai',AI.length),vext:nv('vext',s.exts.length),vtrunk:nv('vtrunk',s.trunks.length),vqueue:nv('vqueue',s.vqs.length),vivr:nv('vivr',s.ivrs.length),vsound:nv('vsound',s.snds.length),vroute:nv('vroute',s.routes.length),vout:nv('vout',(s.oroutes||[]).length),vapi:nv('vapi',''),settings:nv('settings',''),users:nv('users',''),usage:nv('usage',''),sys:nv('sys',''),live:nv('live',(s.liveCalls||[]).length),days:nv('days',''),creports:nv('creports',''),bookings:nv('bookings',(s.bcData&&s.bcData.total&&s.bcData.total.todo)||''),breport:nv('breport',''),bsurvey:nv('bsurvey',''),aiops:nv('aiops',''),vvm:nv('vvm',''),vsms:nv('vsms',''),refs:nv('refs',(s.refCount&&s.refCount.open)||''),aiconv:nv('aiconv',C.filter(c=>c.queue==='دستیار هوشمند').length),vbackup:nv('vbackup',(s.bk&&s.bk.items.filter(b=>b.status==='done').length)||''),vtime:nv('vtime',s.tconds.length),vring:nv('vring',s.rgroups.length),vfollow:nv('vfollow',Object.values(s.fmes||{}).filter(f=>f.on).length),vblack:nv('vblack',s.blist.length),vai:nv('vai',''),vagent:nv('vagent',''),vbook:nv('vbook',''),vcrm:nv('vcrm',''),vsurvey:nv('vsurvey',''),tenants:nv('tenants',''),billing:nv('billing',''),account:nv('account',''),unreached:nv('unreached','')};
+  const nav={calls:nv('calls',C.length),inbound:nv('inbound',C.filter(c=>c.dir==='in').length),voice:nv('voice',vms.filter(c=>fol(c)==='new').length),reports:nv('reports',''),survey:nv('survey',C.filter(c=>c.survey).length),ai:nv('ai',AI.length),vext:nv('vext',s.exts.length),vtrunk:nv('vtrunk',s.trunks.length),vqueue:nv('vqueue',s.vqs.length),vivr:nv('vivr',s.ivrs.length),vsound:nv('vsound',s.snds.length),vroute:nv('vroute',s.routes.length),vout:nv('vout',(s.oroutes||[]).length),vapi:nv('vapi',''),settings:nv('settings',''),users:nv('users',''),usage:nv('usage',''),sys:nv('sys',''),live:nv('live',(s.liveCalls||[]).length),days:nv('days',''),creports:nv('creports',''),bookings:nv('bookings',(s.bcData&&s.bcData.total&&s.bcData.total.todo)||''),breport:nv('breport',''),opconn:nv('opconn',''),bsurvey:nv('bsurvey',''),aiops:nv('aiops',''),vvm:nv('vvm',''),vsms:nv('vsms',''),refs:nv('refs',(s.refCount&&s.refCount.open)||''),aiconv:nv('aiconv',C.filter(c=>c.queue==='دستیار هوشمند').length),vbackup:nv('vbackup',(s.bk&&s.bk.items.filter(b=>b.status==='done').length)||''),vtime:nv('vtime',s.tconds.length),vring:nv('vring',s.rgroups.length),vfollow:nv('vfollow',Object.values(s.fmes||{}).filter(f=>f.on).length),vblack:nv('vblack',s.blist.length),vai:nv('vai',''),vagent:nv('vagent',''),vbook:nv('vbook',''),vcrm:nv('vcrm',''),vsurvey:nv('vsurvey',''),tenants:nv('tenants',''),billing:nv('billing',''),account:nv('account',''),unreached:nv('unreached','')};
   const isV=['vext','vtrunk','vqueue','vivr','vsound','vroute','vout','vtime','vring','vfollow','vblack','vbackup'].includes(s.page);
   nav.isVoip=isV;nav.voipMenu=!!s.voipOpen;nav.toggleVoip=()=>this.setState({voipOpen:!s.voipOpen,repOpen:false,aiOpen:false});nav.closeVoip=()=>this.setState({voipOpen:false});
   nav.voipTabBg=isV||['sys','settings','vapi','vai','vsurvey','vcrm','vagent','vbook','users','usage','vvm','vsms','tenants','billing','account'].includes(s.page)?'#F3F5F8':(s.voipOpen?'rgba(255,255,255,.12)':'transparent');
   nav.voipTabFg=nav.voipTabBg==='#F3F5F8'?'#0B2545':'#C9D3E3';nav.voipChev=s.voipOpen?'rotate(180deg)':'none';
-  const isR=['reports','days','creports','aiops','breport'].includes(s.page);
+  const isR=['reports','days','creports','aiops','breport','opconn'].includes(s.page);
   nav.isRep=isR;nav.repMenu=!!s.repOpen;nav.toggleRep=()=>this.setState({repOpen:!s.repOpen,voipOpen:false,aiOpen:false});nav.closeRep=()=>this.setState({repOpen:false});
   nav.repTabBg=isR?'#F3F5F8':(s.repOpen?'rgba(255,255,255,.12)':'transparent');nav.repTabFg=isR?'#0B2545':'#C9D3E3';nav.repChev=s.repOpen?'rotate(180deg)':'none';
   const isA=['ai','aiconv','bsurvey'].includes(s.page);
   nav.aiMenu=!!s.aiOpen;nav.toggleAi=()=>this.setState({aiOpen:!s.aiOpen,repOpen:false,voipOpen:false});nav.closeAi=()=>this.setState({aiOpen:false});
   nav.aiTabBg=isA?'#F3F5F8':(s.aiOpen?'rgba(255,255,255,.12)':'transparent');nav.aiTabFg=isA?'#0B2545':'#C9D3E3';nav.aiChev=s.aiOpen?'rotate(180deg)':'none';
-  const is={};['calls','inbound','voice','reports','survey','ai','vext','vtrunk','vqueue','vivr','vsound','vroute','vtime','vring','vfollow','vblack','vout','unreached','vapi','billing','vbackup','settings','vai','vsurvey','vcrm','vagent','vbook','bookings','breport','bsurvey','aiconv','days','live','sys','usage','users','tenants','account','creports','vvm','vsms','refs','file','aiops'].forEach(p=>is[p]=s.page===p);
+  const is={};['calls','inbound','voice','reports','survey','ai','vext','vtrunk','vqueue','vivr','vsound','vroute','vtime','vring','vfollow','vblack','vout','unreached','vapi','billing','vbackup','settings','vai','vsurvey','vcrm','vagent','vbook','bookings','breport','bsurvey','aiconv','days','live','sys','usage','users','tenants','account','creports','vvm','vsms','refs','file','aiops','opconn'].forEach(p=>is[p]=s.page===p);
   const qm=(c,q)=>!q||c.name.includes(q)||c.phoneRaw.includes(q.replace(/\s/g,''));
   const pill=(on)=>({bg:on?'#2E2F31':'#fff',fg:on?'#fff':'#3a3b3d',bd:on?'#2E2F31':'#e1e3dc'});
   const ops=OPS.map(o=>({id:o.id,label:o.name+' ('+o.ext+')'}));
@@ -4046,6 +4124,6 @@ export default class App extends LiveApp {
    seek:e=>{const b=e.currentTarget.getBoundingClientRect();this.setState({pos:Math.min(1,Math.max(0,(b.right-e.clientX)/b.width))*(this.audDur||pc.dur)});},
    pct:s.pos/(this.audDur||pc.dur)*100+'%',posText:fmt(s.pos),durText:fmt((this.audDur||pc.dur)),speedText:s.speed+'x',cycleSpeed:()=>this.setState({speed:SP[(SP.indexOf(s.speed)+1)%SP.length]}),download:()=>this.download(pc)}:{show:false};
 
-  return {...this.voip(s),...this.voip2(s),...this.voipOut(s),...this.apiVals(s),...this.backupVals(s),...this.settingsVals(s),...this.aiSettingsVals(s),...this.surveyVals(s),...this.crmVals(s),...this.agentVals(s),...this.aiConvVals(s),...this.daysVals(s),...this.liveVals(s),...this.sysVals(s),...this.callViewVals(s),...this.usageVals(s),...this.canVals(s),...this.usersVals(s),...this.delVals(s),...this.dialVals(s),...this.creportsVals(s),...this.vmboxVals(s),...this.popVals(s),...this.smsSettingsVals(s),...this.referModalVals(s),...this.refsVals(s),...this.refDetailVals(s),...this.fileExtraVals(s,fl.length>0),...this.voiceboxVals(s),pf,call,toast,nav:{...nav,unreached:nv('unreached',urV.navCount)},is,ur:urV,cl,ib,vm,rp,sv,ai,player,showAi,dates:[],hours:HOURS,ops,queues:s.vqs.map(q=>q.name),statuses,cats,me:this.meVals(),todayLong:jLong(new Date()),tenant:(()=>{const t=this.tenantInfo;if(!t||!ME.tenantId)return null;const dids=t.dids||[];return{...t,dids,didLabel:dids.map(x=>x.did||x).join(' · '),nameChip:t.name?' · '+t.name:'',goAccount:()=>this.setState({page:'account',voipOpen:false,repOpen:false,aiOpen:false})};})()};
+  return {...this.voip(s),...this.voip2(s),...this.voipOut(s),...this.apiVals(s),...this.backupVals(s),...this.settingsVals(s),...this.aiSettingsVals(s),...this.surveyVals(s),...this.crmVals(s),...this.agentVals(s),...this.aiConvVals(s),...this.daysVals(s),...this.liveVals(s),...this.sysVals(s),...this.callViewVals(s),...this.usageVals(s),...this.canVals(s),...this.usersVals(s),...this.delVals(s),...this.dialVals(s),...this.creportsVals(s),...this.opconnVals(s),...this.vmboxVals(s),...this.popVals(s),...this.smsSettingsVals(s),...this.referModalVals(s),...this.refsVals(s),...this.refDetailVals(s),...this.fileExtraVals(s,fl.length>0),...this.voiceboxVals(s),pf,call,toast,nav:{...nav,unreached:nv('unreached',urV.navCount)},is,ur:urV,cl,ib,vm,rp,sv,ai,player,showAi,dates:[],hours:HOURS,ops,queues:s.vqs.map(q=>q.name),statuses,cats,me:this.meVals(),todayLong:jLong(new Date()),tenant:(()=>{const t=this.tenantInfo;if(!t||!ME.tenantId)return null;const dids=t.dids||[];return{...t,dids,didLabel:dids.map(x=>x.did||x).join(' · '),nameChip:t.name?' · '+t.name:'',goAccount:()=>this.setState({page:'account',voipOpen:false,repOpen:false,aiOpen:false})};})()};
  }
 }

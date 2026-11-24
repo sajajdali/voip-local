@@ -144,6 +144,15 @@ export default function AppView({ vm }) {
                         <span style={{fontSize: "11px", color: "#5B6B82", fontWeight: "600"}}>{vm.nav?.days?.count}</span>
                       </button>
                     </>) : null}
+                    {(vm.can?.opconn) ? (<>
+                      <button onClick={vm.nav?.opconn?.go} style={{display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "10px", textAlign: "right", border: "none", background: vm.nav?.opconn?.sbg, padding: "10px 12px", borderRadius: "12px", cursor: "pointer", fontFamily: "inherit", width: "100%"}} styleHover="background:#F3F5F8">
+                        <span style={{display: "flex", flexDirection: "column", gap: "2px"}}>
+                          <span style={{fontSize: "13px", fontWeight: "600", color: "#0B2545"}}>{"ارتباط با اپراتورها"}</span>
+                          <span style={{fontSize: "11px", color: "#5B6B82"}}>{"زنگ ترجیحی، صف، شماره جدید و نوبت/VIP"}</span>
+                        </span>
+                        <span style={{fontSize: "11px", color: "#5B6B82", fontWeight: "600"}}>{vm.nav?.opconn?.count}</span>
+                      </button>
+                    </>) : null}
                     {(vm.can?.creports) ? (<>
                       <button onClick={vm.nav?.creports?.go} style={{display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "10px", textAlign: "right", border: "none", background: vm.nav?.creports?.sbg, padding: "10px 12px", borderRadius: "12px", cursor: "pointer", fontFamily: "inherit", width: "100%"}} styleHover="background:#F3F5F8">
                         <span style={{display: "flex", flexDirection: "column", gap: "2px"}}>
@@ -449,6 +458,9 @@ export default function AppView({ vm }) {
             </>) : null}
             {(vm.can?.reports) ? (<>
               <button onClick={vm.nav?.days?.go} style={{border: "none", background: "transparent", color: vm.nav?.days?.sfg, padding: "13px 10px 11px", borderBottom: `2.5px solid ${vm.nav?.days?.ul}`, fontSize: "12.5px", fontWeight: "600", whiteSpace: "nowrap", cursor: "pointer", fontFamily: "inherit"}}>{"گزارش روزها"}</button>
+            </>) : null}
+            {(vm.can?.opconn) ? (<>
+              <button onClick={vm.nav?.opconn?.go} style={{border: "none", background: "transparent", color: vm.nav?.opconn?.sfg, padding: "13px 10px 11px", borderBottom: `2.5px solid ${vm.nav?.opconn?.ul}`, fontSize: "12.5px", fontWeight: "600", whiteSpace: "nowrap", cursor: "pointer", fontFamily: "inherit"}}>{"ارتباط با اپراتورها"}</button>
             </>) : null}
             {(vm.can?.creports) ? (<>
               <button onClick={vm.nav?.creports?.go} style={{border: "none", background: "transparent", color: vm.nav?.creports?.sfg, padding: "13px 10px 11px", borderBottom: `2.5px solid ${vm.nav?.creports?.ul}`, fontSize: "12.5px", fontWeight: "600", whiteSpace: "nowrap", cursor: "pointer", fontFamily: "inherit"}}>{"گزارش‌های ثبت‌شده"}</button>
@@ -1783,6 +1795,152 @@ export default function AppView({ vm }) {
                 </div>
               </React.Fragment>)}
             </div>
+          </div>
+        </>) : null}
+        {(vm.is?.opconn) ? (<>
+          <div style={{display: "flex", flexDirection: "column", gap: "20px"}}>
+            <div style={{position: "relative", overflow: "hidden", display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: "16px", flexWrap: "wrap", padding: "26px 28px", borderRadius: "24px", background: "linear-gradient(120deg,#FFFFFF 0%,#EEF8F7 55%,#E8EEF8 100%)", border: "1px solid #E3E8EF", boxShadow: "0 1px 2px rgba(11,37,69,.04),0 14px 34px -20px rgba(11,37,69,.22)"}}>
+              <span style={{position: "absolute", left: "-40px", top: "-70px", width: "220px", height: "220px", borderRadius: "50%", border: "28px solid rgba(14,124,123,.08)"}} />
+              <div style={{minWidth: "0", position: "relative", flex: "1 1 320px"}}>
+                <div style={{display: "inline-flex", alignItems: "center", gap: "6px", fontSize: "11px", fontWeight: "700", color: "#0A5C5B", background: "#E3F2F1", border: "1px solid #C7E6E3", padding: "3px 11px", borderRadius: "999px", marginBottom: "8px"}}>{"تحلیل و گزارش · ارتباط با اپراتور"}</div>
+                <h1 style={{margin: "0", fontFamily: "'Noto Kufi Arabic',sans-serif", fontSize: "22px", fontWeight: "700", color: "#0B2545", lineHeight: "1.55"}}>{"ارتباط با اپراتورها"}</h1>
+                <div style={{fontSize: "13px", color: "#5B6B82", marginTop: "2px", maxWidth: "780px", lineHeight: "1.9"}}>
+                  {"زنگ ترجیحی (agent_id)، وصل/رها کردن صف، و برای هر اپراتور: شمارهٔ جدید، بدون نوبت، و نوبت قبلی/VIP از پرونده کامیلو."}
+                </div>
+              </div>
+              {(vm.oc?.busy) ? (<>
+                <span style={{position: "relative", fontSize: "12px", color: "#1D4E89", fontWeight: "700"}}>{"در حال به‌روزرسانی…"}</span>
+              </>) : null}
+            </div>
+            <div style={{background: "#fff", border: "1px solid #E3E8EF", borderRadius: "20px", padding: "16px 18px", display: "flex", flexDirection: "column", gap: "12px"}}>
+              <div style={{display: "flex", gap: "6px", flexWrap: "wrap"}}>
+                {(vm.oc?.quick || []).map((qd, __i8) => <React.Fragment key={__i8}>
+                  <button onClick={qd?.pick} style={{border: `1px solid ${qd?.bd}`, background: qd?.bg, color: qd?.fg, padding: "7px 14px", borderRadius: "999px", fontSize: "12px", fontWeight: "700", cursor: "pointer", fontFamily: "inherit"}}>{qd?.label}</button>
+                </React.Fragment>)}
+              </div>
+              <div style={{display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(160px,1fr))", gap: "10px", alignItems: "end"}}>
+                <JalaliDatePicker label="از تاریخ" value={vm.oc?.f?.from} rangeStart={vm.oc?.f?.from} rangeEnd={vm.oc?.f?.to} onChange={vm.oc?.pick?.from} />
+                <JalaliDatePicker label="تا تاریخ" value={vm.oc?.f?.to} rangeStart={vm.oc?.f?.from} rangeEnd={vm.oc?.f?.to} onChange={vm.oc?.pick?.to} />
+                <label style={{display: "flex", flexDirection: "column", gap: "4px", fontSize: "11px", color: "#5B6B82"}}>
+                  {"اپراتور"}
+                  <select value={vm.oc?.op || "all"} onChange={vm.oc?.setOp} style={{border: "1px solid #E3E8EF", borderRadius: "10px", padding: "9px 12px", fontSize: "13px", outline: "none", background: "#F7F9FC", color: "#16213A", fontFamily: "inherit", width: "100%"}}>
+                    {(vm.oc?.ops || []).map((o, __i9) => <option key={__i9} value={o.v}>{o.label}</option>)}
+                  </select>
+                </label>
+                <button onClick={vm.oc?.apply} style={{border: "none", background: "#0B2545", color: "#fff", padding: "11px 16px", borderRadius: "12px", fontSize: "13px", fontWeight: "800", cursor: "pointer", fontFamily: "inherit"}}>{"اعمال فیلتر"}</button>
+              </div>
+              <div style={{fontSize: "11px", color: "#7A889C"}}>{vm.oc?.period}</div>
+              {(vm.oc?.err) ? (<>
+                <div style={{fontSize: "12px", color: "#B42318", fontWeight: "700"}}>{vm.oc?.err}</div>
+              </>) : null}
+            </div>
+            {(vm.oc?.loading) ? (<>
+              <div style={{background: "#fff", border: "1px solid #E3E8EF", borderRadius: "20px", padding: "40px", textAlign: "center", color: "#7A889C", fontSize: "13px"}}>{"در حال محاسبه آمار…"}</div>
+            </>) : null}
+            {(vm.oc?.empty) ? (<>
+              <div style={{background: "#fff", border: "1px solid #E3E8EF", borderRadius: "20px", padding: "40px 24px", textAlign: "center"}}>
+                <div style={{fontWeight: "800", fontSize: "15px", color: "#0B2545"}}>{"در این بازه داده‌ای نیست"}</div>
+                <div style={{fontSize: "12.5px", color: "#5B6B82", lineHeight: "1.9", marginTop: "6px"}}>{"تماس ورودی با صف یا زنگ ترجیحی در این تاریخ‌ها ثبت نشده است."}</div>
+              </div>
+            </>) : null}
+            {(vm.oc?.has) ? (<>
+              <div style={{display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(200px,1fr))", gap: "14px"}}>
+                {(vm.oc?.kpis || []).map((k, __i8) => <React.Fragment key={__i8}>
+                  <div style={{background: "#fff", border: "1px solid #E3E8EF", borderRadius: "18px", padding: "16px 18px", display: "flex", flexDirection: "column", gap: "4px", boxShadow: "0 1px 2px rgba(11,37,69,.04)"}}>
+                    <div style={{fontSize: "12px", color: "#5B6B82"}}>{k?.label}</div>
+                    <div style={{fontFamily: "'Noto Kufi Arabic',sans-serif", fontSize: "22px", fontWeight: "700", color: k?.color, lineHeight: "1.5"}}>{k?.value}</div>
+                    <div style={{fontSize: "11px", color: "#7A889C", lineHeight: "1.7"}}>{k?.sub}</div>
+                  </div>
+                </React.Fragment>)}
+              </div>
+              <div style={{display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(280px,1fr))", gap: "14px"}}>
+                {[{title: "زنگ ترجیحی", bars: vm.oc?.prefBars}, {title: "صف انتظار", bars: vm.oc?.queueBars}, {title: "ترکیب پاسخ‌ها (پرونده)", bars: vm.oc?.dossierBars}].map((ch, __i8) => <React.Fragment key={__i8}>
+                  <div style={{background: "#fff", border: "1px solid #E3E8EF", borderRadius: "20px", padding: "18px 20px", display: "flex", flexDirection: "column", gap: "12px"}}>
+                    <div style={{fontWeight: "800", fontSize: "14px", color: "#0B2545"}}>{ch.title}</div>
+                    <div style={{display: "flex", height: "14px", borderRadius: "99px", overflow: "hidden", background: "#EEF1F5"}}>
+                      {(ch.bars || []).map((b, __i9) => <React.Fragment key={__i9}>
+                        <div title={`${b?.label}: ${b?.nText} (${b?.pctText})`} style={{width: b?.w, background: b?.color, minWidth: b?.n ? "4px" : "0"}} />
+                      </React.Fragment>)}
+                    </div>
+                    <div style={{display: "flex", flexDirection: "column", gap: "8px"}}>
+                      {(ch.bars || []).map((b, __i9) => <React.Fragment key={__i9}>
+                        <div style={{display: "flex", justifyContent: "space-between", alignItems: "center", gap: "10px", fontSize: "12.5px"}}>
+                          <span style={{display: "flex", alignItems: "center", gap: "8px", color: "#3A4A63"}}>
+                            <span style={{width: "9px", height: "9px", borderRadius: "3px", background: b?.color, flexShrink: "0"}} />
+                            {b?.label}
+                          </span>
+                          <b style={{color: "#0B2545"}}>{b?.nText}{" · "}{b?.pctText}</b>
+                        </div>
+                      </React.Fragment>)}
+                    </div>
+                  </div>
+                </React.Fragment>)}
+              </div>
+              {(vm.oc?.hasRows) ? (<>
+                <div style={{background: "#fff", border: "1px solid #E3E8EF", borderRadius: "20px", overflow: "hidden"}}>
+                  <div style={{padding: "16px 20px", borderBottom: "1px solid #E3E8EF", display: "flex", justifyContent: "space-between", gap: "10px", flexWrap: "wrap"}}>
+                    <div style={{fontWeight: "800", fontSize: "15px", color: "#0B2545"}}>{"به تفکیک اپراتور"}</div>
+                    <span style={{fontSize: "11px", color: "#7A889C"}}>{"شماره جدید · بدون نوبت · نوبت قبلی/VIP از پاسخ‌های همان داخلی"}</span>
+                  </div>
+                  <div style={{overflowX: "auto"}}>
+                    <table style={{width: "100%", borderCollapse: "collapse", fontSize: "12.5px", minWidth: "860px"}}>
+                      <thead>
+                        <tr style={{background: "#F7F9FC", color: "#5B6B82", textAlign: "right"}}>
+                          <th style={{padding: "10px 12px", fontWeight: "700"}}>{"#"}</th>
+                          <th style={{padding: "10px 12px", fontWeight: "700"}}>{"اپراتور"}</th>
+                          <th style={{padding: "10px 12px", fontWeight: "700"}}>{"ترجیحی"}</th>
+                          <th style={{padding: "10px 12px", fontWeight: "700"}}>{"صف"}</th>
+                          <th style={{padding: "10px 12px", fontWeight: "700"}}>{"پاسخ"}</th>
+                          <th style={{padding: "10px 12px", fontWeight: "700"}}>{"جدید"}</th>
+                          <th style={{padding: "10px 12px", fontWeight: "700"}}>{"بدون نوبت"}</th>
+                          <th style={{padding: "10px 12px", fontWeight: "700"}}>{"نوبت/VIP"}</th>
+                          <th style={{padding: "10px 12px", fontWeight: "700", minWidth: "120px"}}>{"ترکیب"}</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {(vm.oc?.rows || []).map((r, __i8) => <React.Fragment key={__i8}>
+                          <tr style={{borderTop: "1px solid #EEF1F5"}}>
+                            <td style={{padding: "12px", color: "#7A889C"}}>{r?.rank}</td>
+                            <td style={{padding: "12px"}}>
+                              <div style={{fontWeight: "800", color: "#0B2545"}}>{r?.name}</div>
+                              <div style={{fontSize: "11px", color: "#7A889C"}}>{"داخلی "}{r?.ext}</div>
+                            </td>
+                            <td style={{padding: "12px", color: "#3A4A63"}}>
+                              <div>{r?.prefAnswered}{" / "}{r?.prefAttempts}</div>
+                              <div style={{fontSize: "11px", color: "#7A889C"}}>{"بی‌پاسخ "}{r?.prefMissed}{" · "}{r?.prefRate}</div>
+                            </td>
+                            <td style={{padding: "12px", color: "#3A4A63"}}>
+                              <div>{"وصل "}{r?.queueConnect}</div>
+                              <div style={{fontSize: "11px", color: "#7A889C"}}>{"رها "}{r?.queueAbandon}</div>
+                            </td>
+                            <td style={{padding: "12px", fontWeight: "800", color: "#0B2545"}}>{r?.answered}</td>
+                            <td style={{padding: "12px"}}>
+                              <div style={{fontWeight: "700", color: "#0E7C7B"}}>{r?.newNumbers}</div>
+                              <div style={{fontSize: "11px", color: "#7A889C"}}>{r?.newPct}</div>
+                            </td>
+                            <td style={{padding: "12px"}}>
+                              <div style={{fontWeight: "700", color: "#8A5A00"}}>{r?.noAppt}</div>
+                              <div style={{fontSize: "11px", color: "#7A889C"}}>{r?.noApptPct}</div>
+                            </td>
+                            <td style={{padding: "12px"}}>
+                              <div style={{fontWeight: "700", color: "#5B4B8A"}}>{r?.priorVip}</div>
+                              <div style={{fontSize: "11px", color: "#7A889C"}}>{r?.priorVipPct}</div>
+                            </td>
+                            <td style={{padding: "12px"}}>
+                              <div style={{display: "flex", height: "10px", borderRadius: "99px", overflow: "hidden", background: "#EEF1F5"}}>
+                                {(r?.dossierBars || []).map((b, __i9) => <React.Fragment key={__i9}>
+                                  <div title={b?.title} style={{width: b?.w, background: b?.color}} />
+                                </React.Fragment>)}
+                              </div>
+                            </td>
+                          </tr>
+                        </React.Fragment>)}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </>) : null}
+            </>) : null}
           </div>
         </>) : null}
         {(vm.is?.aiops) ? (<>

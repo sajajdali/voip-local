@@ -27,6 +27,15 @@ export function dialTarget(chan: string): { target: 'extension' | 'external' | '
   return { target: 'other' };
 }
 
+/** Dial digits from a raw ext / tenant sip id (tn…_102 → 102). */
+export function extDigits(raw: string) {
+  const s = String(raw || '').trim();
+  const m = /(?:^|_)(\d{2,6})$/.exec(s);
+  if (m) return m[1];
+  const d = s.replace(/\D/g, '');
+  return d.length >= 2 && d.length <= 6 ? d : '';
+}
+
 const dec = (v: any) => { try { return decodeURIComponent(String(v ?? '')); } catch { return String(v ?? ''); } };
 
 @Injectable()
@@ -118,6 +127,27 @@ export class CallEventsService implements OnModuleInit {
     if (type === 'call.queued') {
       t.queue = dec(m.Queue);
       return this.hooks.record('call.queued', t.callId, { queue: t.queue, phone: t.phone });
+    }
+    if (type === 'call.ringing') {
+      // Dialplan marker for preferred-agent ring (AMI DialBegin also fires; this tags target=preferred).
+      const raw = String(m.Ext || m.Ansext || '');
+      const ext = extDigits(raw);
+      const target = String(m.Target || '').toLowerCase() === 'preferred' ? 'preferred' : 'extension';
+      if (!ext) return;
+      const key = `pref:${ext}`;
+      const last = t.ringAt.get(key) || 0;
+      if (Date.now() - last < 5e3) return;
+      t.ringAt.set(key, Date.now());
+      const op = await this.operator(ext);
+      return this.hooks.record('call.ringing', t.callId, {
+        target, preferred: target === 'preferred', extension: ext, operator: op.name, queue: t.queue || null,
+      });
+    }
+    if (type === 'preferred.missed') {
+      const ext = extDigits(String(m.Ext || ''));
+      return this.hooks.record('preferred.missed', t.callId, {
+        extension: ext || null, operator: ext ? (await this.operator(ext)).name : null, queue: t.queue || null,
+      });
     }
     if (type === 'survey.started') {
       const ext = String(m.Ansext || '').replace(/\D/g, '');
