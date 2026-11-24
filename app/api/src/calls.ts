@@ -689,8 +689,9 @@ export class HooksController {
   async lookup(@Req() req: Request, @Query('s') s: string, @Body() b: Record<string, string>) {
     this.check(req, s);
     const phone = normalizePhone(b.num || (req.query.num as string));
-    const tenantId = await this.calls.tenantForDid(b.did || (req.query.did as string));
-    if (phone) this.patients.lookup(phone, tenantId);
+    const did = String(b.did || (req.query.did as string) || '');
+    const tenantId = await this.calls.tenantForDid(did);
+    if (phone) this.patients.lookup(phone, tenantId, did);
     return 'ok';
   }
 
@@ -709,8 +710,9 @@ export class HooksController {
   async cname(@Req() req: Request, @Query('s') s: string, @Body() b: Record<string, string>) {
     this.check(req, s);
     const phone = normalizePhone(b.num || (req.query.num as string));
-    const tenantId = await this.calls.tenantForDid(b.did || (req.query.did as string));
-    return phone ? this.patients.phoneName(phone, tenantId) : '';
+    const did = String(b.did || (req.query.did as string) || '');
+    const tenantId = await this.calls.tenantForDid(did);
+    return phone ? this.patients.phoneName(phone, tenantId, did) : '';
   }
 
   @Public()

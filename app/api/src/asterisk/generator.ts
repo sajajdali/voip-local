@@ -247,8 +247,9 @@ function dialplan(cfg: VoipConfig, opts: { hookUrl: string; hookSecret: string }
   const trunk = firstTrunk(cfg);
   const hook = (path: string, data: string) => `Set(CC_CURL=\${CURL(${opts.hookUrl}/${path}?s=${opts.hookSecret},${data})})`;
   // caller name from the local patient cache (the CRM lookup started when the call came in); set right before phones ring
+  // Pass DID so CRM routing can pick dastgheib vs kamilo by called number (not platform-global).
   const cname = [
-    ` same => n,Set(CC_CNAME=\${CURL(${opts.hookUrl}/cname?s=${opts.hookSecret},num=\${CC_NUM})})`,
+    ` same => n,Set(CC_CNAME=\${CURL(${opts.hookUrl}/cname?s=${opts.hookSecret},num=\${CC_NUM}&did=\${CC_DID})})`,
     ' same => n,ExecIf($["${CC_DIR}"="in" & "${CC_CNAME}"!=""]?Set(CALLERID(name)=${CC_CNAME}))',
   ];
 
@@ -297,9 +298,9 @@ function dialplan(cfg: VoipConfig, opts: { hookUrl: string; hookSecret: string }
     ' same => n,Goto(cc-blocked,s,1)',
     ' same => n(route),NoOp(route matching)',
     ' same => n,' + ccEvent('call.started', 'Uid: ${UNIQUEID},Dir: in,Num: ${URIENCODE(${CC_NUM})},Did: ${CC_DID}'),
-    // caller name: start the CRM lookup in the background (blocked and anonymous callers never reach here)
+    // CRM lookup in the background — include DID so 31985 never hits dastgheib and 2100… maps to it
     ' same => n,GotoIf($["${CC_CID}"=""]?nolookup)',
-    ' same => n,' + hook('lookup', 'num=${CC_CID}'),
+    ' same => n,' + hook('lookup', 'num=${CC_CID}&did=${CC_DID}'),
     ' same => n(nolookup),NoOp()',
     ...routeLines,
     ' same => n,Hangup(21)',

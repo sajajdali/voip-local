@@ -122,6 +122,7 @@ describe('dialplan DID → tenant', () => {
     assert.match(ext, /Set\(__CC_TENANT=tenX\)/);
     assert.match(ext, /Goto\(cc-queue-qX,s,1\)/);
     assert.match(ext, /tenant=\$\{CC_TENANT\}/);
+    assert.match(ext, /lookup\?s=s,num=\$\{CC_CID\}&did=\$\{CC_DID\}/);
     // DID normalize strips 98/0 and last-8
     assert.match(ext, /strip98/);
     assert.match(ext, /last8/);

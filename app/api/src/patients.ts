@@ -7,6 +7,7 @@ import { CurrentUser, Me, Roles, Perm } from './auth';
 import { readSetting, writeSetting, scopeKey } from './tenant-settings';
 import { Bus } from './bus';
 import { PrismaService } from './prisma.service';
+import { DID_POOL_PREFIX, isPoolDid, normalizeInboundDid } from './tenant-scope';
 
 export interface CrmSettings {
   enabled: boolean; url: string; param: string; user: string; pass: string;
@@ -21,6 +22,44 @@ const DEFAULTS: CrmSettings = {
   phoneFormat: '0', nameField: 'name', timeoutMs: 4000, phoneName: 'fa', showSurgery: true,
   provider: 'crm', dgUrl: '', dgToken: '', dgHost: '', kmUrl: '', kmToken: '',
 };
+
+/** Inbound DIDs that must use دستغیب (platform dg credentials). Never apply to 31985*. */
+export const DASTGHEIB_INBOUND_DIDS = new Set(['21008244', '21009062', '21009448']);
+
+export function isDastgheibInboundDid(raw: any): boolean {
+  const d = normalizeInboundDid(raw);
+  return !!d && DASTGHEIB_INBOUND_DIDS.has(d);
+}
+
+/** Trunk / pool DID prefix 31985 — must never call dastgheib. */
+export function isTenantPoolDid(raw: any): boolean {
+  const d = normalizeInboundDid(raw);
+  return !!d && (d.startsWith(DID_POOL_PREFIX) || isPoolDid(d));
+}
+
+/**
+ * Pick effective CRM settings from the called DID (and optional tenant).
+ * - 21008244 / 21009062 / 21009448 → always dastgheib (platform tokens)
+ * - 31985* → never dastgheib; tenant/kamilo settings only
+ * - otherwise → tenant settings (or platform when tenantId is null)
+ */
+export function applyDidCrmRouting(base: CrmSettings, platform: CrmSettings, did?: string | null): CrmSettings {
+  if (isDastgheibInboundDid(did)) {
+    return {
+      ...platform,
+      enabled: !!(platform.dgUrl && platform.dgToken),
+      provider: 'dastgheib',
+      dgUrl: platform.dgUrl, dgToken: platform.dgToken, dgHost: platform.dgHost,
+    };
+  }
+  if (isTenantPoolDid(did)) {
+    if (base.provider !== 'dastgheib') return base;
+    // Tenant inherited platform dastgheib via fallback — do not call demo.s8n.ir on 31985.
+    if (base.kmUrl && base.kmToken) return { ...base, provider: 'kamilo' };
+    return { ...base, enabled: false, provider: 'kamilo' };
+  }
+  return base;
+}
 
 const DG_PATH = '/external-api/voip/v1/patients/by-phone/';
 const KM_PATIENT_PATH = '/external-api/voip/v1/patients/by-phone/';
@@ -167,6 +206,21 @@ export class PatientsService {
     return !!s.url;
   }
 
+  /** CRM settings for an inbound call: DID wins over a global provider toggle. */
+  async settingsForInbound(did?: string | null, tenantId?: string | null): Promise<CrmSettings> {
+    const base = await this.settings(tenantId);
+    if (!isDastgheibInboundDid(did) && !isTenantPoolDid(did)) return base;
+    const platform = await this.settings(null);
+    const routed = applyDidCrmRouting(base, platform, did);
+    if (isTenantPoolDid(did) && base.provider === 'dastgheib' && routed.provider !== 'dastgheib') {
+      this.log.warn(`CRM: DID ${normalizeInboundDid(did)} is 31985 — blocked dastgheib (using ${routed.enabled ? routed.provider : 'off'})`);
+    }
+    if (isDastgheibInboundDid(did)) {
+      this.log.log(`CRM: DID ${normalizeInboundDid(did)} → dastgheib`);
+    }
+    return routed;
+  }
+
   /** One request to the CRM; returns the raw answer and the extracted name. */
   async fetchCrm(phone: string, s: CrmSettings) {
     if (s.provider === 'dastgheib') return this.fetchDastgheib(phone, s);
@@ -257,9 +311,9 @@ export class PatientsService {
   }
 
   /** Inbound call started: ask the CRM in the background (never delays the call). */
-  lookup(phone: string, tenantId?: string | null) {
+  lookup(phone: string, tenantId?: string | null, did?: string | null) {
     const job = (async () => {
-      const s = await this.settings(tenantId);
+      const s = await this.settingsForInbound(did, tenantId);
       if (!this.ready(s) || !/^09\d{9}$/.test(phone)) return;
       const now = Date.now();
       // the same caller again within a minute (redial, retry) is not a new CRM lookup
@@ -315,7 +369,8 @@ export class PatientsService {
   }
 
   /** Name for the desk phone display, from the local cache only (instant). */
-  async phoneName(phone: string, tenantId?: string | null) {
+  async phoneName(phone: string, tenantId?: string | null, _did?: string | null) {
+    // Display prefs follow the tenant (or platform); DID routing only gates live CRM fetch in lookup().
     const s = await this.settings(tenantId);
     if (!s.enabled || s.phoneName === 'off' || !phone) return '';
     const p = await this.db.patient.findUnique({ where: { phone } });
