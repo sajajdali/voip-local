@@ -725,8 +725,8 @@ export class HooksController {
   }
 
   /**
-   * Preferred agent before a queue: body `sipOrExt|announcePath` (path empty if no voice).
-   * Empty string = no match → dialplan continues to the normal queue.
+   * Preferred agent before a queue: body `sipOrExt|prefAnnounce|queueFallbackAnnounce`
+   * (paths empty when no voice). Empty string = no match → dialplan continues to the normal queue.
    * Returns the PJSIP endpoint name (tenant-prefixed sip when applicable) so Dial() hits the right phone.
    */
   @Public()
@@ -751,8 +751,8 @@ export class HooksController {
       if (hit?.sip || hit?.n) sip = String(hit.sip || hit.n);
     } catch { /* keep dial number */ }
     // Dialplan Playback() expects custom/<id> (see generator sound()).
-    const snd = pref.announceSnd ? `custom/${String(pref.announceSnd).replace(/[^A-Za-z0-9_-]/g, '')}` : '';
-    return `${sip}|${snd}`;
+    const path = (id: string) => (id ? `custom/${String(id).replace(/[^A-Za-z0-9_-]/g, '')}` : '');
+    return `${sip}|${path(pref.announceSnd)}|${path(pref.queueAnnounceSnd)}`;
   }
 
   @Public()

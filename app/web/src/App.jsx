@@ -30,7 +30,7 @@ let OPS = [];
 const ROLE_LABEL = { admin: 'مدیر سامانه', supervisor: 'سرپرست مرکز تماس', operator: 'اپراتور', accounting: 'حسابداری', reception: 'پذیرش', emergency: 'پشتیبانی اضطراری' };
 const DEPT_REF = { accounting: 'acc', reception: 'rec', emergency: 'emg' };
 // Collections that mirror the Asterisk configuration; saved to /api/config/:key (admin only).
-const VOIP_KEYS = ['vmbox', 'survey', 'oroutes', 'routes', 'tgroups', 'holidays', 'tconds', 'rgroups', 'fmes', 'blist', 'bset', 'exts', 'trunks', 'vqs', 'ivrs', 'snds'];
+const VOIP_KEYS = ['vmbox', 'survey', 'prefagent', 'oroutes', 'routes', 'tgroups', 'holidays', 'tconds', 'rgroups', 'fmes', 'blist', 'bset', 'exts', 'trunks', 'vqs', 'ivrs', 'snds'];
 // Live fields come from AMI and are never written back.
 const LIVE_FIELDS = { exts: ['st'], vqs: ['waiting', 'sla'], trunks: ['reg', 'used'] };
 const WORKFLOW_KEYS = ['follow', 'doneAt', 'notes'];
@@ -2596,11 +2596,12 @@ class LiveApp extends React.Component {
     const when = iso => { if (!iso) return 'هرگز'; const t = new Date(iso); return fa(jStr(t) + ' · ' + jpad(t.getHours()) + ':' + jpad(t.getMinutes())); };
     const f = s.uEdit;
     const canAdd = CAN('users', 'add'), canEdit = CAN('users', 'edit'), canDel = CAN('users', 'delete');
-    const open = u => this.setState({ uEdit: u ? { id: u.id, username: u.username, name: u.name, title: u.title || '', ext: u.ext || '', apiId: u.apiId || '', announceSnd: u.announceSnd || '', role: u.role, active: u.active, password: '', perms: JSON.parse(JSON.stringify(u.perms || {})) } : { id: null, username: '', name: '', title: '', ext: '', apiId: '', announceSnd: '', role: 'operator', active: true, password: '', perms: JSON.parse(JSON.stringify(d.roles.find(r => r.id === 'operator').perms)) } });
+    const open = u => this.setState({ uEdit: u ? { id: u.id, username: u.username, name: u.name, title: u.title || '', ext: u.ext || '', apiId: u.apiId || '', announceSnd: u.announceSnd || '', queueAnnounceSnd: u.queueAnnounceSnd || '', role: u.role, active: u.active, password: '', perms: JSON.parse(JSON.stringify(u.perms || {})) } : { id: null, username: '', name: '', title: '', ext: '', apiId: '', announceSnd: '', queueAnnounceSnd: '', role: 'operator', active: true, password: '', perms: JSON.parse(JSON.stringify(d.roles.find(r => r.id === 'operator').perms)) } });
     const users = d.users.map(u => ({
       name: u.name, title: u.title || '', hasTitle: !!u.title, username: u.username, ext: u.ext ? fa(u.ext) : '—',
       apiId: u.apiId || '', hasApiId: !!u.apiId, apiIdText: u.apiId || '—',
       hasAnnounce: !!u.announceSnd, announceLabel: u.announceSnd ? ((s.snds || []).find(x => x.id === u.announceSnd) || {}).name || u.announceSnd : '',
+      hasQueueAnnounce: !!u.queueAnnounceSnd, queueAnnounceLabel: u.queueAnnounceSnd ? ((s.snds || []).find(x => x.id === u.queueAnnounceSnd) || {}).name || u.queueAnnounceSnd : '',
       role: ROLE[u.role] || u.role, custom: u.custom, roleTag: u.custom ? ROLE[u.role] + ' · سفارشی' : ROLE[u.role],
       roleBg: u.role === 'admin' ? '#2E2F31' : '#f2f3ef', roleFg: u.role === 'admin' ? '#8DC63F' : '#3a3b3d',
       active: u.active, inactive: !u.active, statusLabel: u.active ? 'فعال' : 'غیرفعال', statusBg: u.active ? '#eaf4dc' : '#f2f3ef', statusFg: u.active ? '#3d6a0c' : '#8b8e89',
@@ -2611,6 +2612,8 @@ class LiveApp extends React.Component {
       del: () => this.setState({ uDel: u.id }), confirmDel: s.uDel === u.id, notConfirm: s.uDel !== u.id, cancelDel: () => this.setState({ uDel: null }),
       doDel: async () => { try { await api('/users/' + u.id, null, 'DELETE'); this.toast('کاربر حذف شد'); this.setState({ uDel: null }); this.loadUsers(); } catch (e) { this.toast(e.message); } },
     }));
+    const pref = { ringSec: 40, ...(s.prefagent || {}) };
+    const ringSec = Math.max(5, Math.min(120, Math.round(+pref.ringSec || 40)));
     let form = null;
     if (f) {
       const setF = o => this.setState({ uEdit: { ...f, ...o } });
@@ -2639,13 +2642,18 @@ class LiveApp extends React.Component {
       // Same system-sound picker as IVR / صندوق پیام / نظرسنجی (select existing snds only — no upload here).
       const snds = (s.snds || []).filter(x => x.file);
       const hasAnnounce = !!(f.announceSnd && snds.some(x => x.id === f.announceSnd));
+      const hasQueueAnnounce = !!(f.queueAnnounceSnd && snds.some(x => x.id === f.queueAnnounceSnd));
+      const announceOpts = [{ v: '', label: '— بدون پیام اعلام —' }, ...snds.map(x => ({ v: x.id, label: x.name }))];
       form = {
         isNew: !f.id, title: f.id ? 'ویرایش کاربر' : 'کاربر جدید', f, isAdmin, notAdmin: !isAdmin, self: f.id === ME.id,
         set: Object.fromEntries(['name', 'title', 'username', 'password', 'ext', 'apiId'].map(k => [k, e => setF({ [k]: e.target.value })])),
         setAnnounce: e => setF({ announceSnd: e.target.value }),
-        announceOpts: [{ v: '', label: '— بدون پیام اعلام —' }, ...snds.map(x => ({ v: x.id, label: x.name }))],
+        setQueueAnnounce: e => setF({ queueAnnounceSnd: e.target.value }),
+        announceOpts,
         hasAnnounce, playAnnounce: () => f.announceSnd && this.playSound({ id: f.announceSnd }),
         announcePlaying: s.sndPlay === f.announceSnd && !!f.announceSnd,
+        hasQueueAnnounce, playQueueAnnounce: () => f.queueAnnounceSnd && this.playSound({ id: f.queueAnnounceSnd }),
+        queueAnnouncePlaying: s.sndPlay === f.queueAnnounceSnd && !!f.queueAnnounceSnd,
         goSounds: () => this.setState({ page: 'vsound', uEdit: null }),
         presets: d.roles.map(r => ({ label: r.label, click: preset(r), bg: f.role === r.id ? '#2E2F31' : '#fff', fg: f.role === r.id ? '#fff' : '#3a3b3d', bd: f.role === r.id ? '#2E2F31' : '#e1e3dc' })),
         activeT: { bg: f.active ? '#8DC63F' : '#d9dad6', j: f.active ? 'flex-end' : 'flex-start' }, toggleActive: () => f.id !== ME.id && setF({ active: !f.active }),
@@ -2655,7 +2663,7 @@ class LiveApp extends React.Component {
         save: async () => {
           const body = {
             name: f.name, title: f.title, username: f.username, ext: f.ext,
-            apiId: f.apiId, announceSnd: f.announceSnd,
+            apiId: f.apiId, announceSnd: f.announceSnd, queueAnnounceSnd: f.queueAnnounceSnd,
             role: f.role, active: f.active, perms: f.perms, ...(f.password ? { password: f.password } : {}),
           };
           try { if (f.id) await api('/users/' + f.id, body, 'PUT'); else await api('/users', body); this.toast(f.id ? 'تغییرات کاربر ذخیره شد' : 'کاربر ساخته شد'); this.setState({ uEdit: null }); this.loadUsers(); }
@@ -2663,7 +2671,17 @@ class LiveApp extends React.Component {
         },
       };
     }
-    return { uv: { ready: true, users, canAdd, add: () => open(null), editing: !!f, form: form || {}, count: fa(d.users.length) } };
+    return {
+      uv: {
+        ready: true, users, canAdd, add: () => open(null), editing: !!f, form: form || {}, count: fa(d.users.length),
+        ringSec, ringSecText: fa(ringSec),
+        setRingSec: e => {
+          const v = Math.max(5, Math.min(120, Math.round(+e.target.value || 40)));
+          this.setState({ prefagent: { ...(s.prefagent || {}), ringSec: v } });
+        },
+        canEditPref: canEdit || canAdd,
+      },
+    };
   }
 
   // ---- call view

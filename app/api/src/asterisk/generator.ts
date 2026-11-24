@@ -8,6 +8,8 @@ export interface VoipConfig {
   exts: any[]; trunks: any[]; vqs: any[]; ivrs: any[]; snds: any[]; routes: any[];
   tgroups: any[]; tconds: any[]; holidays: any[]; rgroups: any[]; fmes: Record<string, any>;
   blist: any[]; bset: any; oroutes?: any[]; survey?: any; vmbox?: any; aiagent?: any; booking?: any;
+  /** Preferred agent before queue: { ringSec } — default 40. */
+  prefagent?: { ringSec?: number };
   didRoutes?: { did: string; tenantId: string; dest: string; name?: string }[];
 }
 
@@ -425,20 +427,24 @@ function dialplan(cfg: VoipConfig, opts: { hookUrl: string; hookSecret: string }
   }
 
   // --- queues
-  // Preferred agent (Kamilo زیبایار agent_id → User.apiId): announce + ring that ext first; on no-answer continue to Queue as today.
+  // Preferred agent (Kamilo زیبایار agent_id → User.apiId): announce + ring that ext first;
+  // unavailable / no-answer → optional queue-fallback announce, then Queue as today.
+  const prefRing = Math.max(5, Math.min(120, Math.round(+(cfg.prefagent?.ringSec ?? 40) || 40)));
   const prefagent = [
     ` same => n,Set(CC_PREF=\${CURL(${opts.hookUrl}/prefagent?s=${opts.hookSecret},num=\${CC_NUM}&did=\${CC_DID})})`,
     ' same => n,GotoIf($["${CC_PREF}"=""]?prefskip)',
     ' same => n,Set(CC_PREFEXT=${CUT(CC_PREF,|,1)})',
     ' same => n,Set(CC_PREFSND=${CUT(CC_PREF,|,2)})',
+    ' same => n,Set(CC_PREFQSND=${CUT(CC_PREF,|,3)})',
     ' same => n,GotoIf($["${CC_PREFEXT}"=""]?prefskip)',
-    // Skip if the preferred phone is not free — fall through to the queue without delaying the caller.
-    ' same => n,GotoIf($["${DEVICE_STATE(PJSIP/${CC_PREFEXT})}"!="NOT_INUSE"]?prefskip)',
+    // Busy / offline: skip Dial, still play queue-fallback announce before Queue.
+    ' same => n,GotoIf($["${DEVICE_STATE(PJSIP/${CC_PREFEXT})}"!="NOT_INUSE"]?preffall)',
     ' same => n,ExecIf($["${CC_PREFSND}"!=""]?Playback(${CC_PREFSND}))',
     ` same => n,${ccEvent('call.ringing', 'Target: preferred,Ext: ${CC_PREFEXT}')}`,
-    ' same => n,Dial(PJSIP/${CC_PREFEXT},20,trgU(cc-agent-answer^0))',
+    ` same => n,Dial(PJSIP/\${CC_PREFEXT},${prefRing},trgU(cc-agent-answer^0))`,
     ' same => n,GotoIf($["${DIALSTATUS}"="ANSWER"]?cc-survey,s,1)',
-    ' same => n(prefskip),NoOp(no preferred agent)',
+    ' same => n(preffall),ExecIf($["${CC_PREFQSND}"!=""]?Playback(${CC_PREFQSND}))',
+    ' same => n(prefskip),NoOp(preferred agent done)',
   ];
   for (const q of cfg.vqs) {
     X(`cc-queue-${sid(q.id)}`, [

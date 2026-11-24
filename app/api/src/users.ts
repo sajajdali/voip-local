@@ -26,7 +26,7 @@ export class UsersController {
       sections: SECTIONS, roles: ROLES.map(r => ({ id: r, label: ROLE_LABEL[r], perms: rolePerms(r) })),
       users: users.map(u => ({
         id: u.id, username: u.username, name: u.name, title: u.title || '', role: u.role, ext: u.ext,
-        apiId: u.apiId || '', announceSnd: u.announceSnd || '',
+        apiId: u.apiId || '', announceSnd: u.announceSnd || '', queueAnnounceSnd: u.queueAnnounceSnd || '',
         active: u.active, tenantId: u.tenantId || null, perms: permsOf(u), custom: !!u.perms && u.role !== 'admin', lastLogin: last.get(u.id) || null,
       })),
     };
@@ -51,6 +51,11 @@ export class UsersController {
     if (b.announceSnd !== undefined && b.announceSnd !== '' && b.announceSnd !== null) {
       if (!/^s\d+$/.test(String(b.announceSnd)) && !/^[A-Za-z0-9_-]{2,40}$/.test(String(b.announceSnd))) {
         throw new BadRequestException('شناسه فایل صوتی اعلام نامعتبر است');
+      }
+    }
+    if (b.queueAnnounceSnd !== undefined && b.queueAnnounceSnd !== '' && b.queueAnnounceSnd !== null) {
+      if (!/^s\d+$/.test(String(b.queueAnnounceSnd)) && !/^[A-Za-z0-9_-]{2,40}$/.test(String(b.queueAnnounceSnd))) {
+        throw new BadRequestException('شناسه فایل صوتی اعلام صف نامعتبر است');
       }
     }
     return username;
@@ -98,12 +103,13 @@ export class UsersController {
       : (role === 'admin' ? undefined : cleanPerms(b.perms));
     const apiId = b.apiId !== undefined && b.apiId !== null && String(b.apiId).trim() ? String(b.apiId).trim() : null;
     const announceSnd = b.announceSnd !== undefined && b.announceSnd !== null && String(b.announceSnd).trim() ? String(b.announceSnd).trim() : null;
+    const queueAnnounceSnd = b.queueAnnounceSnd !== undefined && b.queueAnnounceSnd !== null && String(b.queueAnnounceSnd).trim() ? String(b.queueAnnounceSnd).trim() : null;
     const u = await this.db.user.create({ data: {
       username, name: String(b.name).trim().slice(0, 60), title: String(b.title || '').trim().slice(0, 60) || null, role,
-      ext: b.ext ? String(b.ext) : null, apiId, announceSnd, active: b.active !== false, tenantId,
+      ext: b.ext ? String(b.ext) : null, apiId, announceSnd, queueAnnounceSnd, active: b.active !== false, tenantId,
       password: await bcrypt.hash(String(b.password), 10), perms: perms as any,
     } });
-    await this.db.auditLog.create({ data: { userId: me.id, userName: me.name, action: 'user.create', target: u.username, detail: { role, tenantId, apiId, announceSnd, perms: role === 'admin' && !tenantId ? 'all' : perms } as any } });
+    await this.db.auditLog.create({ data: { userId: me.id, userName: me.name, action: 'user.create', target: u.username, detail: { role, tenantId, apiId, announceSnd, queueAnnounceSnd, perms: role === 'admin' && !tenantId ? 'all' : perms } as any } });
     return { id: u.id, tenantId };
   }
 
@@ -125,6 +131,7 @@ export class UsersController {
     if (b.title !== undefined) data.title = String(b.title || '').trim().slice(0, 60) || null;
     if (b.apiId !== undefined) data.apiId = b.apiId !== null && String(b.apiId).trim() ? String(b.apiId).trim() : null;
     if (b.announceSnd !== undefined) data.announceSnd = b.announceSnd !== null && String(b.announceSnd).trim() ? String(b.announceSnd).trim() : null;
+    if (b.queueAnnounceSnd !== undefined) data.queueAnnounceSnd = b.queueAnnounceSnd !== null && String(b.queueAnnounceSnd).trim() ? String(b.queueAnnounceSnd).trim() : null;
     if (b.password) data.password = await bcrypt.hash(String(b.password), 10);
     if (cur.tenantId || me.tenantId) {
       data.tenantId = cur.tenantId || me.tenantId;

@@ -388,7 +388,7 @@ export class PatientsService {
    * CRM زیبایار agent_id on the dossier → User.apiId → extension (+ optional announce sound id).
    * Returns null when no match; never throws into the dialplan path.
    */
-  async preferredAgent(phone: string, tenantId?: string | null): Promise<{ ext: string; announceSnd: string; name: string; apiId: string } | null> {
+  async preferredAgent(phone: string, tenantId?: string | null): Promise<{ ext: string; announceSnd: string; queueAnnounceSnd: string; name: string; apiId: string } | null> {
     if (!phone) return null;
     try {
       // CRM lookup started at call entry; give it a short window before reading the cache.
@@ -402,7 +402,13 @@ export class PatientsService {
       // Platform users (tenantId null) can also match when the DID is tenant-scoped
       if (!u && tenantId) u = await this.db.user.findFirst({ where: { apiId: agentKey, active: true, ext: { not: null }, tenantId: null } });
       if (!u || !u.ext || !/^\d{2,6}$/.test(u.ext)) return null;
-      return { ext: u.ext, announceSnd: u.announceSnd || '', name: u.name, apiId: agentKey };
+      return {
+        ext: u.ext,
+        announceSnd: u.announceSnd || '',
+        queueAnnounceSnd: u.queueAnnounceSnd || '',
+        name: u.name,
+        apiId: agentKey,
+      };
     } catch {
       return null;
     }

@@ -6616,7 +6616,7 @@ export default function AppView({ vm }) {
                 <div style={{display: "inline-flex", alignItems: "center", gap: "6px", fontSize: "11px", fontWeight: "700", color: "#0A5C5B", background: "#E3F2F1", border: "1px solid #C7E6E3", padding: "3px 11px", borderRadius: "999px", marginBottom: "8px", whiteSpace: "nowrap", width: "max-content", maxWidth: "100%"}}>{"تنظیمات"}</div>
                 <h1 style={{margin: "0", fontFamily: "'Noto Kufi Arabic',sans-serif", fontSize: "22px", fontWeight: "700", color: "#0B2545", lineHeight: "1.55"}}>{"کاربران و دسترسی‌ها"}</h1>
                 <div style={{fontSize: "13px", color: "#5B6B82", marginTop: "2px", maxWidth: "760px", lineHeight: "1.9"}}>
-                  {"برای هر کاربر مشخص کنید چه بخش‌هایی را ببیند و در هر بخش اجازه افزودن، ویرایش یا حذف داشته باشد."}
+                  {"برای هر کاربر مشخص کنید چه بخش‌هایی را ببیند و در هر بخش اجازه افزودن، ویرایش یا حذف داشته باشد. تماس ورودی با agent_id اول به همان عامل زنگ می‌خورد؛ بی‌پاسخ → اعلام + صف."}
                 </div>
               </div>
               {(vm.uv?.canAdd) ? (<>
@@ -6627,6 +6627,17 @@ export default function AppView({ vm }) {
               </>) : null}
             </div>
             {(vm.uv?.ready) ? (<>
+              <div style={{background: "#fff", border: "1px solid #E3E8EF", borderRadius: "16px", padding: "14px 18px", display: "flex", alignItems: "center", gap: "14px", flexWrap: "wrap"}}>
+                <div style={{flex: "1", minWidth: "220px"}}>
+                  <div style={{fontSize: "13px", fontWeight: "700", color: "#0B2545"}}>{"زنگ ترجیحی عامل (api id)"}</div>
+                  <div style={{fontSize: "12px", color: "#5B6B82", marginTop: "2px", lineHeight: "1.7"}}>{"اگر پروندهٔ تماس‌گیرنده agent_id داشته باشد، اول همان داخلی زنگ می‌خورد؛ بعد از این زمان یا در صورت اشغال، اعلام صف و سپس صف عادی."}</div>
+                </div>
+                <label style={{display: "flex", flexDirection: "column", gap: "4px", fontSize: "11px", color: "#5B6B82", width: "140px"}}>
+                  {"مهلت زنگ (ثانیه)"}
+                  <input type="number" min={5} max={120} value={vm.uv?.ringSec || 40} onChange={vm.uv?.setRingSec} disabled={!vm.uv?.canEditPref} style={{border: "1px solid #E3E8EF", borderRadius: "10px", padding: "9px 12px", fontSize: "13px", outline: "none", background: "#F7F9FC", color: "#16213A", fontFamily: "inherit", width: "100%", direction: "ltr", textAlign: "left"}} />
+                </label>
+                <div style={{fontSize: "12px", color: "#0A5C5B", fontWeight: "700"}}>{vm.uv?.ringSecText}{" ث"}</div>
+              </div>
               {(vm.uv?.editing) ? (<>
                 <div style={{background: "#fff", border: "1px solid #E3E8EF", borderRadius: "20px", padding: "18px 20px", display: "flex", flexDirection: "column", gap: "16px", borderColor: "#9FCFCC", background: "#FBFEFE"}}>
                   <div style={{display: "flex", alignItems: "center", gap: "10px"}}>
@@ -6673,6 +6684,18 @@ export default function AppView({ vm }) {
                         </>) : null}
                       </div>
                       <span style={{fontSize: "11px", color: "#7A889C"}}>{"همان فهرست صداهای IVR و نظرسنجی؛ فایل جدید را از «صداها» بارگذاری کنید، بعد اینجا انتخاب کنید."}</span>
+                    </label>
+                    <label style={{display: "flex", flexDirection: "column", gap: "4px", fontSize: "11px", color: "#5B6B82", gridColumn: "1 / -1"}}>
+                      <span>{"اعلام هنگام انتقال به صف (بی‌پاسخ / در دسترس نبودن عامل)"}</span>
+                      <div style={{display: "flex", gap: "8px"}}>
+                        <select value={vm.uv?.form?.f?.queueAnnounceSnd || ""} onChange={vm.uv?.form?.setQueueAnnounce} style={{border: "1px solid #E3E8EF", borderRadius: "10px", padding: "9px 12px", fontSize: "13px", outline: "none", background: "#F7F9FC", color: "#16213A", fontFamily: "inherit", width: "100%"}}>
+                          {(vm.uv?.form?.announceOpts || []).map((o, __iQAnn) => <option key={__iQAnn} value={o?.v}>{o?.label}</option>)}
+                        </select>
+                        {(vm.uv?.form?.hasQueueAnnounce) ? (<>
+                          <button type="button" onClick={vm.uv?.form?.playQueueAnnounce} style={{width: "42px", flexShrink: "0", borderRadius: "10px", border: "1px solid #E3E8EF", background: "#E3F2F1", color: "#0A5C5B", cursor: "pointer", fontSize: "13px"}}>{vm.uv?.form?.queueAnnouncePlaying ? "❚❚" : "▶"}</button>
+                        </>) : null}
+                      </div>
+                      <span style={{fontSize: "11px", color: "#7A889C"}}>{"اگر عامل جواب ندهد یا مشغول باشد، این صدا قبل از ورود به صف پخش می‌شود."}</span>
                     </label>
                   </div>
                   <div style={{display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap"}}>
@@ -6758,7 +6781,10 @@ export default function AppView({ vm }) {
                           <td data-label="api id" style={{padding: "11px 12px", fontSize: "13px", borderBottom: "1px solid #EEF1F5", whiteSpace: "nowrap", direction: "ltr", textAlign: "right"}}>
                             <div>{u?.apiIdText}</div>
                             {(u?.hasAnnounce) ? (<>
-                              <div style={{fontSize: "11px", color: "#0A5C5B", fontWeight: "600"}}>{"اعلام: "}{u?.announceLabel}</div>
+                              <div style={{fontSize: "11px", color: "#0A5C5B", fontWeight: "600"}}>{"اعلام عامل: "}{u?.announceLabel}</div>
+                            </>) : null}
+                            {(u?.hasQueueAnnounce) ? (<>
+                              <div style={{fontSize: "11px", color: "#8a5a00", fontWeight: "600"}}>{"اعلام صف: "}{u?.queueAnnounceLabel}</div>
                             </>) : null}
                           </td>
                           <td data-label="نقش" style={{padding: "11px 12px", fontSize: "13px", borderBottom: "1px solid #EEF1F5", whiteSpace: "nowrap"}}>

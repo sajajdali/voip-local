@@ -19,6 +19,8 @@ model User {
   apiId     String?
   /// System recording id (snds) played before preferred ring: «شما در حال اتصال به {name} هستید»
   announceSnd String?
+  /// System recording id (snds) played when preferred agent misses/unavailable before queue
+  queueAnnounceSnd String?
   active    Boolean  @default(true)
   perms     Json? // {section: [view|add|edit|delete]}; empty = the role's defaults
   tenantId  String?

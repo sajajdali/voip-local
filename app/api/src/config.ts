@@ -13,7 +13,7 @@ import {
 } from './tenant-scope';
 
 export const ARRAY_KEYS = ['exts', 'trunks', 'vqs', 'ivrs', 'snds', 'routes', 'oroutes', 'tgroups', 'tconds', 'holidays', 'rgroups', 'blist'] as const;
-export const OBJECT_KEYS = ['fmes', 'bset', 'survey', 'vmbox'] as const;
+export const OBJECT_KEYS = ['fmes', 'bset', 'survey', 'vmbox', 'prefagent'] as const;
 
 /** Post-call survey: off until prompts are recorded. One 1..5 rating; a low score may leave a voice comment. */
 export const DEFAULT_SURVEY = {
@@ -23,6 +23,8 @@ export const DEFAULT_SURVEY = {
 };
 /** «صندوق پیام»: greeting / closing prompts, how a message ends, and the key that opens it from every IVR. */
 export const DEFAULT_VMBOX = { on: false, key: '9', inIvr: true, greet: '', end: '', term: '*', beep: true, maxSec: 120, silence: 5 };
+/** Preferred agent (CRM agent_id → User.apiId) before queue: ring timeout in seconds. */
+export const DEFAULT_PREFAGENT = { ringSec: 40 };
 export const KEYS = [...ARRAY_KEYS, ...OBJECT_KEYS] as string[];
 const LIVE: Record<string, string[]> = { exts: ['st'], vqs: ['waiting', 'sla'], trunks: ['reg', 'used'] };
 const ID: Record<string, string> = { exts: 'n', blist: 'num', holidays: 'date' };
@@ -34,6 +36,7 @@ function emptyKey(key: string) {
   if (key === 'bset') return { anon: false, action: 'hang', sound: '' };
   if (key === 'survey') return DEFAULT_SURVEY;
   if (key === 'vmbox') return DEFAULT_VMBOX;
+  if (key === 'prefagent') return { ...DEFAULT_PREFAGENT };
   return {};
 }
 
