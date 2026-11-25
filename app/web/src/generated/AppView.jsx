@@ -126,6 +126,15 @@ export default function AppView({ vm }) {
                 <div style={{position: "absolute", top: "100%", left: "0", zIndex: "2", marginTop: "6px", width: "min(320px,calc(100vw - 32px))", background: "#fff", color: "#16213A", border: "1px solid #E3E8EF", borderRadius: "20px", boxShadow: "0 30px 60px -20px rgba(11,37,69,.35)", display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(230px,1fr))", gap: "4px 18px", padding: "18px"}}>
                   <div style={{display: "flex", flexDirection: "column", gap: "2px"}}>
                     <div style={{fontSize: "11px", fontWeight: "700", color: "#0E7C7B", padding: "0 12px 6px"}}>{"تحلیل و گزارش"}</div>
+                    {(vm.can?.opconn) ? (<>
+                      <button onClick={vm.nav?.opconn?.go} style={{display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "10px", textAlign: "right", border: "none", background: vm.nav?.opconn?.sbg, padding: "10px 12px", borderRadius: "12px", cursor: "pointer", fontFamily: "inherit", width: "100%"}} styleHover="background:#F3F5F8">
+                        <span style={{display: "flex", flexDirection: "column", gap: "2px"}}>
+                          <span style={{fontSize: "13px", fontWeight: "600", color: "#0B2545"}}>{"ارتباط با اپراتورها"}</span>
+                          <span style={{fontSize: "11px", color: "#5B6B82"}}>{"زنگ ترجیحی، صف، شمارهٔ جدید و نوبت/ویژه"}</span>
+                        </span>
+                        <span style={{fontSize: "11px", color: "#5B6B82", fontWeight: "600"}}>{vm.nav?.opconn?.count}</span>
+                      </button>
+                    </>) : null}
                     {(vm.can?.reports) ? (<>
                       <button onClick={vm.nav?.reports?.go} style={{display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "10px", textAlign: "right", border: "none", background: vm.nav?.reports?.sbg, padding: "10px 12px", borderRadius: "12px", cursor: "pointer", fontFamily: "inherit", width: "100%"}} styleHover="background:#F3F5F8">
                         <span style={{display: "flex", flexDirection: "column", gap: "2px"}}>
@@ -142,15 +151,6 @@ export default function AppView({ vm }) {
                           <span style={{fontSize: "11px", color: "#5B6B82"}}>{"مقایسه روزهای زوج و فرد"}</span>
                         </span>
                         <span style={{fontSize: "11px", color: "#5B6B82", fontWeight: "600"}}>{vm.nav?.days?.count}</span>
-                      </button>
-                    </>) : null}
-                    {(vm.can?.opconn) ? (<>
-                      <button onClick={vm.nav?.opconn?.go} style={{display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "10px", textAlign: "right", border: "none", background: vm.nav?.opconn?.sbg, padding: "10px 12px", borderRadius: "12px", cursor: "pointer", fontFamily: "inherit", width: "100%"}} styleHover="background:#F3F5F8">
-                        <span style={{display: "flex", flexDirection: "column", gap: "2px"}}>
-                          <span style={{fontSize: "13px", fontWeight: "600", color: "#0B2545"}}>{"ارتباط با اپراتورها"}</span>
-                          <span style={{fontSize: "11px", color: "#5B6B82"}}>{"زنگ ترجیحی، صف، شماره جدید و نوبت/VIP"}</span>
-                        </span>
-                        <span style={{fontSize: "11px", color: "#5B6B82", fontWeight: "600"}}>{vm.nav?.opconn?.count}</span>
                       </button>
                     </>) : null}
                     {(vm.can?.creports) ? (<>
@@ -453,14 +453,14 @@ export default function AppView({ vm }) {
         <div style={{background: "rgba(255,255,255,.85)", backdropFilter: "blur(6px)", borderBottom: "1px solid #E3E8EF", position: "relative", zIndex: "20"}}>
           <div className="cc-sub" style={{maxWidth: "1440px", margin: "0 auto", padding: "0 28px", display: "flex", flexWrap: "wrap", gap: "2px", alignItems: "center"}}>
             <span style={{fontSize: "11px", fontWeight: "700", color: "#0E7C7B", paddingLeft: "10px", whiteSpace: "nowrap"}}>{"گزارش‌ها"}</span>
+            {(vm.can?.opconn) ? (<>
+              <button onClick={vm.nav?.opconn?.go} style={{border: "none", background: "transparent", color: vm.nav?.opconn?.sfg, padding: "13px 10px 11px", borderBottom: `2.5px solid ${vm.nav?.opconn?.ul}`, fontSize: "12.5px", fontWeight: "600", whiteSpace: "nowrap", cursor: "pointer", fontFamily: "inherit"}}>{"ارتباط با اپراتورها"}</button>
+            </>) : null}
             {(vm.can?.reports) ? (<>
               <button onClick={vm.nav?.reports?.go} style={{border: "none", background: "transparent", color: vm.nav?.reports?.sfg, padding: "13px 10px 11px", borderBottom: `2.5px solid ${vm.nav?.reports?.ul}`, fontSize: "12.5px", fontWeight: "600", whiteSpace: "nowrap", cursor: "pointer", fontFamily: "inherit"}}>{"گزارش‌ساز"}</button>
             </>) : null}
             {(vm.can?.reports) ? (<>
               <button onClick={vm.nav?.days?.go} style={{border: "none", background: "transparent", color: vm.nav?.days?.sfg, padding: "13px 10px 11px", borderBottom: `2.5px solid ${vm.nav?.days?.ul}`, fontSize: "12.5px", fontWeight: "600", whiteSpace: "nowrap", cursor: "pointer", fontFamily: "inherit"}}>{"گزارش روزها"}</button>
-            </>) : null}
-            {(vm.can?.opconn) ? (<>
-              <button onClick={vm.nav?.opconn?.go} style={{border: "none", background: "transparent", color: vm.nav?.opconn?.sfg, padding: "13px 10px 11px", borderBottom: `2.5px solid ${vm.nav?.opconn?.ul}`, fontSize: "12.5px", fontWeight: "600", whiteSpace: "nowrap", cursor: "pointer", fontFamily: "inherit"}}>{"ارتباط با اپراتورها"}</button>
             </>) : null}
             {(vm.can?.creports) ? (<>
               <button onClick={vm.nav?.creports?.go} style={{border: "none", background: "transparent", color: vm.nav?.creports?.sfg, padding: "13px 10px 11px", borderBottom: `2.5px solid ${vm.nav?.creports?.ul}`, fontSize: "12.5px", fontWeight: "600", whiteSpace: "nowrap", cursor: "pointer", fontFamily: "inherit"}}>{"گزارش‌های ثبت‌شده"}</button>
@@ -11827,6 +11827,17 @@ export default function AppView({ vm }) {
             </div>
             <div className="cc-sheet-h">{"تحلیل و گزارش"}</div>
             <div className="cc-sheet-grid">
+              {(vm.can?.opconn) ? (<>
+                <button onClick={vm.nav?.opconn?.go} style={{background: vm.nav?.opconn?.tbg, borderColor: vm.nav?.opconn?.tbd}}>
+                  <span className="cc-tile-t">
+                    {"ارتباط با اپراتورها"}
+                    {(vm.nav?.opconn?.hasCount) ? (<>
+                      <b>{vm.nav?.opconn?.count}</b>
+                    </>) : null}
+                  </span>
+                  <span className="cc-tile-s">{"زنگ ترجیحی، صف و ترکیب پرونده"}</span>
+                </button>
+              </>) : null}
               {(vm.can?.reports) ? (<>
                 <button onClick={vm.nav?.reports?.go} style={{background: vm.nav?.reports?.tbg, borderColor: vm.nav?.reports?.tbd}}>
                   <span className="cc-tile-t">
