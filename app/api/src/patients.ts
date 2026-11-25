@@ -24,12 +24,15 @@ const DEFAULTS: CrmSettings = {
 };
 
 /** Dead Mac LAN URL (callcenter cannot reach :8010 / .88.254). استعلام آزمایشی persists the form first — rewrite so a stale browser field cannot keep writing it back. */
-export const KAMILO_LIVE_KM_URL = 'http://192.168.100.230:8080/api';
+/** Reachable from callcenter via SSH reverse tunnel Mac:8080 → 127.0.0.1:18080 (LAN :8010/.88.254 and flaky Wi‑Fi :8080 fail). */
+export const KAMILO_LIVE_KM_URL = 'http://127.0.0.1:18080/api';
 export function migrateKamiloKmUrl(url: string): string {
   const u = String(url || '').trim().replace(/\/+$/, '');
   if (!u) return u;
-  // Only the unreachable office-Mac alias (callcenter gets ECONNREFUSED)
+  // Unreachable from سرور لوکال: old Mac alias :8010, or direct Wi‑Fi :8080 (drops under load)
   if (/192\.168\.88\.254/.test(u)) return KAMILO_LIVE_KM_URL;
+  if (/192\.168\.100\.230:8080/.test(u)) return KAMILO_LIVE_KM_URL;
+  if (/:8010(\/|$)/.test(u) && /192\.168\./.test(u)) return KAMILO_LIVE_KM_URL;
   return u;
 }
 

@@ -659,13 +659,14 @@ class LiveApp extends React.Component {
       // Always refresh the form from the server when opening; keep in-progress edits only while already on the page
       // Rewrite dead Kamilo LAN URL so استعلام آزمایشی (which persist()s first) cannot re-save .88.254:8010
       const settings = { ...(d.settings || {}) };
-      if (/192\.168\.88\.254/.test(String(settings.kmUrl || ''))) settings.kmUrl = 'http://192.168.100.230:8080/api';
+      const fixKm = (u) => (/192\.168\.88\.254|192\.168\.100\.230:8080|:8010/.test(String(u || '')) ? 'http://127.0.0.1:18080/api' : u);
+      settings.kmUrl = fixKm(settings.kmUrl);
       this.setState(st => ({
         crmData: { ...d, settings },
         crmForm: st.crmForm && st.page === 'vcrm' && st.crmLoaded
           ? (() => {
               const f = { ...st.crmForm };
-              if (/192\.168\.88\.254/.test(String(f.kmUrl || ''))) f.kmUrl = 'http://192.168.100.230:8080/api';
+              f.kmUrl = fixKm(f.kmUrl);
               return f;
             })()
           : { ...settings, pass: '', dgToken: '', kmToken: '' },
