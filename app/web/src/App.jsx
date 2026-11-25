@@ -657,11 +657,18 @@ class LiveApp extends React.Component {
     try {
       const d = await api('/crm');
       // Always refresh the form from the server when opening; keep in-progress edits only while already on the page
+      // Rewrite dead Kamilo LAN URL so استعلام آزمایشی (which persist()s first) cannot re-save .88.254:8010
+      const settings = { ...(d.settings || {}) };
+      if (/192\.168\.88\.254/.test(String(settings.kmUrl || ''))) settings.kmUrl = 'http://192.168.100.230:8080/api';
       this.setState(st => ({
-        crmData: d,
+        crmData: { ...d, settings },
         crmForm: st.crmForm && st.page === 'vcrm' && st.crmLoaded
-          ? st.crmForm
-          : { ...d.settings, pass: '', dgToken: '', kmToken: '' },
+          ? (() => {
+              const f = { ...st.crmForm };
+              if (/192\.168\.88\.254/.test(String(f.kmUrl || ''))) f.kmUrl = 'http://192.168.100.230:8080/api';
+              return f;
+            })()
+          : { ...settings, pass: '', dgToken: '', kmToken: '' },
         crmLoaded: true,
       }));
     } catch (e) { this.toast('بارگذاری تنظیمات سامانه بیماران ناموفق بود: ' + e.message); }
@@ -676,8 +683,10 @@ class LiveApp extends React.Component {
     const isKm = f.provider === 'kamilo';
     const isCrm = f.provider === 'crm' || (!isDg && !isKm);
     const persist = async () => {
-      const r = await api('/crm', f, 'PUT');
-      this.setState(x => ({ crmData: { ...(x.crmData || { status: {} }), settings: r }, crmForm: { ...f, pass: '', dgToken: '', kmToken: '' } }));
+      const body = { ...f };
+      if (/192\.168\.88\.254/.test(String(body.kmUrl || ''))) body.kmUrl = 'http://192.168.100.230:8080/api';
+      const r = await api('/crm', body, 'PUT');
+      this.setState(x => ({ crmData: { ...(x.crmData || { status: {} }), settings: r }, crmForm: { ...body, pass: '', dgToken: '', kmToken: '' } }));
       return r;
     };
     const t = s.crmTest;

@@ -23,6 +23,16 @@ const DEFAULTS: CrmSettings = {
   provider: 'crm', dgUrl: '', dgToken: '', dgHost: '', kmUrl: '', kmToken: '',
 };
 
+/** Dead Mac LAN URL (callcenter cannot reach :8010 / .88.254). استعلام آزمایشی persists the form first — rewrite so a stale browser field cannot keep writing it back. */
+export const KAMILO_LIVE_KM_URL = 'http://192.168.100.230:8080/api';
+export function migrateKamiloKmUrl(url: string): string {
+  const u = String(url || '').trim().replace(/\/+$/, '');
+  if (!u) return u;
+  // Only the unreachable office-Mac alias (callcenter gets ECONNREFUSED)
+  if (/192\.168\.88\.254/.test(u)) return KAMILO_LIVE_KM_URL;
+  return u;
+}
+
 /** Inbound DIDs that must use دستغیب (platform dg credentials). Never apply to 31985*. */
 export const DASTGHEIB_INBOUND_DIDS = new Set(['21008244', '21009062', '21009448']);
 
@@ -153,7 +163,19 @@ export class PatientsService {
     const k = scopeKey(tenantId);
     if (!this.caches.has(k)) {
       const r = await readSetting(this.db, 'crm', tenantId, { fallbackPlatform: !!tenantId });
-      this.caches.set(k, { ...DEFAULTS, ...((r as any) || {}) });
+      const merged = { ...DEFAULTS, ...((r as any) || {}) } as CrmSettings;
+      const fixed = migrateKamiloKmUrl(merged.kmUrl);
+      if (fixed !== merged.kmUrl) {
+        merged.kmUrl = fixed;
+        // Persist rewrite so the next panel load / استعلام آزمایشی save does not resurrect the dead URL
+        if (tenantId) await writeSetting(this.db, 'crm', merged as any, { id: 'system', name: 'system', tenantId } as Me).catch(() => {});
+        else await writeSetting(this.db, 'crm', merged as any, { id: 'system', name: 'system', tenantId: null } as Me).catch(() => {});
+      }
+      this.caches.set(k, merged);
+    } else {
+      const cur = this.caches.get(k)!;
+      const fixed = migrateKamiloKmUrl(cur.kmUrl);
+      if (fixed !== cur.kmUrl) { cur.kmUrl = fixed; this.caches.set(k, cur); }
     }
     return this.caches.get(k)!;
   }
@@ -167,7 +189,7 @@ export class PatientsService {
     const cur = await this.settings(me.tenantId);
     const url = String(b.url ?? cur.url).trim();
     const dgUrl = String(b.dgUrl ?? cur.dgUrl).trim().replace(/\/+$/, '');
-    const kmUrl = String(b.kmUrl ?? cur.kmUrl).trim().replace(/\/+$/, '');
+    const kmUrl = migrateKamiloKmUrl(String(b.kmUrl ?? cur.kmUrl).trim().replace(/\/+$/, ''));
     for (const u of [url, dgUrl, kmUrl]) if (u && !/^https?:\/\/\S+$/i.test(u)) throw new BadRequestException('آدرس باید با http:// یا https:// شروع شود');
     const provider = b.provider === 'dastgheib' || b.provider === 'crm' || b.provider === 'kamilo' ? b.provider : cur.provider;
     const next: CrmSettings = {
