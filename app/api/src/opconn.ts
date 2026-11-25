@@ -98,11 +98,14 @@ export class OpConnController {
       : [];
     const crmByPhone = new Map(patients.map(p => [p.phone, p.crm]));
 
-    // Prior calls (any time before each call) → "new number" = no earlier inbound/outbound for that phone
+    // Prior calls before range start (Asia/Tehran calendar day). jalaliToDate is UTC midnight of
+    // that Gregorian day; subtract Tehran offset so "دیروز" matches clinic wall-clock.
+    const TEHRAN = 3.5 * 3600e3;
+    const rangeStart = new Date(jalaliToDate(from).getTime() - TEHRAN);
     const priorCounts = phones.length
       ? await this.db.call.groupBy({
           by: ['phone'],
-          where: { phone: { in: phones }, startedAt: { lt: jalaliToDate(from) } },
+          where: { phone: { in: phones }, startedAt: { lt: rangeStart } },
           _count: { _all: true },
         })
       : [];

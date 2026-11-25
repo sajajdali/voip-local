@@ -165,7 +165,9 @@ class LiveApp extends React.Component {
     if (s.page === 'dids' && (prev.page !== 'dids' || prev.didInvStatus !== s.didInvStatus || prev.didInvPage !== s.didInvPage || prev.didInvTick !== s.didInvTick)) this.loadDidInventory();
     if (s.page === 'account' && prev.page !== 'account') this.loadAccount();
     if (s.page === 'creports' && prev.page !== 'creports') this.loadCReports();
-    if (s.page === 'opconn' && (prev.page !== 'opconn' || prev.ocF !== s.ocF)) this.loadOpconn();
+    // Only on enter — ocF changes load via pick/apply. Never compare ocF by reference:
+    // loadOpconn used to rewrite ocF and retrigger this forever (دیروز appeared to hang).
+    if (s.page === 'opconn' && prev.page !== 'opconn') this.loadOpconn();
     if (s.page === 'vsms' && prev.page !== 'vsms') this.loadSmsSettings();
     if (s.page === 'refs' && (prev.page !== 'refs' || prev.rfF !== s.rfF)) this.loadRefs();
     if (s.cvId && s.cvId !== prev.cvId) this.loadCallReports(s.cvId);
@@ -2535,12 +2537,16 @@ class LiveApp extends React.Component {
 
   async loadOpconn() {
     const f = { from: TODAY, to: TODAY, op: 'all', ...(this.state.ocF || {}) };
+    const seq = (this._ocSeq = (this._ocSeq || 0) + 1);
     this.setState({ ocBusy: true, ocErr: null });
     try {
       const q = '?from=' + encodeURIComponent(f.from) + '&to=' + encodeURIComponent(f.to) + '&op=' + encodeURIComponent(f.op || 'all');
       const d = await api('/reports/opconn' + q);
-      this.setState({ ocData: d, ocBusy: false, ocF: f });
+      if (seq !== this._ocSeq) return; // stale response after a newer filter pick
+      // Do not rewrite ocF here — that used to retrigger componentDidUpdate in a loop.
+      this.setState({ ocData: d, ocBusy: false });
     } catch (e) {
+      if (seq !== this._ocSeq) return;
       this.setState({ ocBusy: false, ocErr: e.message || 'خطا' });
     }
   }
@@ -2548,7 +2554,7 @@ class LiveApp extends React.Component {
   opconnVals(s) {
     const fa = n => String(n ?? '').replace(/\d/g, d => '۰۱۲۳۴۵۶۷۸۹'[d]);
     const f = { from: TODAY, to: TODAY, op: 'all', ...(s.ocF || {}) };
-    const setF = o => this.setState({ ocF: { ...f, ...o } });
+    const setF = (o, reload) => this.setState({ ocF: { ...f, ...o } }, reload ? () => this.loadOpconn() : undefined);
     const quick = [
       { id: 'today', label: 'امروز', from: TODAY, to: TODAY },
       { id: 'yesterday', label: 'دیروز', from: jAdd(-1), to: jAdd(-1) },
@@ -2558,7 +2564,7 @@ class LiveApp extends React.Component {
     ].map(q => {
       const on = f.from === q.from && f.to === q.to;
       return {
-        ...q, pick: () => { setF({ from: q.from, to: q.to }); setTimeout(() => this.loadOpconn(), 0); },
+        ...q, pick: () => setF({ from: q.from, to: q.to }, true),
         bd: on ? '#0E7C7B' : '#E3E8EF', bg: on ? '#E3F2F1' : '#fff', fg: on ? '#0A5C5B' : '#3A4A63',
       };
     });
