@@ -3977,11 +3977,12 @@ export default class App extends LiveApp {
   const vx={q:s.xq,setQ:e=>set({xq:e.target.value}),kpis:[{label:'کل داخلی‌ها',value:s.exts.length,dot:'#2E2F31'},{label:'آنلاین',value:cnt('online'),dot:'#8DC63F'},{label:'در حال مکالمه',value:cnt('busy'),dot:'#e0a83a'},{label:'آفلاین',value:cnt('offline'),dot:'#b9bbb6'}],
    regNote: ME.tenantId
      ? 'برای هر داخلی، کادر «ثبت SIP» زیر همان ردیف را ببینید: سرور + نام کاربری tn…_شماره + رمز. نام کاربری دیگر خودِ شماره داخلی نیست.'
-     : 'داخل شبکه: sip.s8n.ir یا ۱۹۲.۱۶۸.۸۹.۵۰ پورت ۵۰۶۰ · از اینترنت: sip.s8n.ir:۱۲۳۶. داخلی‌های سامانه با شماره داخلی؛ داخلی‌های مستأجر با نام کاربری tn…_شماره.',
+     : 'داخل شبکه: sip.s8n.ir یا ۱۹۲.۱۶۸.۸۹.۵۰ پورت ۵۰۶۰ · از اینترنت: ۹۳.۱۱۸.۱۵۷.۱۴۲ پورت ۱۲۳۶ (UDP). داخلی‌های سامانه با شماره داخلی؛ داخلی‌های مستأجر با نام کاربری tn…_شماره.',
    regAddrs:[
      {label:'داخل شبکه',addr:'sip.s8n.ir:5060',copy:copySip('sip.s8n.ir:5060','آدرس کپی شد')},
      {label:'IP لوکال',addr:'192.168.89.50:5060',copy:copySip('192.168.89.50:5060','آدرس کپی شد')},
-     {label:'از اینترنت',addr:'sip.s8n.ir:1236',copy:copySip('sip.s8n.ir:1236','آدرس کپی شد')},
+     // sip.s8n.ir A → Arvan CDN; UDP SIP does not reach Asterisk — use public WAN IP:1236
+     {label:'از اینترنت',addr:'93.118.157.142:1236',copy:copySip('93.118.157.142:1236','آدرس کپی شد')},
    ],
    formOpen:fm.kind==='ext',f:fm,set:setFm,cancel,add:openF('ext',{n:String(Math.max(200,...s.exts.map(e=>+e.n))+1),name:'',type:'SIP',q:'پذیرش'}),
    save:()=>{if(!fm.n||!fm.name)return;upd('exts',l=>[...l,{n:fm.n,name:fm.name,type:fm.type,dev:fm.type==='WebRTC'?'مرورگر':'تعریف نشده',st:'offline',rec:true,vm:true,q:fm.q}]);set({form:null});},
@@ -3991,7 +3992,7 @@ export default class App extends LiveApp {
      const shown=s.showSecret===e.n;
      return {...e,stO:EXST[e.st]||EXST.offline,sipUser,isTenantSip,
       sipRegTitle:'ثبت SIP این داخلی',
-      sipHostLan:'sip.s8n.ir:5060',sipHostIp:'192.168.89.50:5060',sipHostRemote:'sip.s8n.ir:1236',
+      sipHostLan:'sip.s8n.ir:5060',sipHostIp:'192.168.89.50:5060',sipHostRemote:'93.118.157.142:1236',
       sipUserLabel:isTenantSip?'نام کاربری (tn…_n)':'نام کاربری SIP',
       sipPassLabel:'رمز SIP',
       secretText:shown?(e.secret||'—'):'••••••',
@@ -4001,12 +4002,12 @@ export default class App extends LiveApp {
       copyUser:copySip(sipUser,'نام کاربری کپی شد'),
       copyHostLan:copySip('sip.s8n.ir:5060','آدرس کپی شد'),
       copyHostIp:copySip('192.168.89.50:5060','آدرس کپی شد'),
-      copyHostRemote:copySip('sip.s8n.ir:1236','آدرس کپی شد'),
+      copyHostRemote:copySip('93.118.157.142:1236','آدرس کپی شد'),
       editing:!!s.pwEdit&&s.pwEdit.n===e.n,pwVal:s.pwEdit&&s.pwEdit.n===e.n?s.pwEdit.val:'',
       editPw:()=>set({pwEdit:{n:e.n,val:''}}),setPw:ev=>set({pwEdit:{n:e.n,val:ev.target.value}}),cancelPw:()=>set({pwEdit:null}),
       savePw:()=>{const v=(s.pwEdit&&s.pwEdit.val||'').trim();if(v.length<4||/[\s;"]/.test(v)){this.toast('رمز باید حداقل ۴ کاراکتر و بدون فاصله باشد');return;}upd('exts',l=>l.map(x=>x.n===e.n?{...x,newSecret:v}:x));set({pwEdit:null,showSecret:e.n});this.toast('رمز SIP داخلی '+e.n+' تغییر کرد؛ در گوشی نام کاربری «'+sipUser+'» و همین رمز را وارد کنید');},
       ini:e.name.split(' ').slice(0,2).map(w=>w[0]).join(' '),recT:tg(e.rec),vmT:tg(e.vm),
-      remoteT:tg(!!e.remote),remoteTip:e.remote?'اتصال از بیرون (sip.s8n.ir:1236) فعال است — رمز باید حداقل ۱۶ کاراکتر باشد':'برای رجیستر از اینترنت، این را روشن کنید (رمز حداقل ۱۶ کاراکتر)',
+      remoteT:tg(!!e.remote),remoteTip:e.remote?'اتصال از بیرون (93.118.157.142:1236 UDP) فعال است — رمز باید حداقل ۱۶ کاراکتر باشد':'برای رجیستر از اینترنت، این را روشن کنید (رمز حداقل ۱۶ کاراکتر)',
       togRemote:()=>{if(!e.remote&&String(e.secret||'').length<16){this.toast('برای اتصال از بیرون، رمز SIP باید حداقل ۱۶ کاراکتر باشد');return;}upd('exts',l=>l.map(x=>x.n===e.n?{...x,remote:!x.remote}:x));},
       togRec:()=>upd('exts',l=>l.map(x=>x.n===e.n?{...x,rec:!x.rec}:x)),togVm:()=>upd('exts',l=>l.map(x=>x.n===e.n?{...x,vm:!x.vm}:x)),del:()=>upd('exts',l=>l.filter(x=>x.n!==e.n))};
    })};
