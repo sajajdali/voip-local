@@ -16,7 +16,7 @@ const platDg: CrmSettings = {
 const sinaKm: CrmSettings = {
   ...platDg,
   provider: 'kamilo',
-  kmUrl: 'http://192.168.88.254:8010/api', kmToken: 'km_x',
+  kmUrl: 'http://192.168.100.230:8080/api', kmToken: 'km_x',
   dgUrl: 'https://demo.s8n.ir', dgToken: 'dg_x', dgHost: 'demo.s8n.ir',
 };
 
