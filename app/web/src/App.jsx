@@ -562,6 +562,11 @@ class LiveApp extends React.Component {
         card('vsms', 'پیامک', I.chat, 'دکمه‌های ارسال پیامک در هر تماس: یادآوری نوبت، لینک اپلیکیشن، آدرس و…؛ توکن پنل SHSMS و قالب‌ها', (s.smsBtns && s.smsBtns.enabled) ? (s.smsBtns.dryRun ? 'حالت آزمایشی' : 'فعال') + ' · ' + s.smsBtns.buttons.length + ' دکمه' : 'غیرفعال', s.smsBtns && s.smsBtns.enabled ? ok : off, K),
         card('vapi', 'ارسال تماس‌ها (API)', I.code, 'ارسال اطلاعات هر تماس بعد از پایان به آدرس دلخواه', wh ? (wh.enabled ? 'فعال' : 'غیرفعال') : '…', wh && wh.enabled ? ok : off, K),
       ] },
+      { title: 'حساب و شماره‌ها', sub: 'شماره‌های اختصاصی این مستأجر', items: [
+        card('account', 'شماره‌های من', I.phone, 'شماره‌های DID تخصیص‌شده به حساب شما برای تماس ورودی (IVR) و نمایش در پنل', (this.tenantInfo && (this.tenantInfo.dids || []).length)
+          ? ((this.tenantInfo.dids || []).length.toLocaleString('fa-IR') + ' شماره')
+          : 'مشاهده شماره‌های اختصاصی', null, G),
+      ] },
       { title: 'نگهداری و چندمستأجری', sub: 'مستأجرها، کاربران و بکاپ', items: [
         card('tenants', 'مستأجرها و DID (۳۱۹۸۵)', I.phone, 'ساخت مستأجر، تخصیص شماره‌های ۳۱۹۸۵۰۰۰ تا ۳۱۹۸۵۹۹۹، مقصد ورودی هر مستأجر', s.tenantsData ? s.tenantsData.tenants.length + ' مستأجر · ' + (s.tenantsData.pool?.free || 0).toLocaleString('fa-IR') + ' DID آزاد' : 'مدیریت چندمستأجری · کلیک کنید', null, G),
         card('dids', 'فهرست کامل DID (۳۱۹۸۵)', I.phone, 'همه شماره‌های ۳۱۹۸۵۰۰۰ تا ۳۱۹۸۵۹۹۹ به‌ترتیب: آزاد یا تخصیص‌شده به مستأجر/کاربر', s.tenantsData?.pool ? (s.tenantsData.pool.assigned || 0).toLocaleString('fa-IR') + ' تخصیص · ' + (s.tenantsData.pool.free || 0).toLocaleString('fa-IR') + ' آزاد' : '۱۰۰۰ شماره · جستجو و فیلتر', null, G),
@@ -575,7 +580,11 @@ class LiveApp extends React.Component {
     TITLES.dids = 'فهرست کامل DID';
     TITLES.vvm = 'صندوق پیام صوتی';
     TITLES.vsms = 'پیامک';
-    const shown = groups.map(g => ({ ...g, items: g.items.filter(it => canPage(it.page)) })).filter(g => g.items.length);
+    TITLES.account = 'شماره‌های من';
+    const shown = groups.map(g => ({
+      ...g,
+      items: g.items.filter(it => it.page === 'account' ? !!ME.tenantId : canPage(it.page)),
+    })).filter(g => g.items.length);
     const sec = PAGE_SECTION[s.page];
     const readOnly = !!sec && VOIP_SECTIONS.includes(sec) && !['add', 'edit', 'delete'].some(a => CAN(sec, a));
     return { hub: { groups: shown }, crumb: { show: !!TITLES[s.page] && canPage('settings'), title: TITLES[s.page] || '', back: go('settings'), readOnly } };
@@ -1489,6 +1498,8 @@ class LiveApp extends React.Component {
     c.aiconv = false;
     c.anyReports = canPage('reports') || canPage('creports') || canPage('aiops') || canPage('breport') || canPage('opconn');
     c.account = !!ME.tenantId;
+    // Tenant users always get Settings (at least «شماره‌های من») even without VoIP perms.
+    c.anySettings = c.anySettings || c.account;
     return { can: c };
   }
 
@@ -3600,9 +3611,10 @@ class LiveApp extends React.Component {
       <div style={{ minHeight: '100vh', background: 'linear-gradient(160deg,#F7F9FC 0%,#EEF8F7 45%,#E2ECFA 100%)', padding: '24px 20px 48px', fontFamily: 'IRANSansX, Tahoma, sans-serif', direction: 'rtl', color: '#0B2545' }}>
         <div style={{ maxWidth: 720, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div>
-            <button type="button" onClick={() => go('calls')} style={{ border: '1px solid #E3E8EF', background: '#fff', borderRadius: 10, padding: '6px 12px', cursor: 'pointer', marginBottom: 10, fontFamily: 'inherit' }}>← بازگشت</button>
-            <h1 style={{ margin: 0, fontSize: 22, fontFamily: "'Noto Kufi Arabic',sans-serif" }}>حساب من</h1>
-            <div style={{ color: '#5B6B82', fontSize: 13, marginTop: 4 }}>مشخصات مستأجر، شماره‌ها، اشتراک و فضای ذخیره‌سازی</div>
+            <button type="button" onClick={() => go('settings')} style={{ border: '1px solid #E3E8EF', background: '#fff', borderRadius: 10, padding: '6px 12px', cursor: 'pointer', marginBottom: 10, fontFamily: 'inherit' }}>→ بازگشت به تنظیمات</button>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11, fontWeight: 700, color: '#0A5C5B', background: '#E3F2F1', border: '1px solid #C7E6E3', padding: '3px 11px', borderRadius: 999, marginBottom: 8 }}>تنظیمات · حساب مستأجر</div>
+            <h1 style={{ margin: 0, fontSize: 22, fontFamily: "'Noto Kufi Arabic',sans-serif" }}>شماره‌های من</h1>
+            <div style={{ color: '#5B6B82', fontSize: 13, marginTop: 4 }}>شماره‌های اختصاصی، مشخصات مستأجر، اشتراک و فضای ذخیره‌سازی</div>
           </div>
 
           <div style={{ background: '#fff', border: '1px solid #E3E8EF', borderRadius: 16, padding: 18 }}>
@@ -3619,12 +3631,28 @@ class LiveApp extends React.Component {
           </div>
 
           <div style={{ background: '#fff', border: '1px solid #9FCFCC', borderRadius: 16, padding: 18 }}>
-            <div style={{ fontWeight: 800, marginBottom: 10 }}>شماره‌های اختصاصی (DID)</div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-              {(d.dids || []).length ? (d.dids || []).map(x => (
-                <span key={x.did} dir="ltr" style={{ background: '#E3F2F1', border: '1px solid #C7E6E3', borderRadius: 999, padding: '8px 14px', fontWeight: 800, fontSize: 15, letterSpacing: 0.5 }}>{x.did}</span>
-              )) : <span style={{ color: '#7A889C' }}>هنوز شماره‌ای تخصیص داده نشده</span>}
+            <div style={{ fontWeight: 800, marginBottom: 6 }}>شماره‌های من (DID)</div>
+            <div style={{ fontSize: 12.5, color: '#5B6B82', lineHeight: 1.9, marginBottom: 12 }}>
+              تماس ورودی به این شماره‌ها وارد منوی تلفنی (IVR) حساب شما می‌شود. برای تست، یکی از شماره‌ها را از خط بیرونی بگیرید.
             </div>
+            {(d.dids || []).length ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {(d.dids || []).map((x, i) => (
+                  <div key={x.did} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', background: '#F7FBF9', border: '1px solid #C7E6E3', borderRadius: 14, padding: '12px 14px' }}>
+                    <div>
+                      <div dir="ltr" style={{ fontWeight: 800, fontSize: 18, letterSpacing: 0.6, color: '#0B2545' }}>{x.did}</div>
+                      <div style={{ fontSize: 11.5, color: '#7A889C', marginTop: 2 }}>
+                        {i === 0 ? 'پیشنهاد تست ورودی · منوی IVR' : 'ورودی به همان منوی IVR'}
+                        {x.note ? ' · ' + x.note : ''}
+                      </div>
+                    </div>
+                    <span style={{ fontSize: 11, fontWeight: 700, color: '#0A5C5B', background: '#E3F2F1', border: '1px solid #C7E6E3', borderRadius: 999, padding: '4px 10px' }}>تخصیص‌شده</span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div style={{ color: '#7A889C', fontSize: 13, lineHeight: 1.8 }}>هنوز شماره‌ای به این مستأجر تخصیص داده نشده است. از مدیر سامانه بخواهید DID اختصاص دهد.</div>
+            )}
           </div>
 
           <div style={{ background: '#fff', border: '1px solid #E3E8EF', borderRadius: 16, padding: 18 }}>
@@ -3806,7 +3834,23 @@ export default class App extends LiveApp {
  componentDidMount(){this.init();}
  componentWillUnmount(){this.teardown();}
  play(id){this.playCall(id);}
- mkDests(s){return [...s.vqs.map(q=>({id:'q:'+q.id,label:'صف '+q.name+' ('+q.num+')'})),...s.rgroups.map(g=>({id:'rg:'+g.id,label:'گروه زنگ '+g.name+' ('+g.num+')'})),...s.ivrs.map(i=>({id:'ivr:'+i.id,label:'IVR: '+i.name})),...s.tconds.map(t=>({id:'tc:'+t.id,label:'شرط زمانی: '+t.name})),...s.exts.map(e=>({id:'e:'+e.n,label:'داخلی '+e.n+' – '+e.name})),...s.snds.map(x=>({id:'ann:'+x.id,label:'پخش پیام «'+x.name+'» و قطع'})),{id:'vm',label:'صندوق پیام صوتی'},{id:'busy',label:'بوق اشغال'},{id:'hang',label:'قطع تماس'}];}
+ mkDests(s){
+  // book/booktrack must be listed so IVR keys with dest=book show the real label (not «—»)
+  // and can be changed; missing them left key 2 stuck on نوبت‌دهی مرکزی while the panel looked empty.
+  return [
+    ...s.vqs.map(q=>({id:'q:'+q.id,label:'صف '+q.name+' ('+q.num+')'})),
+    ...s.rgroups.map(g=>({id:'rg:'+g.id,label:'گروه زنگ '+g.name+' ('+g.num+')'})),
+    ...s.ivrs.map(i=>({id:'ivr:'+i.id,label:'IVR: '+i.name})),
+    ...s.tconds.map(t=>({id:'tc:'+t.id,label:'شرط زمانی: '+t.name})),
+    ...s.exts.map(e=>({id:'e:'+e.n,label:'داخلی '+e.n+' – '+e.name})),
+    ...s.snds.map(x=>({id:'ann:'+x.id,label:'پخش پیام «'+x.name+'» و قطع'})),
+    {id:'book',label:'نوبت‌دهی تلفنی (ثبت نوبت)'},
+    {id:'booktrack',label:'پیگیری نوبت'},
+    {id:'vm',label:'صندوق پیام صوتی'},
+    {id:'busy',label:'بوق اشغال'},
+    {id:'hang',label:'قطع تماس'},
+  ];
+}
  toggleBl(num){const has=this.state.blist.some(b=>b.num===num);this.setState(st=>({blist:has?st.blist.filter(b=>b.num!==num):[{num,reason:'other',note:'افزوده‌شده از پرونده بیمار',date:TODAY,by:ME.name,hits:0,today:0,last:'—'},...st.blist]}));this.toast(has?'شماره از لیست سیاه حذف شد':'شماره به لیست سیاه اضافه شد');}
  tcState(s,t){const g=s.tgroups.find(x=>x.id===t.group);const d=new Date();const wd=jWeekday(d);const hm=pad(d.getHours())+':'+pad(d.getMinutes());const hol=t.useHol&&s.holidays.some(x=>x.date===TODAY);let inR=!!g&&g.ranges.some(r=>r.days.includes(wd)&&hm>=r.from&&hm<r.to);if(hol)inR=false;if(t.ovr==='open')inR=true;if(t.ovr==='closed')inR=false;return {inR,hol};}
  voip2(s){
