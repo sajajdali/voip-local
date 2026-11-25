@@ -659,7 +659,12 @@ class LiveApp extends React.Component {
       // Always refresh the form from the server when opening; keep in-progress edits only while already on the page
       // Rewrite dead Kamilo LAN URL so استعلام آزمایشی (which persist()s first) cannot re-save .88.254:8010
       const settings = { ...(d.settings || {}) };
-      const fixKm = (u) => (/192\.168\.88\.254|192\.168\.100\.230:8080|:8010/.test(String(u || '')) ? 'http://127.0.0.1:18080/api' : u);
+      const fixKm = (u) => {
+        const s = String(u || '');
+        if (/^https?:\/\/kamilo(?::\d+)?(?:\/|$)/i.test(s)) return 'https://kamilo.ir/api';
+        if (/192\.168\.88\.254|192\.168\.100\.230:8080|:8010/.test(s)) return 'http://127.0.0.1:18080/api';
+        return u;
+      };
       settings.kmUrl = fixKm(settings.kmUrl);
       this.setState(st => ({
         crmData: { ...d, settings },
@@ -685,7 +690,8 @@ class LiveApp extends React.Component {
     const isCrm = f.provider === 'crm' || (!isDg && !isKm);
     const persist = async () => {
       const body = { ...f };
-      if (/192\.168\.88\.254/.test(String(body.kmUrl || ''))) body.kmUrl = 'http://192.168.100.230:8080/api';
+      if (/^https?:\/\/kamilo(?::\d+)?(?:\/|$)/i.test(String(body.kmUrl || ''))) body.kmUrl = 'https://kamilo.ir/api';
+      else if (/192\.168\.88\.254|192\.168\.100\.230:8080|:8010/.test(String(body.kmUrl || ''))) body.kmUrl = 'http://127.0.0.1:18080/api';
       const r = await api('/crm', body, 'PUT');
       this.setState(x => ({ crmData: { ...(x.crmData || { status: {} }), settings: r }, crmForm: { ...body, pass: '', dgToken: '', kmToken: '' } }));
       return r;

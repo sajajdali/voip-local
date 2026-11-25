@@ -26,9 +26,13 @@ const DEFAULTS: CrmSettings = {
 /** Dead Mac LAN URL (callcenter cannot reach :8010 / .88.254). استعلام آزمایشی persists the form first — rewrite so a stale browser field cannot keep writing it back. */
 /** Reachable from callcenter via SSH reverse tunnel Mac:8080 → 127.0.0.1:18080 (LAN :8010/.88.254 and flaky Wi‑Fi :8080 fail). */
 export const KAMILO_LIVE_KM_URL = 'http://127.0.0.1:18080/api';
+/** Public production Kamilo — bare host `kamilo` fails DNS (`getaddrinfo EAI_AGAIN kamilo`) on سرور لوکال. */
+export const KAMILO_PROD_KM_URL = 'https://kamilo.ir/api';
 export function migrateKamiloKmUrl(url: string): string {
   const u = String(url || '').trim().replace(/\/+$/, '');
   if (!u) return u;
+  // Hostname literally `kamilo` (no TLD) — not in callcenter DNS
+  if (/^https?:\/\/kamilo(?::\d+)?(?:\/|$)/i.test(u)) return KAMILO_PROD_KM_URL;
   // Unreachable from سرور لوکال: old Mac alias :8010, or direct Wi‑Fi :8080 (drops under load)
   if (/192\.168\.88\.254/.test(u)) return KAMILO_LIVE_KM_URL;
   if (/192\.168\.100\.230:8080/.test(u)) return KAMILO_LIVE_KM_URL;
